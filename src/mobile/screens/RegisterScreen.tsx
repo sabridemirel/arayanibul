@@ -25,7 +25,7 @@ interface RegisterFormData extends RegisterData {
 }
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
-  const { register, googleLogin, facebookLogin, guestLogin, isLoading } = useAuth();
+  const { register, googleLogin, facebookLogin, guestContinue, isLoading } = useAuth();
   const [showGuestModal, setShowGuestModal] = useState(false);
 
   const validateRegister = (values: RegisterFormData) => {
@@ -119,7 +119,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const handleGuestLogin = async () => {
     try {
       setShowGuestModal(false);
-      await guestLogin();
+      await guestContinue();
       Alert.alert('Başarılı', 'Misafir girişi başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);

@@ -6,18 +6,21 @@ Arayanibul, geleneksel marketplace modelini tersine çeviren bir mobil platformd
 
 ## Gereksinimler
 
-### Gereksinim 1: Kullanıcı Kimlik Doğrulama ve Profil Yönetimi
+### Gereksinim 1: Kullanıcı Deneyimi ve Kimlik Doğrulama
 
-**User Story:** Bir kullanıcı olarak, platforma güvenli bir şekilde giriş yapabilmek ve profilimi yönetebilmek istiyorum, böylece kişiselleştirilmiş bir deneyim yaşayabilirim.
+**User Story:** Bir kullanıcı olarak, uygulamayı önce keşfedebilmek ve istediğimde üye olabilmek istiyorum, böylece platformu tanıyıp güven duyduğumda kayıt olabilirim.
 
 #### Kabul Kriterleri
 
-1. WHEN kullanıcı kayıt ol butonuna tıkladığında THEN sistem email, şifre ve temel profil bilgilerini isteyecek
-2. WHEN kullanıcı geçerli email ve şifre girdiğinde THEN sistem JWT token ile giriş yapmasına izin verecek
-3. WHEN kullanıcı Google ile giriş yapmak istediğinde THEN sistem OAuth ile Google hesabı ile giriş yapmasına izin verecek
-4. WHEN kullanıcı Facebook ile giriş yapmak istediğinde THEN sistem OAuth ile Facebook hesabı ile giriş yapmasına izin verecek
-5. WHEN kullanıcı misafir olarak devam etmek istediğinde THEN sistem sınırlı erişim ile platforma girmesine izin verecek
-6. WHEN kullanıcı profil bilgilerini güncellemek istediğinde THEN sistem ad, soyad, telefon ve konum bilgilerini düzenlemesine izin verecek
+1. WHEN kullanıcı uygulamayı ilk açtığında THEN sistem misafir modunda ana sayfayı gösterecek ve ihtiyaçları görüntülemesine izin verecek
+2. WHEN misafir kullanıcı ihtiyaç detaylarını görüntülemek istediğinde THEN sistem tüm detayları gösterecek ancak teklif verme için üyelik isteyecek
+3. WHEN misafir kullanıcı üye olmak istediğinde THEN sistem ana sayfada "Giriş Yap" ve "Kayıt Ol" butonlarını sunacak
+4. WHEN kullanıcı kayıt ol butonuna tıkladığında THEN sistem email, şifre ve temel profil bilgilerini isteyecek
+5. WHEN kullanıcı geçerli email ve şifre girdiğinde THEN sistem JWT token ile giriş yapmasına izin verecek
+6. WHEN kullanıcı Google ile giriş yapmak istediğinde THEN sistem OAuth ile Google hesabı ile giriş yapmasına izin verecek
+7. WHEN kullanıcı Facebook ile giriş yapmak istediğinde THEN sistem OAuth ile Facebook hesabı ile giriş yapmasına izin verecek
+8. WHEN üye kullanıcı profil bilgilerini güncellemek istediğinde THEN sistem ad, soyad, telefon ve konum bilgilerini düzenlemesine izin verecek
+9. WHEN üye kullanıcı çıkış yapmak istediğinde THEN sistem çıkış yapma seçeneği sunacak ve misafir moduna dönmesine izin verecek
 
 ### Gereksinim 2: İhtiyaç Listesi Oluşturma (Alıcı Perspektifi)
 
@@ -135,3 +138,17 @@ Arayanibul, geleneksel marketplace modelini tersine çeviren bir mobil platformd
 4. WHEN kullanıcı popüler ihtiyaçları görmek istediğinde THEN sistem en çok teklif alan ihtiyaçları gösterecek
 5. WHEN kullanıcı yakındaki ihtiyaçları görmek istediğinde THEN sistem konum bazlı sonuçları gösterecek
 6. WHEN kullanıcı arama geçmişini görüntülemek istediğinde THEN sistem son aramaları gösterecek ve tekrar arama imkanı verecek
+
+### Gereksinim 11: Misafir Kullanıcı Deneyimi ve Dönüşüm
+
+**User Story:** Bir misafir kullanıcı olarak, platformu keşfederken değer görebilmek ve üye olmaya teşvik edilmek istiyorum, böylece platformun faydalarını anlayıp kayıt olmaya karar verebilirim.
+
+#### Kabul Kriterleri
+
+1. WHEN misafir kullanıcı ana sayfada gezinirken THEN sistem ihtiyaçları görüntülemesine izin verecek ancak etkileşim için üyelik teşvik edecek
+2. WHEN misafir kullanıcı teklif vermeye çalıştığında THEN sistem "Teklif vermek için üye olun" mesajı gösterecek ve kayıt sayfasına yönlendirecek
+3. WHEN misafir kullanıcı ihtiyaç oluşturmaya çalıştığında THEN sistem "İhtiyaç oluşturmak için üye olun" mesajı gösterecek
+4. WHEN misafir kullanıcı mesajlaşmaya çalıştığında THEN sistem üyelik gerekliliğini belirtecek
+5. WHEN misafir kullanıcı 3'ten fazla ihtiyaç detayı görüntülediğinde THEN sistem "Daha fazlası için üye olun" teşvik mesajı gösterecek
+6. WHEN misafir kullanıcı ana sayfada scroll yaparken THEN sistem periyodik olarak üyelik avantajlarını vurgulayan banner gösterecek
+7. WHEN misafir kullanıcı uygulamayı kapatıp tekrar açtığında THEN sistem önceki oturumunu hatırlayacak ve misafir modunda devam etmesine izin verecek

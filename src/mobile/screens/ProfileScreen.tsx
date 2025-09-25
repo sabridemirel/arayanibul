@@ -15,6 +15,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { Button, Card, Loading, ErrorMessage, NotificationBadge, UserRatingDisplay } from '../components/ui';
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { User } from '../types';
+import { withProfileAuth } from '../hoc/withAuthPrompt';
 
 interface Props {
   navigation: any;
@@ -418,4 +419,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProfileScreen;
+export default withProfileAuth(ProfileScreen);

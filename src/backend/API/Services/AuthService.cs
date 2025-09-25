@@ -119,7 +119,9 @@ public class AuthService : IAuthService
             FirstName = "Misafir",
             LastName = "Kullanıcı",
             IsGuest = true,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         var result = await _userManager.CreateAsync(guestUser);
@@ -137,6 +139,73 @@ public class AuthService : IAuthService
         {
             Success = true,
             Message = "Misafir girişi başarılı",
+            Token = tokenResponse.AccessToken,
+            RefreshToken = tokenResponse.RefreshToken,
+            User = MapToUserDto(guestUser)
+        };
+    }
+
+    public async Task<AuthResponseDto> ConvertGuestToUserAsync(string guestId, RegisterDto registerDto)
+    {
+        var guestUser = await _userManager.FindByIdAsync(guestId);
+        if (guestUser == null || !guestUser.IsGuest)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Message = "Geçersiz misafir kullanıcı."
+            };
+        }
+
+        // Check if email is already in use by another user
+        var existingUser = await _userManager.FindByEmailAsync(registerDto.Email);
+        if (existingUser != null && existingUser.Id != guestId)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Message = "Bu email zaten kullanılıyor."
+            };
+        }
+
+        // Update guest user to regular user
+        guestUser.UserName = registerDto.Email;
+        guestUser.Email = registerDto.Email;
+        guestUser.FirstName = registerDto.FirstName;
+        guestUser.LastName = registerDto.LastName;
+        guestUser.IsGuest = false;
+        guestUser.UpdatedAt = DateTime.UtcNow;
+        guestUser.Provider = "Local";
+
+        // Add password to the guest user
+        var token = await _userManager.GeneratePasswordResetTokenAsync(guestUser);
+        var passwordResult = await _userManager.ResetPasswordAsync(guestUser, token, registerDto.Password);
+        
+        if (!passwordResult.Succeeded)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Message = string.Join(", ", passwordResult.Errors.Select(e => e.Description))
+            };
+        }
+
+        var updateResult = await _userManager.UpdateAsync(guestUser);
+        if (!updateResult.Succeeded)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Message = "Kullanıcı dönüşümü başarısız."
+            };
+        }
+
+        // Generate new tokens for the converted user
+        var tokenResponse = await GenerateTokensAsync(guestUser);
+        return new AuthResponseDto
+        {
+            Success = true,
+            Message = "Hesap başarıyla oluşturuldu",
             Token = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,
             User = MapToUserDto(guestUser)
@@ -190,7 +259,7 @@ public class AuthService : IAuthService
         
         // Revoke existing active refresh tokens for the user
         var existingTokens = await _context.RefreshTokens
-            .Where(rt => rt.UserId == user.Id && rt.IsActive)
+            .Where(rt => rt.UserId == user.Id && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow)
             .ToListAsync();
         
         foreach (var token in existingTokens)
@@ -368,7 +437,7 @@ public class AuthService : IAuthService
         {
             // Revoke all active refresh tokens for the user
             var activeTokens = await _context.RefreshTokens
-                .Where(rt => rt.UserId == userId && rt.IsActive)
+                .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow)
                 .ToListAsync();
             
             foreach (var token in activeTokens)
@@ -409,6 +478,35 @@ public class AuthService : IAuthService
         catch
         {
             return Task.FromResult(false);
+        }
+    }
+
+    public async Task CleanupExpiredGuestSessionsAsync()
+    {
+        // Clean up guest users older than 7 days
+        var cutoffDate = DateTime.UtcNow.AddDays(-7);
+        
+        var expiredGuestUsers = await _context.Users
+            .Where(u => u.IsGuest && u.CreatedAt < cutoffDate)
+            .ToListAsync();
+
+        if (expiredGuestUsers.Any())
+        {
+            // First, clean up related refresh tokens
+            var guestUserIds = expiredGuestUsers.Select(u => u.Id).ToList();
+            var expiredTokens = await _context.RefreshTokens
+                .Where(rt => guestUserIds.Contains(rt.UserId))
+                .ToListAsync();
+            
+            _context.RefreshTokens.RemoveRange(expiredTokens);
+
+            // Remove the guest users
+            foreach (var guestUser in expiredGuestUsers)
+            {
+                await _userManager.DeleteAsync(guestUser);
+            }
+
+            await _context.SaveChangesAsync();
         }
     }
 

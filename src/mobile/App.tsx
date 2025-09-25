@@ -1,64 +1,111 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar, View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { StatusBar, View, Text, StyleSheet } from 'react-native';
+import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 
-// Simple screens for now
-const HomeScreen = () => (
-  <SafeAreaView style={styles.container}>
-    <View style={styles.content}>
-      <Text style={styles.title}>🎉 Arayanibul</Text>
-      <Text style={styles.subtitle}>Ana Sayfa</Text>
-      <Text style={styles.description}>
-        Backend API çalışıyor!{'\n'}
-        http://localhost:5000
-      </Text>
-    </View>
-  </SafeAreaView>
-);
+// Import real screens
+import LoginScreen from './screens/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen';
+import HomeScreen from './screens/HomeScreen';
+import NeedDetailScreen from './screens/NeedDetailScreen';
+import SearchScreen from './screens/SearchScreen';
+import CreateNeedScreen from './screens/CreateNeedScreen';
+import CreateOfferScreen from './screens/CreateOfferScreen';
+import MyNeedsScreen from './screens/MyNeedsScreen';
+import MyOffersScreen from './screens/MyOffersScreen';
+import ConversationsScreen from './screens/ConversationsScreen';
+import ChatScreen from './screens/ChatScreen';
+import ProfileScreen from './screens/ProfileScreen';
 
-const LoginScreen = () => (
-  <SafeAreaView style={styles.container}>
-    <View style={styles.content}>
-      <Text style={styles.title}>🔐 Giriş</Text>
-      <Text style={styles.description}>
-        Giriş ekranı geliştiriliyor...
-      </Text>
-    </View>
-  </SafeAreaView>
-);
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 const Stack = createStackNavigator();
 
-function AppNavigator({ isAuthenticated }: { isAuthenticated: boolean }) {
+function AppNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <Stack.Screen name="Home" component={HomeScreen} />
-        ) : (
+      <Stack.Navigator 
+        screenOptions={{ 
+          headerShown: false,
+          // Default stack presentation
+          presentation: 'card'
+        }}
+      >
+        {/* Main app screens - always accessible */}
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Search" component={SearchScreen} />
+        <Stack.Screen name="NeedDetail" component={NeedDetailScreen} />
+        
+        {/* Auth screens - presented as modals */}
+        <Stack.Group screenOptions={{ presentation: 'modal' }}>
           <Stack.Screen name="Login" component={LoginScreen} />
-        )}
+          <Stack.Screen name="Register" component={RegisterScreen} />
+        </Stack.Group>
+        
+        {/* Protected screens - require authentication */}
+        <Stack.Screen name="CreateNeed" component={CreateNeedScreen} />
+        <Stack.Screen name="CreateOffer" component={CreateOfferScreen} />
+        <Stack.Screen name="MyNeeds" component={MyNeedsScreen} />
+        <Stack.Screen name="MyOffers" component={MyOffersScreen} />
+        <Stack.Screen name="Conversations" component={ConversationsScreen} />
+        <Stack.Screen name="Chat" component={ChatScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
 function AppContent() {
-  const { user } = useAuth();
-  const isAuthenticated = !!user;
-
   return (
     <>
       <StatusBar barStyle="dark-content" />
-      <AppNavigator isAuthenticated={isAuthenticated} />
+      <AppNavigator />
     </>
   );
 }
 
+// Loading component
+function LoadingScreen() {
+  return (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>🎉 Arayanibul</Text>
+      <Text style={styles.loadingSubtext}>Yükleniyor...</Text>
+    </View>
+  );
+}
+
 export default function App() {
+  const [appIsReady, setAppIsReady] = useState(false);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Pre-load fonts, make any API calls you need to do here
+        await Font.loadAsync({
+          // Load any custom fonts here if needed
+          // For now, we just ensure the system is ready for vector icons
+        });
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Tell the application to render
+        setAppIsReady(true);
+        SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
+  }, []);
+
+  if (!appIsReady) {
+    return <LoadingScreen />;
+  }
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -69,32 +116,21 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  content: {
+  loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    backgroundColor: '#f8f9fa',
   },
-  title: {
+  loadingText: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#007bff',
     marginBottom: 10,
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 30,
-  },
-  description: {
+  loadingSubtext: {
     fontSize: 16,
-    textAlign: 'center',
-    color: '#333',
-    marginBottom: 30,
-    lineHeight: 24,
+    color: '#666',
   },
 });
+

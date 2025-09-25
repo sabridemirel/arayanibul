@@ -16,9 +16,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { RootStackParamList, CreateReviewRequest, UpdateReviewRequest, Review } from '../types';
 import { reviewAPI } from '../services/api';
 import { StarRating } from '../components/ui/StarRating';
-import { Button } from '../components/ui/Button';
-import { Loading } from '../components/ui/Loading';
-import { ErrorMessage } from '../components/ui/ErrorMessage';
+import Button from '../components/ui/Button';
+import Loading from '../components/ui/Loading';
+import ErrorMessage from '../components/ui/ErrorMessage';
 import { useAuth } from '../contexts/AuthContext';
 
 type ReviewScreenRouteProp = RouteProp<RootStackParamList, 'Review'>;

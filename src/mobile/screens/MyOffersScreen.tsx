@@ -377,7 +377,7 @@ const MyOffersScreen: React.FC = () => {
               {selectedFilter === 'all' && (
                 <Button
                   title="İhtiyaçlara Göz At"
-                  onPress={() => navigation.navigate('Main')}
+                  onPress={() => navigation.navigate('Home')}
                   style={styles.emptyButton}
                 />
               )}

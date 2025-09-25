@@ -12,6 +12,8 @@ export const theme: Theme = {
     error: '#dc3545',
     success: '#28a745',
     warning: '#ffc107',
+    info: '#17a2b8',
+    primaryLight: 'rgba(0, 123, 255, 0.1)',
   },
   spacing: {
     xs: 4,
@@ -23,23 +25,23 @@ export const theme: Theme = {
   typography: {
     h1: {
       fontSize: 32,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
     },
     h2: {
       fontSize: 24,
-      fontWeight: 'bold',
+      fontWeight: 'bold' as const,
     },
     h3: {
       fontSize: 20,
-      fontWeight: '600',
+      fontWeight: '600' as const,
     },
     body: {
       fontSize: 16,
-      fontWeight: 'normal',
+      fontWeight: 'normal' as const,
     },
     caption: {
       fontSize: 12,
-      fontWeight: 'normal',
+      fontWeight: 'normal' as const,
     },
   },
   borderRadius: {

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-na
 import { MaterialIcons } from '@expo/vector-icons';
 import { Review } from '../../types';
 import { StarRating } from './StarRating';
-import { Card } from './Card';
+import Card from './Card';
 
 interface ReviewCardProps {
   review: Review;

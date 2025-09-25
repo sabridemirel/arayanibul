@@ -14,8 +14,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { RootStackParamList, Review } from '../types';
 import { reviewAPI } from '../services/api';
 import { ReviewCard } from '../components/ui/ReviewCard';
-import { Loading } from '../components/ui/Loading';
-import { ErrorMessage } from '../components/ui/ErrorMessage';
+import Loading from '../components/ui/Loading';
+import ErrorMessage from '../components/ui/ErrorMessage';
 import { useAuth } from '../contexts/AuthContext';
 
 type ReviewHistoryScreenRouteProp = RouteProp<RootStackParamList, 'ReviewHistory'>;

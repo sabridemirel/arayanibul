@@ -23,6 +23,7 @@ import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
+import { withCreateNeedAuth } from '../hoc/withAuthPrompt';
 
 type CreateNeedScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateNeed'>;
 
@@ -307,7 +308,7 @@ const CreateNeedScreen: React.FC = () => {
             <TouchableOpacity
               style={[
                 styles.categorySelector,
-                errors.categoryId && styles.categoryError,
+                errors.categoryId ? styles.categoryError : null,
               ]}
               onPress={() => setShowCategoryModal(true)}
             >
@@ -609,4 +610,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateNeedScreen;
+export default withCreateNeedAuth(CreateNeedScreen);

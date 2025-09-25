@@ -23,23 +23,35 @@ export type {
 
 // Navigation types
 export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
+  // Main app screens (always accessible)
+  Home: undefined;
+  Search: undefined;
   NeedDetail: { needId: number };
+  
+  // Auth screens (modal presentation)
+  Login: undefined;
+  Register: undefined;
+  
+  // Protected screens (require authentication)
   CreateNeed: undefined;
   CreateOffer: { needId: number };
-  OfferDetail: { offerId: number };
+  MyNeeds: undefined;
+  MyOffers: undefined;
+  Conversations: undefined;
   Chat: { offerId: number };
   Profile: { userId?: string };
-  MyOffers: undefined;
+  EditProfile: undefined;
+  NotificationSettings: undefined;
+  Notifications: undefined;
   Review: {
     revieweeId: string;
     revieweeName: string;
     offerId?: number;
-    existingReview?: Review;
+    existingReview?: import('../services/api').Review;
     mode?: 'create' | 'edit';
   };
   ReviewHistory: { userId?: string };
+  SecuritySettings: undefined;
 };
 
 export type AuthStackParamList = {
@@ -92,6 +104,8 @@ export interface Theme {
     error: string;
     success: string;
     warning: string;
+    info: string;
+    primaryLight: string;
   };
   spacing: {
     xs: number;

@@ -172,17 +172,14 @@ const SearchScreen: React.FC = () => {
         lng: 28.9784
       };
       setUserLocation(userLoc);
-        return userLoc;
-      } else {
-        Alert.alert(
-          'Konum İzni',
-          'Yakındaki ihtiyaçları görmek için konum izni gereklidir.',
-          [{ text: 'Tamam' }]
-        );
-        return null;
-      }
+      return userLoc;
     } catch (err) {
       console.error('Konum alınırken hata:', err);
+      Alert.alert(
+        'Konum İzni',
+        'Yakındaki ihtiyaçları görmek için konum izni gereklidir.',
+        [{ text: 'Tamam' }]
+      );
       return null;
     }
   }, []);

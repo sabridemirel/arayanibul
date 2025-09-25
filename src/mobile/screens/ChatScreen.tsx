@@ -22,6 +22,7 @@ import { messageAPI, offerAPI } from '../services/api';
 import { Message, SendMessageRequest, Offer } from '../types';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
+import { withMessageAuth } from '../hoc/withAuthPrompt';
 
 type RootStackParamList = {
   Chat: { offerId: number };
@@ -53,7 +54,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           >
             <Image
               source={{ uri: message.attachmentUrl }}
-              style={styles.messageImage}
+              style={styles.messageImage as any}
               resizeMode="cover"
             />
             {message.content && (
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight,
+    fontWeight: typography.h3.fontWeight as any,
     color: colors.text,
   },
   headerSubtitle: {
@@ -445,4 +446,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChatScreen;
+export default withMessageAuth(ChatScreen);

@@ -23,6 +23,7 @@ import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
+import { withMakeOfferAuth } from '../hoc/withAuthPrompt';
 
 type CreateOfferScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateOffer'>;
 type CreateOfferScreenRouteProp = RouteProp<RootStackParamList, 'CreateOffer'>;
@@ -272,7 +273,7 @@ const CreateOfferScreen: React.FC = () => {
               </Text>
               <View style={styles.priceInputContainer}>
                 <TextInput
-                  style={[styles.priceInput, errors.price && styles.inputError]}
+                  style={[styles.priceInput, errors.price ? styles.inputError : null]}
                   value={price}
                   onChangeText={setPrice}
                   placeholder="0"
@@ -297,7 +298,7 @@ const CreateOfferScreen: React.FC = () => {
                 Açıklama <Text style={styles.required}>*</Text>
               </Text>
               <TextInput
-                style={[styles.textArea, errors.description && styles.inputError]}
+                style={[styles.textArea, errors.description ? styles.inputError : null]}
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Teklifinizi detaylı olarak açıklayın..."
@@ -323,7 +324,7 @@ const CreateOfferScreen: React.FC = () => {
               </Text>
               <View style={styles.deliveryInputContainer}>
                 <TextInput
-                  style={[styles.deliveryInput, errors.deliveryDays && styles.inputError]}
+                  style={[styles.deliveryInput, errors.deliveryDays ? styles.inputError : null]}
                   value={deliveryDays}
                   onChangeText={setDeliveryDays}
                   placeholder="0"
@@ -567,4 +568,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreateOfferScreen;
+export default withMakeOfferAuth(CreateOfferScreen);

@@ -20,18 +20,42 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
+import Header from '../components/ui/Header';
+import AuthPromptModal from '../components/ui/AuthPromptModal';
+import ConversionBanner from '../components/ui/ConversionBanner';
+import GuestWelcomeCard from '../components/ui/GuestWelcomeCard';
 import { VirtualizedList } from '../components/ui/VirtualizedList';
 import { LazyImage } from '../components/ui/LazyImage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
+import { useAuthPrompt } from '../hooks/useAuthPrompt';
+import { useConversionPrompts } from '../hooks/useConversionPrompts';
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { user } = useAuth();
+  const { user, trackGuestAction } = useAuth();
   const { measureOperation } = usePerformanceMonitor('HomeScreen');
+  const { 
+    requireAuthForGuest, 
+    modalVisible, 
+    modalContext, 
+    handleLogin, 
+    handleRegister, 
+    handleDismiss 
+  } = useAuthPrompt();
+  
+  const {
+    showSoftPrompt,
+    showScrollPrompt,
+    viewCount,
+    handleAuthAction,
+    handleDismissPrompt,
+    trackScrollAction,
+    isGuest
+  } = useConversionPrompts();
   
   const [needs, setNeeds] = useState<Need[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -41,6 +65,7 @@ const HomeScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<NeedFilters>({});
   const [showFilters, setShowFilters] = useState(false);
+  const [showWelcomeCard, setShowWelcomeCard] = useState(true);
 
   const loadNeeds = useCallback(async (refresh = false) => {
     await measureOperation('loadNeeds', async () => {
@@ -60,7 +85,7 @@ const HomeScreen: React.FC = () => {
         // Use optimized API service with caching for non-refresh requests
         const needsData = refresh 
           ? await needAPI.getNeeds(searchFilters)
-          : await optimizedApiService.get('/api/need', {
+          : await optimizedApiService.get('/need', {
               categoryId: searchFilters.categoryId,
               minBudget: searchFilters.minBudget,
               maxBudget: searchFilters.maxBudget,
@@ -75,7 +100,7 @@ const HomeScreen: React.FC = () => {
               cache: true, 
               cacheTime: 2 * 60 * 1000 // 2 minutes cache
             });
-        const items = Array.isArray(needsData) ? needsData : (needsData?.items || []);
+        const items = Array.isArray(needsData) ? needsData : ((needsData as any)?.items || []);
         setNeeds(items);
       } catch (err: any) {
         setError(err.response?.data?.message || 'İhtiyaçlar yüklenirken hata oluştu');
@@ -90,11 +115,11 @@ const HomeScreen: React.FC = () => {
     await measureOperation('loadCategories', async () => {
       try {
         // Use optimized API service with longer cache for categories
-        const categoriesData = await optimizedApiService.get('/api/category', {}, { 
+        const categoriesData = await optimizedApiService.get('/category', {}, { 
           cache: true, 
           cacheTime: 30 * 60 * 1000 // 30 minutes cache
         });
-        setCategories(categoriesData);
+        setCategories(categoriesData as Category[]);
       } catch (err) {
         console.error('Kategoriler yüklenirken hata:', err);
       }
@@ -111,19 +136,25 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleNeedPress = (needId: number) => {
+    // Track guest action for viewing needs
+    if (user?.isGuest) {
+      trackGuestAction({
+        type: 'view_need',
+        needId,
+        context: { source: 'home_list' }
+      });
+    }
     navigation.navigate('NeedDetail', { needId });
   };
 
   const handleCreateNeed = () => {
-    if (user?.isGuest) {
-      Alert.alert(
-        'Giriş Gerekli',
-        'İhtiyaç oluşturmak için giriş yapmanız gerekiyor.',
-        [{ text: 'Tamam' }]
-      );
-      return;
-    }
-    navigation.navigate('CreateNeed');
+    requireAuthForGuest('create_need', () => {
+      navigation.navigate('CreateNeed');
+    });
+  };
+
+  const handleSearchPress = () => {
+    navigation.navigate('Search');
   };
 
   const getUrgencyColor = (urgency: string) => {
@@ -253,18 +284,13 @@ const HomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>İhtiyaçlar</Text>
-      <View style={styles.headerActions}>
-        <TouchableOpacity 
-          onPress={() => setShowFilters(!showFilters)}
-          style={styles.filterButton}
-        >
-          <MaterialIcons name="filter-list" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-    </View>
+  const renderFilterButton = () => (
+    <TouchableOpacity 
+      onPress={() => setShowFilters(!showFilters)}
+      style={styles.filterButton}
+    >
+      <MaterialIcons name="filter-list" size={24} color={colors.primary} />
+    </TouchableOpacity>
   );
 
   const renderSearchBar = () => (
@@ -304,31 +330,82 @@ const HomeScreen: React.FC = () => {
     </View>
   );
 
+  const renderGuestContent = () => {
+    if (!isGuest) return null;
+    
+    return (
+      <View>
+        {/* Welcome card for new guests */}
+        {showWelcomeCard && viewCount === 0 && (
+          <GuestWelcomeCard
+            onGetStarted={() => {
+              setShowWelcomeCard(false);
+              handleAuthAction();
+            }}
+          />
+        )}
+        
+        {/* Conversion prompts */}
+        {showSoftPrompt && (
+          <ConversionBanner
+            type="soft_prompt"
+            viewCount={viewCount}
+            onAuthAction={handleAuthAction}
+            onDismiss={() => handleDismissPrompt('soft')}
+          />
+        )}
+        
+        {showScrollPrompt && (
+          <ConversionBanner
+            type="scroll_prompt"
+            onAuthAction={handleAuthAction}
+            onDismiss={() => handleDismissPrompt('scroll')}
+          />
+        )}
+      </View>
+    );
+  };
+
   if (loading && !refreshing) {
     return (
-      <SafeAreaView style={styles.container}>
-        {renderHeader()}
+      <View style={styles.container}>
+        <Header 
+          title="İhtiyaçlar" 
+          showSearch 
+          onSearchPress={handleSearchPress}
+          rightComponent={renderFilterButton()}
+        />
         <Loading text="İhtiyaçlar yükleniyor..." />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        {renderHeader()}
+      <View style={styles.container}>
+        <Header 
+          title="İhtiyaçlar" 
+          showSearch 
+          onSearchPress={handleSearchPress}
+          rightComponent={renderFilterButton()}
+        />
         <ErrorMessage 
           message={error} 
           onRetry={() => loadNeeds()} 
           showRetry 
         />
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {renderHeader()}
+    <View style={styles.container}>
+      <Header 
+        title="İhtiyaçlar" 
+        showSearch 
+        onSearchPress={handleSearchPress}
+        rightComponent={renderFilterButton()}
+      />
       {renderSearchBar()}
       
       <VirtualizedList
@@ -344,11 +421,14 @@ const HomeScreen: React.FC = () => {
           />
         }
         ListEmptyComponent={renderEmptyState}
+        ListHeaderComponent={renderGuestContent}
         showsVerticalScrollIndicator={false}
         estimatedItemSize={120}
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         windowSize={10}
+        onScroll={() => trackScrollAction()}
+        scrollEventThrottle={1000}
       />
 
       <TouchableOpacity
@@ -358,7 +438,15 @@ const HomeScreen: React.FC = () => {
       >
         <MaterialIcons name="add" size={24} color={colors.surface} />
       </TouchableOpacity>
-    </SafeAreaView>
+
+      <AuthPromptModal
+        visible={modalVisible}
+        context={modalContext}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        onDismiss={handleDismiss}
+      />
+    </View>
   );
 };
 
@@ -366,30 +454,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  headerTitle: {
-    fontSize: typography.h2.fontSize,
-    fontWeight: typography.h2.fontWeight as any,
-    color: colors.text,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   filterButton: {
     padding: spacing.sm,

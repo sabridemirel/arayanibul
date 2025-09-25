@@ -84,3 +84,25 @@ public class TokenResponseDto
     public string RefreshToken { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
 }
+
+public class ConvertGuestDto
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [Required]
+    [MinLength(6)]
+    [MaxLength(100)]
+    public string Password { get; set; } = string.Empty;
+
+    [Required]
+    [SafeString]
+    [MaxLength(50)]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required]
+    [SafeString]
+    [MaxLength(50)]
+    public string LastName { get; set; } = string.Empty;
+}

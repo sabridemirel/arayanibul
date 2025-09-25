@@ -334,8 +334,113 @@
   - File upload integration testing
   - _Requirements: Tüm system integration_
 
-- [x] 23.2 User acceptance testing preparation
+- [-] 23.2 User acceptance testing preparation
   - Test data preparation
   - Demo scenarios creation
   - Performance benchmarking
   - _Requirements: MVP readiness_
+
+- [x] 24. Mobile App Integration Fixes
+- [x] 24.1 Login screen activation
+  - Gerçek LoginScreen ve RegisterScreen'i App.tsx'e entegre et
+  - Placeholder ekranları kaldır ve navigation'ı güncelle
+  - UI bileşenlerinin doğru import edildiğini doğrula
+  - _Requirements: 1.1, 1.2, 13.1_
+
+- [x] 24.2 Font loading system implementation
+  - expo-font paketini projeye ekle
+  - App.tsx'e font loading sistemi entegre et
+  - MaterialIcons font yükleme hatalarını çöz
+  - Loading screen ve splash screen sistemi kur
+  - _Requirements: UI stability, 12.2_
+
+- [ ] 25. Mobile App Testing ve Debugging
+- [ ] 25.1 Login screen functionality testing
+  - Email/şifre girişi test et
+  - Form validation'ların çalıştığını doğrula
+  - Google/Facebook login butonlarının görüntülendiğini kontrol et
+  - Guest login modal'ının çalıştığını test et
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [ ] 25.2 Backend-Mobile integration testing
+  - Mobile app'in backend API'ye bağlanabildiğini test et
+  - Authentication flow'unun end-to-end çalıştığını doğrula
+  - Error handling'in düzgün çalıştığını kontrol et
+  - _Requirements: 1.1, 1.2, 12.1_
+
+- [ ] 25.3 UI/UX polish ve bug fixes
+  - Input bileşenlerinin icon'larının düzgün görüntülendiğini kontrol et
+  - Loading states'lerin doğru çalıştığını test et
+  - Navigation flow'larını test et (Login ↔ Register)
+  - _Requirements: 12.2, 13.1_
+
+- [ ] 26. Production Readiness
+- [ ] 26.1 Environment configuration
+  - Production API URL konfigürasyonu
+  - Environment variables setup
+  - Build configuration optimization
+  - _Requirements: Deployment readiness_
+
+- [ ] 26.2 App store preparation
+  - App icons ve splash screens finalization
+  - App store metadata preparation
+  - Privacy policy ve terms of service links
+  - _Requirements: App store submission_
+
+- [x] 27. Guest-First User Experience Implementation
+- [x] 27.1 Backend guest authentication support
+  - AuthService'e GuestLoginAsync metodu ekle
+  - Guest user için temporary token sistemi kur
+  - ConvertGuestToUserAsync metodu implement et
+  - Guest session tracking ve cleanup logic'i ekle
+  - _Requirements: 1.1, 1.9, 11.7_
+
+- [x] 27.2 Mobile navigation restructure for guest-first
+  - App.tsx navigation yapısını guest-first olarak değiştir
+  - Her zaman Home screen'den başlayacak şekilde ayarla
+  - Auth screens'leri modal/overlay style'a çevir
+  - Protected route'lar için auth prompt sistemi kur
+  - _Requirements: 1.1, 1.2, 11.1, 11.2_
+
+- [x] 27.3 AuthContext guest mode support
+  - AuthContext'e guest mode desteği ekle
+  - isGuest state ve guest tracking functionality'si
+  - guestContinue ve convertGuestToUser metodları
+  - Guest action tracking sistemi (view counts, attempt tracking)
+  - _Requirements: 1.1, 1.9, 11.3, 11.4, 11.5_
+
+- [x] 27.4 Header component with auth buttons
+  - Guest mode için header component'i oluştur
+  - Login ve Register butonlarını header'a ekle
+  - Authenticated state'de profile/logout butonları göster
+  - Responsive design ve proper styling
+  - _Requirements: 1.3, 11.1, 11.2_
+
+- [x] 27.5 Context-aware auth prompt modals
+  - AuthPromptModal component'i oluştur
+  - Context-specific messaging (create need, make offer, send message)
+  - Modal'dan login/register'a yönlendirme
+  - Dismiss functionality ve user experience
+  - _Requirements: 11.2, 11.3, 11.4, 11.5_
+
+- [x] 27.6 Guest conversion tracking and prompts
+  - Guest user behavior tracking sistemi
+  - Soft conversion prompts (after 3+ views)
+  - Periodic conversion banners during scroll
+  - Social proof ve benefit highlighting
+  - Analytics için guest action logging
+  - _Requirements: 11.5, 11.6, 11.7_
+
+- [x] 27.7 HomeScreen guest experience optimization
+  - HomeScreen'i guest kullanıcılar için optimize et
+  - Auth butonlarını header'a entegre et
+  - Guest kullanıcılar için CTA'ları ekle
+  - Need detail'a erişim sağla ancak interaction'lar için auth iste
+  - _Requirements: 1.1, 1.2, 11.1, 11.2_
+
+- [x] 27.8 Protected actions with auth prompts
+  - CreateNeed, CreateOffer, Message gibi protected action'lar
+  - Her protected action için context-aware auth prompt
+  - Auth sonrası intended action'a redirect
+  - Seamless user experience için state management
+  - _Requirements: 11.2, 11.3, 11.4, 11.5_

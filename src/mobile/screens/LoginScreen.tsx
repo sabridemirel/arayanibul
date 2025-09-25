@@ -23,7 +23,7 @@ interface Props {
 interface LoginFormData extends LoginData {}
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const { login, googleLogin, facebookLogin, guestLogin, isLoading } = useAuth();
+  const { login, googleLogin, facebookLogin, guestContinue, isLoading } = useAuth();
   const [showGuestModal, setShowGuestModal] = useState(false);
 
   const validateLogin = (values: LoginFormData) => {
@@ -89,7 +89,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleGuestLogin = async () => {
     try {
       setShowGuestModal(false);
-      await guestLogin();
+      await guestContinue();
       Alert.alert('Başarılı', 'Misafir girişi başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);

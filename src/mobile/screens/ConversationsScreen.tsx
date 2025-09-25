@@ -18,6 +18,7 @@ import { messageAPI } from '../services/api';
 import { Conversation } from '../types';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
+import { withConversationsAuth } from '../hoc/withAuthPrompt';
 
 type RootStackParamList = {
   Chat: { offerId: number };
@@ -301,7 +302,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: typography.h2.fontSize,
-    fontWeight: typography.h2.fontWeight,
+    fontWeight: typography.h2.fontWeight as any,
     color: colors.text,
     marginBottom: spacing.md,
   },
@@ -405,7 +406,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight,
+    fontWeight: typography.h3.fontWeight as any,
     color: colors.text,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
@@ -419,4 +420,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ConversationsScreen;
+export default withConversationsAuth(ConversationsScreen);

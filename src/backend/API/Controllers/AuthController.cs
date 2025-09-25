@@ -43,6 +43,34 @@ public class AuthController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpPost("convert-guest")]
+    [Authorize]
+    public async Task<ActionResult<AuthResponseDto>> ConvertGuest([FromBody] ConvertGuestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized();
+
+        // Check if user is actually a guest
+        var isGuest = User.FindFirst("isGuest")?.Value;
+        if (isGuest != "True")
+            return BadRequest(new { message = "Sadece misafir kullanıcılar dönüştürülebilir." });
+
+        var registerDto = new RegisterDto
+        {
+            Email = dto.Email,
+            Password = dto.Password,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName
+        };
+
+        var result = await _authService.ConvertGuestToUserAsync(userId, registerDto);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
     [HttpPost("google-login")]
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginDto dto)
     {

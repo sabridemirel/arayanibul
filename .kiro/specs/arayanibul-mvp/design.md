@@ -38,6 +38,106 @@ Arayanibul MVP, ters marketplace konseptini destekleyen modern bir mobil uygulam
 - Data Access Layer: Entity Framework & Repositories
 - Infrastructure Layer: Authentication, Notifications, File Storage
 
+## User Experience Design
+
+### Guest-First Approach
+
+#### Core UX Principles
+1. **Immediate Value**: Users see content without barriers
+2. **Progressive Engagement**: Authentication requested when needed
+3. **Context-Aware Prompts**: Auth requests explain the benefit
+4. **Seamless Transition**: Smooth flow between guest and authenticated states
+
+#### Guest User Journey
+```mermaid
+graph TD
+    A[App Launch] --> B[Home Screen - Guest Mode]
+    B --> C{User Action}
+    C -->|Browse Needs| D[Need List - Full Access]
+    C -->|View Need Detail| E[Need Detail - Full Access]
+    C -->|Try to Create Need| F[Auth Prompt: "Create needs to get offers"]
+    C -->|Try to Make Offer| G[Auth Prompt: "Sign up to make offers"]
+    C -->|Try to Message| H[Auth Prompt: "Join to start conversations"]
+    
+    F --> I[Registration/Login]
+    G --> I
+    H --> I
+    I --> J[Authenticated Home]
+    
+    D --> K{View Count > 3}
+    K -->|Yes| L[Soft Prompt: "Sign up for more features"]
+    K -->|No| D
+```
+
+#### Authentication Context Design
+```typescript
+interface AuthContextType {
+  user: User | null;
+  isGuest: boolean;
+  isLoading: boolean;
+  
+  // Authentication methods
+  login: (email: string, password: string) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
+  googleLogin: () => Promise<void>;
+  facebookLogin: () => Promise<void>;
+  guestContinue: () => void; // Sets guest mode
+  logout: () => Promise<void>;
+  
+  // Guest conversion tracking
+  guestActions: GuestAction[];
+  trackGuestAction: (action: GuestAction) => void;
+  shouldShowAuthPrompt: () => boolean;
+}
+
+interface GuestAction {
+  type: 'view_need' | 'attempt_offer' | 'attempt_create' | 'attempt_message';
+  timestamp: Date;
+  context?: any;
+}
+```
+
+#### UI Components for Guest Experience
+
+**Header Component (Guest Mode):**
+```typescript
+interface HeaderProps {
+  isGuest: boolean;
+  onLoginPress: () => void;
+  onRegisterPress: () => void;
+}
+
+// Shows: Logo | Search | [Login] [Sign Up]
+```
+
+**Auth Prompt Modal:**
+```typescript
+interface AuthPromptProps {
+  visible: boolean;
+  context: 'create_need' | 'make_offer' | 'send_message';
+  onLogin: () => void;
+  onRegister: () => void;
+  onDismiss: () => void;
+}
+
+// Context-specific messaging:
+// - "Create needs to get offers from providers"
+// - "Sign up to make offers and earn money"
+// - "Join to start conversations with other users"
+```
+
+**Conversion Banners:**
+```typescript
+interface ConversionBannerProps {
+  type: 'soft_prompt' | 'feature_highlight' | 'social_proof';
+  onAuthAction: () => void;
+  onDismiss: () => void;
+}
+
+// Appears after 3+ need views or periodic scroll
+// Shows benefits: "Join 1000+ users finding what they need"
+```
+
 ## Bileşenler ve Arayüzler
 
 ### Backend Bileşenleri
@@ -50,8 +150,20 @@ public interface IAuthService
     Task<AuthResult> LoginAsync(LoginRequest request);
     Task<AuthResult> GoogleLoginAsync(string googleToken);
     Task<AuthResult> FacebookLoginAsync(string facebookToken);
+    Task<AuthResult> GuestLoginAsync(); // New: Creates temporary guest session
     Task<bool> RefreshTokenAsync(string refreshToken);
     Task<bool> LogoutAsync(string userId);
+    Task<AuthResult> ConvertGuestToUserAsync(string guestId, RegisterRequest request); // New: Convert guest to full user
+}
+
+public class AuthResult
+{
+    public bool Success { get; set; }
+    public string Token { get; set; }
+    public string RefreshToken { get; set; }
+    public User User { get; set; }
+    public bool IsGuest { get; set; } // New: Indicates guest session
+    public string Message { get; set; }
 }
 ```
 
@@ -144,25 +256,47 @@ interface ApiService {
 ```
 
 #### 3. Navigation Structure
+
+**Guest-First Navigation Design:**
 ```typescript
 type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
+  // Main app always accessible
+  Home: undefined;
+  Search: undefined;
   NeedDetail: { needId: number };
+  
+  // Auth screens (modal/overlay style)
+  Login: undefined;
+  Register: undefined;
+  
+  // Authenticated-only screens
   CreateNeed: undefined;
-  OfferDetail: { offerId: number };
+  CreateOffer: { needId: number };
+  MyNeeds: undefined;
+  MyOffers: undefined;
+  Messages: undefined;
   Chat: { offerId: number };
   Profile: { userId?: string };
 };
 
-type MainTabParamList = {
-  Home: undefined;
-  Search: undefined;
-  MyNeeds: undefined;
-  Messages: undefined;
-  Profile: undefined;
+// Navigation flow design
+type NavigationFlow = {
+  // Guest users can access
+  guestAccessible: ['Home', 'Search', 'NeedDetail'];
+  
+  // Requires authentication with redirect
+  authRequired: ['CreateNeed', 'CreateOffer', 'MyNeeds', 'MyOffers', 'Messages', 'Chat'];
+  
+  // Auth screens (presented as modals)
+  authScreens: ['Login', 'Register'];
 };
 ```
+
+**Navigation Behavior:**
+- App always starts with Home screen (guest mode)
+- Auth buttons in header for guest users
+- Protected actions show auth prompt with context
+- Seamless transition between guest and authenticated states
 
 ## Veri Modelleri
 

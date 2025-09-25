@@ -212,6 +212,9 @@ export const authAPI = {
   guestLogin: (): Promise<AuthResponse> =>
     api.post('/auth/guest-login').then(res => res.data),
   
+  convertGuestToUser: (data: RegisterData): Promise<AuthResponse> =>
+    api.post('/auth/convert-guest', data).then(res => res.data),
+  
   // Backend exposes current user under /api/User/profile
   getCurrentUser: (): Promise<User> =>
     api.get('/user/profile').then(res => res.data),

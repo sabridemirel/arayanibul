@@ -109,6 +109,18 @@ class AuthService {
     }
   }
 
+  async convertGuestToUser(data: RegisterData) {
+    try {
+      const response = await authAPI.convertGuestToUser(data);
+      if (response.success && response.token && response.user) {
+        await this.saveAuthData(response.token, response.user);
+      }
+      return response;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Hesap dönüşümü sırasında hata oluştu');
+    }
+  }
+
   async logout() {
     try {
       // Clear secure storage

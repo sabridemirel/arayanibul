@@ -125,6 +125,9 @@ public static class ServiceExtensions
         services.AddScoped<QueryOptimizationService>();
         services.AddHttpClient<FacebookService>();
         
+        // Background services
+        services.AddHostedService<GuestCleanupService>();
+        
         // Security services
         // services.AddScoped<API.Interfaces.IInputSanitizationService, InputSanitizationService>();
         
