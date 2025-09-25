@@ -1,12 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin';
-// import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { authAPI, RegisterData, LoginData, User } from './api';
+import secureStorageService from './secureStorageService';
+import biometricAuthService from './biometricAuthService';
 
 class AuthService {
   async initializeGoogleSignIn() {
-    // Expo Go'da Google Sign-In çalışmaz, native build gerekir
-    console.log('Google Sign-In initialized (mock for Expo Go)');
+    // Expo için WebBrowser kullanarak OAuth flow'u implement edilecek
+    console.log('Google Sign-In initialized for Expo');
   }
 
   async register(data: RegisterData) {
@@ -35,8 +37,30 @@ class AuthService {
 
   async googleSignIn() {
     try {
-      // Expo Go'da çalışmaz, demo için mock response
-      throw new Error('Google girişi Expo Go\'da desteklenmiyor. Native build gereklidir.');
+      // Expo için WebBrowser kullanarak OAuth flow
+      const redirectUrl = Linking.createURL('auth');
+      const authUrl = `http://localhost:5000/api/auth/google?redirect_uri=${encodeURIComponent(redirectUrl)}`;
+      
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const token = url.searchParams.get('token');
+        const error = url.searchParams.get('error');
+        
+        if (error) {
+          throw new Error(error);
+        }
+        
+        if (token) {
+          // Token ile kullanıcı bilgilerini al
+          const user = await this.getUserFromToken(token);
+          await this.saveAuthData(token, user);
+          return { success: true, user, token };
+        }
+      }
+      
+      throw new Error('Google girişi iptal edildi');
     } catch (error: any) {
       throw new Error(error.message || 'Google girişi sırasında hata oluştu');
     }
@@ -44,8 +68,30 @@ class AuthService {
 
   async facebookSignIn() {
     try {
-      // Expo Go'da çalışmaz, demo için mock response
-      throw new Error('Facebook girişi Expo Go\'da desteklenmiyor. Native build gereklidir.');
+      // Expo için WebBrowser kullanarak OAuth flow
+      const redirectUrl = Linking.createURL('auth');
+      const authUrl = `http://localhost:5000/api/auth/facebook?redirect_uri=${encodeURIComponent(redirectUrl)}`;
+      
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+      
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const token = url.searchParams.get('token');
+        const error = url.searchParams.get('error');
+        
+        if (error) {
+          throw new Error(error);
+        }
+        
+        if (token) {
+          // Token ile kullanıcı bilgilerini al
+          const user = await this.getUserFromToken(token);
+          await this.saveAuthData(token, user);
+          return { success: true, user, token };
+        }
+      }
+      
+      throw new Error('Facebook girişi iptal edildi');
     } catch (error: any) {
       throw new Error(error.message || 'Facebook girişi sırasında hata oluştu');
     }
@@ -65,8 +111,14 @@ class AuthService {
 
   async logout() {
     try {
-      // Local storage temizle
-      await AsyncStorage.multiRemove(['authToken', 'user']);
+      // Clear secure storage
+      await secureStorageService.clearAuthTokens();
+      
+      // Clear biometric authentication
+      await biometricAuthService.disableBiometricAuth();
+      
+      // Clear regular storage
+      await AsyncStorage.multiRemove(['user']);
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -83,7 +135,8 @@ class AuthService {
 
   async getAuthToken(): Promise<string | null> {
     try {
-      return await AsyncStorage.getItem('authToken');
+      const tokens = await secureStorageService.getAuthTokens();
+      return tokens.accessToken;
     } catch (error) {
       return null;
     }
@@ -94,9 +147,87 @@ class AuthService {
     return !!token;
   }
 
-  private async saveAuthData(token: string, user: User) {
-    await AsyncStorage.setItem('authToken', token);
+  private async getUserFromToken(token: string): Promise<User> {
+    try {
+      // Token'ı geçici olarak güvenli depolamaya kaydet
+      await secureStorageService.storeAuthTokens(token);
+      
+      // Kullanıcı bilgilerini al
+      const user = await authAPI.getCurrentUser();
+      return user;
+    } catch (error) {
+      // Token geçersizse temizle
+      await secureStorageService.clearAuthTokens();
+      throw error;
+    }
+  }
+
+  private async saveAuthData(token: string, user: User, refreshToken?: string) {
+    // Store tokens securely
+    await secureStorageService.storeAuthTokens(token, refreshToken);
+    
+    // Store user data in regular storage (non-sensitive)
     await AsyncStorage.setItem('user', JSON.stringify(user));
+    
+    // Update biometric token if enabled
+    await biometricAuthService.updateBiometricToken(token);
+  }
+
+  async authenticateWithBiometrics(): Promise<{ success: boolean; user?: User; error?: string }> {
+    try {
+      const result = await biometricAuthService.authenticateAndGetToken();
+      
+      if (!result.success || !result.token) {
+        return {
+          success: false,
+          error: result.error || 'Biyometrik kimlik doğrulama başarısız',
+        };
+      }
+
+      // Validate token and get user info
+      const user = await this.getUserFromToken(result.token);
+      
+      return {
+        success: true,
+        user,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Biyometrik kimlik doğrulama sırasında hata oluştu',
+      };
+    }
+  }
+
+  async enableBiometricAuth(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const token = await this.getAuthToken();
+      if (!token) {
+        return {
+          success: false,
+          error: 'Önce giriş yapmanız gerekiyor',
+        };
+      }
+
+      const result = await biometricAuthService.enableBiometricAuth(token);
+      return {
+        success: result.success,
+        error: result.error,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Biyometrik kimlik doğrulama etkinleştirilemedi',
+      };
+    }
+  }
+
+  async isBiometricEnabled(): Promise<boolean> {
+    return await biometricAuthService.isBiometricEnabled();
+  }
+
+  async getBiometricCapabilities() {
+    return await biometricAuthService.getBiometricCapabilities();
   }
 }
 

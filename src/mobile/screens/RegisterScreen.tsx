@@ -2,104 +2,132 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import authService from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
+import { Input, Button, Divider, GuestAccessModal } from '../components/ui';
+import { useForm } from '../hooks/useForm';
+import { RegisterData } from '../services/api';
 
 interface Props {
   navigation: any;
-  onRegisterSuccess: () => void;
 }
 
-const RegisterScreen: React.FC<Props> = ({ navigation, onRegisterSuccess }) => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+interface RegisterFormData extends RegisterData {
+  confirmPassword: string;
+}
 
-  const handleRegister = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
-      return;
+const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+  const { register, googleLogin, facebookLogin, guestLogin, isLoading } = useAuth();
+  const [showGuestModal, setShowGuestModal] = useState(false);
+
+  const validateRegister = (values: RegisterFormData) => {
+    const errors: Partial<Record<keyof RegisterFormData, string>> = {};
+
+    if (!values.firstName?.trim()) {
+      errors.firstName = 'Ad gereklidir';
+    } else if (values.firstName.trim().length < 2) {
+      errors.firstName = 'Ad en az 2 karakter olmalıdır';
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Hata', 'Şifreler eşleşmiyor');
-      return;
+    if (!values.lastName?.trim()) {
+      errors.lastName = 'Soyad gereklidir';
+    } else if (values.lastName.trim().length < 2) {
+      errors.lastName = 'Soyad en az 2 karakter olmalıdır';
     }
 
-    if (password.length < 6) {
-      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır');
-      return;
+    if (!values.email?.trim()) {
+      errors.email = 'E-posta adresi gereklidir';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+      errors.email = 'Geçerli bir e-posta adresi girin';
     }
 
-    setLoading(true);
-    try {
-      const response = await authService.register({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-        password,
-      });
-      
-      if (response.success) {
-        Alert.alert('Başarılı', 'Kayıt başarılı!');
-        onRegisterSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
-      }
-    } catch (error: any) {
-      Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
+    if (!values.password?.trim()) {
+      errors.password = 'Şifre gereklidir';
+    } else if (values.password.length < 6) {
+      errors.password = 'Şifre en az 6 karakter olmalıdır';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(values.password)) {
+      errors.password = 'Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir';
     }
+
+    if (!values.confirmPassword?.trim()) {
+      errors.confirmPassword = 'Şifre tekrarı gereklidir';
+    } else if (values.password !== values.confirmPassword) {
+      errors.confirmPassword = 'Şifreler eşleşmiyor';
+    }
+
+    return errors;
   };
 
-  const handleGoogleRegister = async () => {
-    setLoading(true);
-    try {
-      const response = await authService.googleSignIn();
-      if (response.success) {
-        Alert.alert('Başarılı', 'Google ile kayıt başarılı!');
-        onRegisterSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    setValue,
+    setFieldTouched,
+    handleSubmit,
+  } = useForm<RegisterFormData>({
+    initialValues: { 
+      firstName: '', 
+      lastName: '', 
+      email: '', 
+      password: '', 
+      confirmPassword: '' 
+    },
+    validate: validateRegister,
+    onSubmit: async (formValues) => {
+      try {
+        await register({
+          firstName: formValues.firstName.trim(),
+          lastName: formValues.lastName.trim(),
+          email: formValues.email.trim(),
+          password: formValues.password,
+        });
+        Alert.alert('Başarılı', 'Kayıt başarılı!');
+      } catch (error: any) {
+        Alert.alert('Hata', error.message);
       }
+    },
+  });
+
+  const handleGoogleRegister = async () => {
+    try {
+      await googleLogin();
+      Alert.alert('Başarılı', 'Google ile kayıt başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleFacebookRegister = async () => {
-    setLoading(true);
     try {
-      const response = await authService.facebookSignIn();
-      if (response.success) {
-        Alert.alert('Başarılı', 'Facebook ile kayıt başarılı!');
-        onRegisterSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
-      }
+      await facebookLogin();
+      Alert.alert('Başarılı', 'Facebook ile kayıt başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const handleGuestLogin = async () => {
+    try {
+      setShowGuestModal(false);
+      await guestLogin();
+      Alert.alert('Başarılı', 'Misafir girişi başarılı!');
+    } catch (error: any) {
+      Alert.alert('Hata', error.message);
+    }
+  };
+
+  const handleShowGuestModal = () => {
+    setShowGuestModal(true);
   };
 
   return (
@@ -119,120 +147,102 @@ const RegisterScreen: React.FC<Props> = ({ navigation, onRegisterSuccess }) => {
         </View>
 
         <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="person" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Ad"
-              value={firstName}
-              onChangeText={setFirstName}
-              autoCapitalize="words"
-            />
-          </View>
+          <Input
+            placeholder="Ad"
+            value={values.firstName}
+            onChangeText={(text) => setValue('firstName', text)}
+            onBlur={() => setFieldTouched('firstName')}
+            autoCapitalize="words"
+            leftIcon="person"
+            error={touched.firstName ? errors.firstName : undefined}
+          />
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="person" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Soyad"
-              value={lastName}
-              onChangeText={setLastName}
-              autoCapitalize="words"
-            />
-          </View>
+          <Input
+            placeholder="Soyad"
+            value={values.lastName}
+            onChangeText={(text) => setValue('lastName', text)}
+            onBlur={() => setFieldTouched('lastName')}
+            autoCapitalize="words"
+            leftIcon="person"
+            error={touched.lastName ? errors.lastName : undefined}
+          />
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="email" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="E-posta"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <Input
+            placeholder="E-posta"
+            value={values.email}
+            onChangeText={(text) => setValue('email', text)}
+            onBlur={() => setFieldTouched('email')}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            leftIcon="email"
+            error={touched.email ? errors.email : undefined}
+          />
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="lock" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Şifre"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-            >
-              <MaterialIcons 
-                name={showPassword ? "visibility" : "visibility-off"} 
-                size={20} 
-                color="#666" 
-              />
-            </TouchableOpacity>
-          </View>
+          <Input
+            placeholder="Şifre"
+            value={values.password}
+            onChangeText={(text) => setValue('password', text)}
+            onBlur={() => setFieldTouched('password')}
+            secureTextEntry={true}
+            autoCapitalize="none"
+            leftIcon="lock"
+            showPasswordToggle={true}
+            error={touched.password ? errors.password : undefined}
+          />
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="lock" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Şifre Tekrar"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={styles.eyeIcon}
-            >
-              <MaterialIcons 
-                name={showConfirmPassword ? "visibility" : "visibility-off"} 
-                size={20} 
-                color="#666" 
-              />
-            </TouchableOpacity>
-          </View>
+          <Input
+            placeholder="Şifre Tekrar"
+            value={values.confirmPassword}
+            onChangeText={(text) => setValue('confirmPassword', text)}
+            onBlur={() => setFieldTouched('confirmPassword')}
+            secureTextEntry={true}
+            autoCapitalize="none"
+            leftIcon="lock"
+            showPasswordToggle={true}
+            error={touched.confirmPassword ? errors.confirmPassword : undefined}
+          />
 
-          <TouchableOpacity
-            style={[styles.registerButton, loading && styles.disabledButton]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.registerButtonText}>Kayıt Ol</Text>
-            )}
-          </TouchableOpacity>
+          <Button
+            title="Kayıt Ol"
+            onPress={handleSubmit}
+            disabled={isLoading || isSubmitting}
+            loading={isLoading || isSubmitting}
+            fullWidth
+            style={styles.registerButton}
+          />
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>veya</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          <Divider text="veya" />
 
-          <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton]}
+          <Button
+            title="Google ile Kayıt Ol"
             onPress={handleGoogleRegister}
-            disabled={loading}
-          >
-            <MaterialIcons name="login" size={20} color="#fff" />
-            <Text style={styles.socialButtonText}>Google ile Kayıt Ol</Text>
-          </TouchableOpacity>
+            disabled={isLoading || isSubmitting}
+            variant="secondary"
+            icon="login"
+            fullWidth
+            style={[styles.socialButton, { backgroundColor: '#db4437', borderColor: '#db4437' }]}
+          />
 
-          <TouchableOpacity
-            style={[styles.socialButton, styles.facebookButton]}
+          <Button
+            title="Facebook ile Kayıt Ol"
             onPress={handleFacebookRegister}
-            disabled={loading}
-          >
-            <MaterialIcons name="login" size={20} color="#fff" />
-            <Text style={styles.socialButtonText}>Facebook ile Kayıt Ol</Text>
-          </TouchableOpacity>
+            disabled={isLoading || isSubmitting}
+            variant="secondary"
+            icon="login"
+            fullWidth
+            style={[styles.socialButton, { backgroundColor: '#4267B2', borderColor: '#4267B2' }]}
+          />
+
+          <Button
+            title="Misafir Olarak Devam Et"
+            onPress={handleShowGuestModal}
+            disabled={isLoading || isSubmitting}
+            variant="outline"
+            icon="person-outline"
+            fullWidth
+            style={styles.socialButton}
+          />
         </View>
 
         <View style={styles.footer}>
@@ -242,6 +252,20 @@ const RegisterScreen: React.FC<Props> = ({ navigation, onRegisterSuccess }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <GuestAccessModal
+        visible={showGuestModal}
+        onClose={() => setShowGuestModal(false)}
+        onContinueAsGuest={handleGuestLogin}
+        onLogin={() => {
+          setShowGuestModal(false);
+          navigation.navigate('Login');
+        }}
+        onRegister={() => {
+          setShowGuestModal(false);
+          // Already on register screen
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -264,7 +288,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     marginBottom: 20,
-    borderRadius: 50, // Yuvarlak logo için
+    borderRadius: 50,
   },
   title: {
     fontSize: 28,
@@ -279,81 +303,11 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 30,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 4,
-  },
   registerButton: {
-    backgroundColor: '#28a745',
-    borderRadius: 12,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: 20,
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  registerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#ddd',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#666',
-    fontSize: 14,
-  },
   socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    height: 50,
     marginBottom: 12,
-  },
-  googleButton: {
-    backgroundColor: '#db4437',
-  },
-  facebookButton: {
-    backgroundColor: '#4267B2',
-  },
-  socialButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
   },
   footer: {
     flexDirection: 'row',

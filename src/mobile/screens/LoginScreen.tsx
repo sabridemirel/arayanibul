@@ -2,101 +2,102 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import authService from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
+import { Input, Button, Divider, ErrorMessage, GuestAccessModal } from '../components/ui';
+import { useForm } from '../hooks/useForm';
+import { LoginData } from '../services/api';
 
 interface Props {
   navigation: any;
-  onLoginSuccess: () => void;
 }
 
-const LoginScreen: React.FC<Props> = ({ navigation, onLoginSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+interface LoginFormData extends LoginData {}
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Hata', 'Lütfen tüm alanları doldurun');
-      return;
+const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const { login, googleLogin, facebookLogin, guestLogin, isLoading } = useAuth();
+  const [showGuestModal, setShowGuestModal] = useState(false);
+
+  const validateLogin = (values: LoginFormData) => {
+    const errors: Partial<Record<keyof LoginFormData, string>> = {};
+
+    if (!values.email?.trim()) {
+      errors.email = 'E-posta adresi gereklidir';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+      errors.email = 'Geçerli bir e-posta adresi girin';
     }
 
-    setLoading(true);
-    try {
-      const response = await authService.login({ email: email.trim(), password });
-      if (response.success) {
-        Alert.alert('Başarılı', 'Giriş başarılı!');
-        onLoginSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
-      }
-    } catch (error: any) {
-      Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
+    if (!values.password?.trim()) {
+      errors.password = 'Şifre gereklidir';
+    } else if (values.password.length < 6) {
+      errors.password = 'Şifre en az 6 karakter olmalıdır';
     }
+
+    return errors;
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    try {
-      const response = await authService.googleSignIn();
-      if (response.success) {
-        Alert.alert('Başarılı', 'Google ile giriş başarılı!');
-        onLoginSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
+  const {
+    values,
+    errors,
+    touched,
+    isSubmitting,
+    setValue,
+    setFieldTouched,
+    handleSubmit,
+  } = useForm<LoginFormData>({
+    initialValues: { email: '', password: '' },
+    validate: validateLogin,
+    onSubmit: async (formValues) => {
+      try {
+        await login({ 
+          email: formValues.email.trim(), 
+          password: formValues.password 
+        });
+        Alert.alert('Başarılı', 'Giriş başarılı!');
+      } catch (error: any) {
+        Alert.alert('Hata', error.message);
       }
+    },
+  });
+
+  const handleGoogleLogin = async () => {
+    try {
+      await googleLogin();
+      Alert.alert('Başarılı', 'Google ile giriş başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleFacebookLogin = async () => {
-    setLoading(true);
     try {
-      const response = await authService.facebookSignIn();
-      if (response.success) {
-        Alert.alert('Başarılı', 'Facebook ile giriş başarılı!');
-        onLoginSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
-      }
+      await facebookLogin();
+      Alert.alert('Başarılı', 'Facebook ile giriş başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleGuestLogin = async () => {
-    setLoading(true);
     try {
-      const response = await authService.guestLogin();
-      if (response.success) {
-        Alert.alert('Başarılı', 'Misafir girişi başarılı!');
-        onLoginSuccess();
-      } else {
-        Alert.alert('Hata', response.message);
-      }
+      setShowGuestModal(false);
+      await guestLogin();
+      Alert.alert('Başarılı', 'Misafir girişi başarılı!');
     } catch (error: any) {
       Alert.alert('Hata', error.message);
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const handleShowGuestModal = () => {
+    setShowGuestModal(true);
   };
 
   return (
@@ -116,87 +117,70 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLoginSuccess }) => {
         </View>
 
         <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="email" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="E-posta"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <Input
+            placeholder="E-posta"
+            value={values.email}
+            onChangeText={(text) => setValue('email', text)}
+            onBlur={() => setFieldTouched('email')}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            leftIcon="email"
+            error={touched.email ? errors.email : undefined}
+          />
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="lock" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Şifre"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-            >
-              <MaterialIcons 
-                name={showPassword ? "visibility" : "visibility-off"} 
-                size={20} 
-                color="#666" 
-              />
-            </TouchableOpacity>
-          </View>
+          <Input
+            placeholder="Şifre"
+            value={values.password}
+            onChangeText={(text) => setValue('password', text)}
+            onBlur={() => setFieldTouched('password')}
+            secureTextEntry={true}
+            autoCapitalize="none"
+            leftIcon="lock"
+            showPasswordToggle={true}
+            error={touched.password ? errors.password : undefined}
+          />
 
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.disabledButton]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.loginButtonText}>Giriş Yap</Text>
-            )}
-          </TouchableOpacity>
+          <Button
+            title="Giriş Yap"
+            onPress={handleSubmit}
+            disabled={isLoading || isSubmitting}
+            loading={isLoading || isSubmitting}
+            fullWidth
+            style={styles.loginButton}
+          />
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>veya</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          <Divider text="veya" />
 
-          <TouchableOpacity
-            style={[styles.socialButton, styles.googleButton]}
+          <Button
+            title="Google ile Giriş"
             onPress={handleGoogleLogin}
-            disabled={loading}
-          >
-            <MaterialIcons name="login" size={20} color="#fff" />
-            <Text style={styles.socialButtonText}>Google ile Giriş</Text>
-          </TouchableOpacity>
+            disabled={isLoading || isSubmitting}
+            variant="secondary"
+            icon="login"
+            fullWidth
+            style={[styles.socialButton, { backgroundColor: '#db4437', borderColor: '#db4437' }]}
+          />
 
-          <TouchableOpacity
-            style={[styles.socialButton, styles.facebookButton]}
+          <Button
+            title="Facebook ile Giriş"
             onPress={handleFacebookLogin}
-            disabled={loading}
-          >
-            <MaterialIcons name="login" size={20} color="#fff" />
-            <Text style={styles.socialButtonText}>Facebook ile Giriş</Text>
-          </TouchableOpacity>
+            disabled={isLoading || isSubmitting}
+            variant="secondary"
+            icon="login"
+            fullWidth
+            style={[styles.socialButton, { backgroundColor: '#4267B2', borderColor: '#4267B2' }]}
+          />
 
-          <TouchableOpacity
-            style={[styles.socialButton, styles.guestButton]}
-            onPress={handleGuestLogin}
-            disabled={loading}
-          >
-            <MaterialIcons name="person-outline" size={20} color="#666" />
-            <Text style={[styles.socialButtonText, { color: '#666' }]}>
-              Misafir Olarak Devam Et
-            </Text>
-          </TouchableOpacity>
+          <Button
+            title="Misafir Olarak Devam Et"
+            onPress={handleShowGuestModal}
+            disabled={isLoading || isSubmitting}
+            variant="outline"
+            icon="person-outline"
+            fullWidth
+            style={styles.socialButton}
+          />
         </View>
 
         <View style={styles.footer}>
@@ -206,6 +190,20 @@ const LoginScreen: React.FC<Props> = ({ navigation, onLoginSuccess }) => {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <GuestAccessModal
+        visible={showGuestModal}
+        onClose={() => setShowGuestModal(false)}
+        onContinueAsGuest={handleGuestLogin}
+        onLogin={() => {
+          setShowGuestModal(false);
+          // Already on login screen
+        }}
+        onRegister={() => {
+          setShowGuestModal(false);
+          navigation.navigate('Register');
+        }}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -228,7 +226,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     marginBottom: 20,
-    borderRadius: 50, // Yuvarlak logo için
+    borderRadius: 50,
   },
   title: {
     fontSize: 28,
@@ -243,86 +241,11 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 30,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-    color: '#333',
-  },
-  eyeIcon: {
-    padding: 4,
-  },
   loginButton: {
-    backgroundColor: '#007bff',
-    borderRadius: 12,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: 20,
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#ddd',
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    color: '#666',
-    fontSize: 14,
-  },
   socialButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-    height: 50,
     marginBottom: 12,
-  },
-  googleButton: {
-    backgroundColor: '#db4437',
-  },
-  facebookButton: {
-    backgroundColor: '#4267B2',
-  },
-  guestButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  socialButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
   },
   footer: {
     flexDirection: 'row',

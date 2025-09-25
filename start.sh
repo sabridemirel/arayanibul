@@ -1,10 +1,10 @@
 #!/bin/bash
 
-echo "🚀 Mobil Uygulama Projesi Başlatılıyor..."
+echo "🚀 Arayanibul Projesi Başlatılıyor..."
 
 # Backend'i başlat
 echo "📡 Backend başlatılıyor..."
-cd backend/MobileApp.API
+cd src/backend/API
 dotnet run &
 BACKEND_PID=$!
 
@@ -13,8 +13,8 @@ sleep 3
 
 # Mobile uygulamayı başlat
 echo "📱 Mobile uygulama başlatılıyor..."
-cd ../../mobile/arayanibul
-npm start &
+cd ../../../src/mobile
+npx expo start &
 MOBILE_PID=$!
 
 echo "✅ Proje başlatıldı!"
