@@ -144,10 +144,15 @@ public static class ServiceExtensions
                       .AllowAnyMethod()
                       .AllowAnyHeader();
             });
-            
+
             options.AddPolicy("AllowSignalR", policy =>
             {
-                policy.WithOrigins("http://localhost:8081", "exp://192.168.1.100:8081") // Expo development URLs
+                policy.WithOrigins(
+                        "http://localhost:8081",
+                        "exp://192.168.1.7:8081",  // Updated IP
+                        "exp://192.168.1.100:8081",
+                        "http://192.168.1.7:8081"  // Added HTTP variant
+                      )
                       .AllowAnyMethod()
                       .AllowAnyHeader()
                       .AllowCredentials();

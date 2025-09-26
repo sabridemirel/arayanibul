@@ -194,10 +194,13 @@ public class SecurityMonitoringMiddleware
             "/swagger",
             "/health",
             "/_framework",
-            "/favicon.ico"
+            "/favicon.ico",
+            "/api/category",  // Allow category endpoints
+            "/api/auth",      // Allow auth endpoints
+            "/api/need"       // Allow need endpoints for public access
         };
 
-        return whitelistedPaths.Any(whitelist => 
+        return whitelistedPaths.Any(whitelist =>
             path.StartsWith(whitelist, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -323,6 +326,19 @@ public class SecurityMonitoringMiddleware
 
     private bool IsSuspiciousUserAgent(string userAgent)
     {
+        // Allow legitimate mobile/app user agents
+        var allowedPatterns = new[]
+        {
+            "axios", "react-native", "expo", "okhttp", "mozilla", "webkit", "chrome", "safari", "edge", "firefox"
+        };
+
+        // If user agent contains allowed patterns, it's not suspicious
+        if (allowedPatterns.Any(pattern =>
+            userAgent.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
         var suspiciousPatterns = new[]
         {
             "sqlmap", "nikto", "nmap", "masscan", "zap", "burp", "w3af", "acunetix",
@@ -330,7 +346,7 @@ public class SecurityMonitoringMiddleware
             "python-requests", "curl/", "wget/", "libwww-perl", "lwp-trivial"
         };
 
-        return suspiciousPatterns.Any(pattern => 
+        return suspiciousPatterns.Any(pattern =>
             userAgent.Contains(pattern, StringComparison.OrdinalIgnoreCase));
     }
 

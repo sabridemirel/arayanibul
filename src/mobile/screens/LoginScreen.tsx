@@ -61,7 +61,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           email: formValues.email.trim(), 
           password: formValues.password 
         });
-        Alert.alert('Başarılı', 'Giriş başarılı!');
+        Alert.alert('Başarılı', 'Giriş başarılı!', [
+          {
+            text: 'Tamam',
+            onPress: () => {
+              // AuthContext otomatik navigation yapacak
+            }
+          }
+        ]);
       } catch (error: any) {
         Alert.alert('Hata', error.message);
       }
@@ -71,7 +78,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleGoogleLogin = async () => {
     try {
       await googleLogin();
-      Alert.alert('Başarılı', 'Google ile giriş başarılı!');
+      Alert.alert('Başarılı', 'Google ile giriş başarılı!', [
+        {
+          text: 'Tamam',
+          onPress: () => {
+            // AuthContext otomatik navigation yapacak
+          }
+        }
+      ]);
     } catch (error: any) {
       Alert.alert('Hata', error.message);
     }
@@ -80,7 +94,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleFacebookLogin = async () => {
     try {
       await facebookLogin();
-      Alert.alert('Başarılı', 'Facebook ile giriş başarılı!');
+      Alert.alert('Başarılı', 'Facebook ile giriş başarılı!', [
+        {
+          text: 'Tamam',
+          onPress: () => {
+            // AuthContext otomatik navigation yapacak
+          }
+        }
+      ]);
     } catch (error: any) {
       Alert.alert('Hata', error.message);
     }
@@ -90,7 +111,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setShowGuestModal(false);
       await guestContinue();
-      Alert.alert('Başarılı', 'Misafir girişi başarılı!');
+      Alert.alert('Başarılı', 'Misafir girişi başarılı!', [
+        {
+          text: 'Tamam',
+          onPress: () => {
+            // AuthContext otomatik navigation yapacak
+          }
+        }
+      ]);
     } catch (error: any) {
       Alert.alert('Hata', error.message);
     }

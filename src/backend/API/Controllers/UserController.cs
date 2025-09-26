@@ -121,6 +121,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("profile/image")]
+    [ApiExplorerSettings(IgnoreApi = true)]  // Swagger'dan exclude et
     public async Task<ActionResult<UploadImageResponse>> UploadProfileImage([FromForm] IFormFile image)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

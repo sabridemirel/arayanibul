@@ -353,6 +353,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPost("{id}/images")]
     [Authorize]
+    [ApiExplorerSettings(IgnoreApi = true)]  // Swagger'dan exclude et
     public async Task<ActionResult<List<string>>> UploadOfferImages(int id, [FromForm] List<IFormFile> images)
     {
         try

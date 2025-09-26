@@ -6,25 +6,25 @@
 - [x] Misafir kullanıcı desteği
 - [x] Temel UI/UX
 
-## 📋 Faz 1 - İlan Sistemi (Sonraki)
-- [ ] İlan oluşturma ekranı
-- [ ] İlan kategorileri (Ürün/Hizmet)
-- [ ] İlan listesi ve arama
-- [ ] İlan detay sayfası
-- [ ] Fotoğraf yükleme
-- [ ] Konum bazlı filtreleme
+## 📋 Faz 1 - İlan Sistemi ✅ Tamamlandı
+- [x] İlan oluşturma ekranı ✅ (NeedController)
+- [x] İlan kategorileri (Ürün/Hizmet) ✅ (CategoryController)
+- [x] İlan listesi ve arama ✅ (NeedController - filtreleme, arama, trending)
+- [x] İlan detay sayfası ✅ (NeedController)
+- [x] Fotoğraf yükleme ✅ (NeedController - resim yükleme)
+- [x] Konum bazlı filtreleme ✅ (NeedController - yakın ihtiyaçlar)
 
-## 💬 Faz 2 - Teklif Sistemi
-- [ ] Teklif verme sistemi
-- [ ] Teklif listesi
-- [ ] Teklif karşılaştırma
-- [ ] Mesajlaşma sistemi
-- [ ] Bildirim sistemi
+## 💬 Faz 2 - Teklif Sistemi ✅ Tamamlandı
+- [x] Teklif verme sistemi ✅ (OfferController)
+- [x] Teklif listesi ✅ (OfferController)
+- [x] Teklif karşılaştırma ✅ (OfferController - en iyi teklifler)
+- [x] Mesajlaşma sistemi ✅ (MessageController + SignalR)
+- [x] Bildirim sistemi ✅ (NotificationController)
 
-## 👤 Faz 3 - Profil ve Güven
-- [ ] Kullanıcı profilleri
-- [ ] Değerlendirme sistemi
-- [ ] Kimlik doğrulama
+## 👤 Faz 3 - Profil ve Güven ✅ Tamamlandı
+- [x] Kullanıcı profilleri ✅ (UserController)
+- [x] Değerlendirme sistemi ✅ (ReviewController)
+- [ ] Kimlik doğrulama (OAuth entegrasyonu mevcut)
 - [ ] Güvenlik rozeti sistemi
 - [ ] Geçmiş işlemler
 
@@ -34,11 +34,11 @@
 - [ ] Fatura/makbuz sistemi
 - [ ] Komisyon sistemi
 
-## 📊 Faz 5 - Analitik ve İyileştirme
-- [ ] Kullanıcı davranış analizi
-- [ ] İlan performans metrikleri
+## 📊 Faz 5 - Analitik ve İyileştirme ✅ Kısmen Tamamlandı
+- [x] Kullanıcı davranış analizi ✅ (RecommendationService)
+- [x] İlan performans metrikleri ✅ (SearchService + istatistikler)
 - [ ] A/B test sistemi
-- [ ] Öneri algoritması
+- [x] Öneri algoritması ✅ (RecommendationController)
 
 ## 🏢 Faz 6 - İşletme Özellikleri
 - [ ] İşletme hesapları

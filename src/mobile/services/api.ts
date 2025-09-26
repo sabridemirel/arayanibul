@@ -1,7 +1,28 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = 'http://localhost:5000/api'; // Backend URL
+// Platform bazlı API URL konfigürasyonu
+const getApiBaseUrl = () => {
+  // Production'da gerçek API URL'inizi kullanın
+  if (__DEV__) {
+    // Development modunda:
+    // iOS simulator için localhost çalışır
+    // Android emulator için 10.0.2.2 kullanın
+    // Android fiziksel cihaz için bilgisayarınızın IP'sini kullanın
+    if (Platform.OS === 'ios') {
+      return 'http://localhost:5001/api';
+    } else {
+      // Android için IP adresinizi kullanın (Port 5001 - AirTunes çakışmasını önlemek için)
+      return 'http://192.168.1.7:5001/api';
+    }
+  } else {
+    // Production API URL - buraya gerçek API URL'inizi yazın
+    return 'https://api.arayanibul.com/api';
+  }
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,

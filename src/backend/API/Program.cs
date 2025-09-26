@@ -34,6 +34,9 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Support for file uploads
+    c.OperationFilter<SwaggerFileOperationFilter>();
 });
 
 // Application Services
@@ -63,11 +66,21 @@ if (app.Environment.IsDevelopment())
 
 // Security middleware
 app.UseMiddleware<SecurityHeadersMiddleware>();
-app.UseMiddleware<SecurityMonitoringMiddleware>();
+
+// Only enable security monitoring in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseMiddleware<SecurityMonitoringMiddleware>();
+}
 
 // Performance middleware
 app.UseResponseCompression();
-app.UseMiddleware<RateLimitingMiddleware>();
+
+// Only enable rate limiting in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseMiddleware<RateLimitingMiddleware>();
+}
 
 // Global exception handling middleware
 app.UseMiddleware<GlobalExceptionMiddleware>();
