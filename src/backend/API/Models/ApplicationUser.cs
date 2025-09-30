@@ -28,7 +28,10 @@ public class ApplicationUser : IdentityUser
     public string? FcmToken { get; set; }
     public string? ApnsToken { get; set; }
     public string? DevicePlatform { get; set; } // "ios" or "android"
-    
+
+    // Verification badges
+    public VerificationBadges VerificationBadges { get; set; } = VerificationBadges.None;
+
     // Navigation Properties
     public List<Need> Needs { get; set; } = new();
     public List<Offer> Offers { get; set; } = new();
@@ -37,4 +40,5 @@ public class ApplicationUser : IdentityUser
     public List<Review> ReceivedReviews { get; set; } = new();
     public List<RefreshToken> RefreshTokens { get; set; } = new();
     public List<Notification> Notifications { get; set; } = new();
+    public List<UserVerification> Verifications { get; set; } = new();
 }

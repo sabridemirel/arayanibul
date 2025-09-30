@@ -123,15 +123,17 @@ public static class ServiceExtensions
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
         services.AddScoped<IPaymentService, PaymentService>();
+        services.AddScoped<IVerificationService, VerificationService>();
+        services.AddScoped<ISmsService, MockSmsService>(); // Use MockSmsService for development
         services.AddScoped<QueryOptimizationService>();
         services.AddHttpClient<FacebookService>();
-        
+
         // Background services
         services.AddHostedService<GuestCleanupService>();
-        
+
         // Security services
         // services.AddScoped<API.Interfaces.IInputSanitizationService, InputSanitizationService>();
-        
+
         return services;
     }
 

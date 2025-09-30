@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<SearchHistory> SearchHistories { get; set; }
     public DbSet<UserBehavior> UserBehaviors { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<UserVerification> UserVerifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -242,5 +243,24 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Transaction>()
             .HasIndex(t => t.ConversationId)
             .HasDatabaseName("IX_Transactions_ConversationId");
+
+        // UserVerification relationships
+        builder.Entity<UserVerification>()
+            .HasOne(v => v.User)
+            .WithMany(u => u.Verifications)
+            .HasForeignKey(v => v.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserVerification>()
+            .HasIndex(v => new { v.UserId, v.Type })
+            .HasDatabaseName("IX_UserVerifications_UserId_Type");
+
+        builder.Entity<UserVerification>()
+            .HasIndex(v => new { v.UserId, v.Status })
+            .HasDatabaseName("IX_UserVerifications_UserId_Status");
+
+        builder.Entity<UserVerification>()
+            .HasIndex(v => v.Status)
+            .HasDatabaseName("IX_UserVerifications_Status");
     }
 }

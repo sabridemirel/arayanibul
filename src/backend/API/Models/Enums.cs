@@ -55,3 +55,29 @@ public enum PaymentGateway
     PayTR = 2,
     Stripe = 3
 }
+
+public enum VerificationType
+{
+    Email = 1,
+    Phone = 2,
+    Identity = 3,      // ID document verification
+    Business = 4       // Business/Seller verification
+}
+
+public enum VerificationStatus
+{
+    Pending = 1,       // Verification request submitted, awaiting review
+    InReview = 2,      // Under manual review by admin
+    Approved = 3,      // Verification approved
+    Rejected = 4       // Verification rejected
+}
+
+[Flags]
+public enum VerificationBadges
+{
+    None = 0,
+    EmailVerified = 1 << 0,      // 1
+    PhoneVerified = 1 << 1,      // 2
+    IdentityVerified = 1 << 2,   // 4
+    BusinessVerified = 1 << 3    // 8
+}

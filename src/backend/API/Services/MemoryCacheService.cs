@@ -77,7 +77,11 @@ public class MemoryCacheService : ICacheService
                 _logger.LogDebug("Cache entry evicted: {Key}, Reason: {Reason}", evictedKey, reason);
             });
 
-            var jsonString = JsonSerializer.Serialize(value);
+            var serializerOptions = new JsonSerializerOptions
+            {
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles
+            };
+            var jsonString = JsonSerializer.Serialize(value, serializerOptions);
             _cache.Set(key, jsonString, options);
 
             lock (_lockObject)
