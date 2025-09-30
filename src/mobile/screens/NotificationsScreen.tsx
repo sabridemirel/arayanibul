@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,17 +11,34 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications, InAppNotification } from '../contexts/NotificationContext';
 import { notificationAPI, NotificationItem } from '../services/api';
+import { NotificationData } from '../services/notificationService';
 import { Loading, ErrorMessage } from '../components/ui';
 
 interface NotificationsScreenProps {
   navigation: any;
 }
 
+interface MergedNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  data?: any;
+  isRead: boolean;
+  createdAt: string;
+  source: 'local' | 'server';
+}
+
 const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation }) => {
   const { theme } = useTheme();
-  const { notifications: inAppNotifications, markAsRead, clearAllNotifications } = useNotifications();
+  const {
+    notifications: inAppNotifications,
+    markAsRead: markLocalAsRead,
+    clearAllNotifications,
+    setNavigationHandler,
+  } = useNotifications();
   const [serverNotifications, setServerNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -29,6 +46,13 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
 
   useEffect(() => {
     loadNotifications();
+
+    // Setup navigation handler for push notifications
+    setNavigationHandler(handleNavigationFromNotification);
+
+    return () => {
+      setNavigationHandler(null);
+    };
   }, []);
 
   const loadNotifications = async () => {
@@ -50,29 +74,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     setIsRefreshing(false);
   };
 
-  const handleNotificationPress = async (notification: NotificationItem) => {
-    try {
-      // Mark as read on server
-      if (!notification.isRead) {
-        await notificationAPI.markAsRead(notification.id);
-        setServerNotifications(prev =>
-          prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
-        );
-      }
-
-      // Navigate based on notification type
-      navigateBasedOnNotification(notification);
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
-  };
-
-  const navigateBasedOnNotification = (notification: NotificationItem) => {
-    const data = notification.data;
-    
-    switch (notification.type) {
+  const handleNavigationFromNotification = (data: NotificationData) => {
+    switch (data.type) {
       case 'new_offer':
-        if (data?.needId) {
+        if (data.needId) {
           navigation.navigate('NeedDetail', { needId: data.needId });
         }
         break;
@@ -81,7 +86,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         navigation.navigate('MyOffers');
         break;
       case 'new_message':
-        if (data?.offerId) {
+        if (data.offerId) {
           navigation.navigate('Chat', { offerId: data.offerId });
         }
         break;
@@ -89,7 +94,63 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         navigation.navigate('MyNeeds');
         break;
       default:
-        console.log('Unknown notification type:', notification.type);
+        console.log('Unknown notification type:', data.type);
+    }
+  };
+
+  // Merge local and server notifications
+  const mergedNotifications = useMemo((): MergedNotification[] => {
+    const localMapped: MergedNotification[] = inAppNotifications.map((notif) => ({
+      id: `local-${notif.id}`,
+      title: notif.title,
+      message: notif.body,
+      type: notif.data?.type || 'unknown',
+      data: notif.data,
+      isRead: notif.isRead,
+      createdAt: notif.timestamp.toISOString(),
+      source: 'local' as const,
+    }));
+
+    const serverMapped: MergedNotification[] = serverNotifications.map((notif) => ({
+      id: `server-${notif.id}`,
+      title: notif.title,
+      message: notif.message,
+      type: notif.type,
+      data: notif.data,
+      isRead: notif.isRead,
+      createdAt: notif.createdAt,
+      source: 'server' as const,
+    }));
+
+    // Combine and sort by date (newest first)
+    const combined = [...localMapped, ...serverMapped];
+    combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return combined;
+  }, [inAppNotifications, serverNotifications]);
+
+  const handleNotificationPress = async (notification: MergedNotification) => {
+    try {
+      // Mark as read
+      if (!notification.isRead) {
+        if (notification.source === 'server') {
+          const serverId = parseInt(notification.id.replace('server-', ''));
+          await notificationAPI.markAsRead(serverId);
+          setServerNotifications((prev) =>
+            prev.map((n) => (n.id === serverId ? { ...n, isRead: true } : n))
+          );
+        } else {
+          const localId = notification.id.replace('local-', '');
+          markLocalAsRead(localId);
+        }
+      }
+
+      // Navigate based on notification data
+      if (notification.data) {
+        handleNavigationFromNotification(notification.data as NotificationData);
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
     }
   };
 
@@ -106,7 +167,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     }
   };
 
-  const handleDeleteNotification = async (notificationId: number) => {
+  const handleDeleteNotification = async (notification: MergedNotification) => {
     Alert.alert(
       'Bildirimi Sil',
       'Bu bildirimi silmek istediğinizden emin misiniz?',
@@ -117,10 +178,16 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
           style: 'destructive',
           onPress: async () => {
             try {
-              await notificationAPI.deleteNotification(notificationId);
-              setServerNotifications(prev =>
-                prev.filter(n => n.id !== notificationId)
-              );
+              if (notification.source === 'server') {
+                const serverId = parseInt(notification.id.replace('server-', ''));
+                await notificationAPI.deleteNotification(serverId);
+                setServerNotifications((prev) => prev.filter((n) => n.id !== serverId));
+              } else {
+                // For local notifications, remove from context
+                const localId = notification.id.replace('local-', '');
+                // Note: We'd need to add removeNotification to the context hook if we want to support this
+                console.log('Local notification delete not fully implemented');
+              }
             } catch (error) {
               console.error('Failed to delete notification:', error);
               Alert.alert('Hata', 'Bildirim silinirken hata oluştu');
@@ -181,7 +248,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     }
   };
 
-  const renderNotificationItem = ({ item }: { item: NotificationItem }) => (
+  const renderNotificationItem = ({ item }: { item: MergedNotification }) => (
     <TouchableOpacity
       style={[
         styles.notificationItem,
@@ -215,7 +282,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       </View>
       <TouchableOpacity
         style={styles.deleteButton}
-        onPress={() => handleDeleteNotification(item.id)}
+        onPress={() => handleDeleteNotification(item)}
       >
         <MaterialIcons name="delete" size={20} color={theme.colors.textSecondary} />
       </TouchableOpacity>
@@ -246,12 +313,11 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     );
   }
 
-  const allNotifications = [...serverNotifications];
-  const hasUnreadNotifications = allNotifications.some(n => !n.isRead);
+  const hasUnreadNotifications = mergedNotifications.some((n) => !n.isRead);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {allNotifications.length > 0 && (
+      {mergedNotifications.length > 0 && (
         <View style={styles.header}>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: theme.colors.surface }]}
@@ -277,9 +343,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
       )}
 
       <FlatList
-        data={allNotifications}
+        data={mergedNotifications}
         renderItem={renderNotificationItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -289,7 +355,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         }
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={allNotifications.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={mergedNotifications.length === 0 ? styles.emptyContainer : undefined}
       />
     </View>
   );

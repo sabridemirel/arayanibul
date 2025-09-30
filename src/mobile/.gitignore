@@ -4,3 +4,15 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Firebase configuration files (contain sensitive credentials)
+config/google-services.json
+config/GoogleService-Info.plist
+android/app/google-services.json
+ios/GoogleService-Info.plist
+
+# Firebase Admin SDK (backend)
+firebase-admin-sdk.json
+
+# Keep example files
+!config/*.example

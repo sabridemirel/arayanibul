@@ -254,32 +254,37 @@ const NeedDetailScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Geri"
+          accessibilityHint="Önceki sayfaya dönmek için dokunun"
+        >
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>İhtiyaç Detayı</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle} allowFontScaling={true}>İhtiyaç Detayı</Text>
+        <View style={{ width: 24 }} accessible={false} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.needCard}>
           <View style={styles.needHeader}>
-            <Text style={styles.needTitle}>{need.title}</Text>
-            <View style={styles.badgeContainer}>
-              <View style={[styles.urgencyBadge, { backgroundColor: getUrgencyColor(need.urgency) }]}>
-                <Text style={styles.urgencyText}>
+            <Text style={styles.needTitle} allowFontScaling={true}>{need.title}</Text>
+            <View style={styles.badgeContainer} accessible={false}>
+              <View style={[styles.urgencyBadge, { backgroundColor: getUrgencyColor(need.urgency) }]} accessible={false}>
+                <Text style={styles.urgencyText} allowFontScaling={true} accessible={false}>
                   {getUrgencyText(need.urgency)}
                 </Text>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(need.status) }]}>
-                <Text style={styles.statusText}>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(need.status) }]} accessible={false}>
+                <Text style={styles.statusText} allowFontScaling={true} accessible={false}>
                   {getStatusText(need.status)}
                 </Text>
               </View>
             </View>
           </View>
 
-          <Text style={styles.needDescription}>{need.description}</Text>
+          <Text style={styles.needDescription} allowFontScaling={true}>{need.description}</Text>
 
           <View style={styles.needInfo}>
             <View style={styles.infoRow}>

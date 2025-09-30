@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import authService from '../services/authService';
 import { User, RegisterData, LoginData } from '../services/api';
+import { notificationService } from '../services/notificationService';
 
 export interface GuestAction {
   type: 'view_need' | 'attempt_offer' | 'attempt_create' | 'attempt_message' | 'attempt_favorite';
@@ -55,16 +56,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const initializeAuth = async () => {
     try {
       setIsLoading(true);
-      
+
       // Initialize services
       await authService.initializeGoogleSignIn();
-      
+
       // Check if user is already authenticated
       const authenticated = await authService.isAuthenticated();
       if (authenticated) {
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
         setIsAuthenticated(true);
+
+        // Register push token for existing authenticated users
+        await registerPushToken();
       } else {
         // Start in guest mode automatically
         await guestContinue();
@@ -78,17 +82,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const registerPushToken = async () => {
+    try {
+      const token = notificationService.getExpoPushToken();
+      if (token) {
+        // Token is already registered during notification service initialization
+        console.log('Push token already registered');
+      } else {
+        // Initialize notification service if not already done
+        await notificationService.initialize();
+      }
+    } catch (error) {
+      console.error('Failed to register push token:', error);
+      // Don't throw error - notifications are optional
+    }
+  };
+
   const login = async (credentials: LoginData) => {
     try {
       setIsLoading(true);
       const response = await authService.login(credentials);
-      
+
       if (response.success && response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
         // Clear guest actions after successful login
         setGuestActions([]);
-        
+
+        // Register push notification token with backend
+        await registerPushToken();
+
         // Execute intended action if any
         if (intendedAction) {
           intendedAction();
@@ -110,13 +133,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await authService.register(userData);
-      
+
       if (response.success && response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
         // Clear guest actions after successful registration
         setGuestActions([]);
-        
+
+        // Register push notification token with backend
+        await registerPushToken();
+
         // Execute intended action if any
         if (intendedAction) {
           intendedAction();
@@ -138,13 +164,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await authService.googleSignIn();
-      
+
       if (response.success && response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
         // Clear guest actions after successful login
         setGuestActions([]);
-        
+
+        // Register push notification token with backend
+        await registerPushToken();
+
         // Execute intended action if any
         if (intendedAction) {
           intendedAction();
@@ -166,13 +195,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await authService.facebookSignIn();
-      
+
       if (response.success && response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
         // Clear guest actions after successful login
         setGuestActions([]);
-        
+
+        // Register push notification token with backend
+        await registerPushToken();
+
         // Execute intended action if any
         if (intendedAction) {
           intendedAction();
@@ -221,13 +253,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       const response = await authService.convertGuestToUser(userData);
-      
+
       if (response.success && response.user) {
         setUser(response.user);
         setIsAuthenticated(true);
         // Clear guest actions after successful conversion
         setGuestActions([]);
-        
+
+        // Register push notification token with backend
+        await registerPushToken();
+
         // Execute intended action if any
         if (intendedAction) {
           intendedAction();

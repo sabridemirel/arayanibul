@@ -81,16 +81,22 @@ const Header: React.FC<HeaderProps> = ({
           <TouchableOpacity
             onPress={handleProfilePress}
             style={styles.profileButton}
+            accessibilityRole="button"
+            accessibilityLabel={`Profil, ${user?.firstName}`}
+            accessibilityHint="Profil sayfasını açmak için dokunun"
           >
             <MaterialIcons name="person" size={24} color={colors.primary} />
-            <Text style={styles.userName} numberOfLines={1}>
+            <Text style={styles.userName} numberOfLines={1} allowFontScaling={true} accessible={false}>
               {user?.firstName}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             onPress={handleLogoutPress}
             style={styles.logoutButton}
+            accessibilityRole="button"
+            accessibilityLabel="Çıkış yap"
+            accessibilityHint="Hesabınızdan çıkış yapmak için dokunun"
           >
             <MaterialIcons name="logout" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -107,12 +113,15 @@ const Header: React.FC<HeaderProps> = ({
             <TouchableOpacity
               onPress={handleBackPress}
               style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel="Geri"
+              accessibilityHint="Önceki sayfaya dönmek için dokunun"
             >
               <MaterialIcons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
           )}
-          
-          <Text style={styles.title} numberOfLines={1}>
+
+          <Text style={styles.title} numberOfLines={1} allowFontScaling={true}>
             {title}
           </Text>
         </View>
@@ -122,6 +131,9 @@ const Header: React.FC<HeaderProps> = ({
             <TouchableOpacity
               onPress={onSearchPress}
               style={styles.searchButton}
+              accessibilityRole="button"
+              accessibilityLabel="Ara"
+              accessibilityHint="Arama sayfasını açmak için dokunun"
             >
               <MaterialIcons name="search" size={24} color={colors.primary} />
             </TouchableOpacity>

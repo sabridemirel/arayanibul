@@ -13,7 +13,7 @@ const getApiBaseUrl = () => {
     if (Platform.OS === 'ios') {
       return 'http://localhost:5001/api';
     } else {
-      // Android için IP adresinizi kullanın (Port 5001 - AirTunes çakışmasını önlemek için)
+      // Android için IP adresinizi kullanın
       return 'http://192.168.1.7:5001/api';
     }
   } else {
@@ -318,14 +318,47 @@ export const messageAPI = {
     api.post('/message/mark-read', { messageId }).then(res => res.data),
 };
 
+export interface UserStats {
+  needsCount: number;
+  offersGivenCount: number;
+  offersReceivedCount: number;
+  completedTransactionsCount: number;
+  averageRating: number;
+  totalReviews: number;
+}
+
+export interface Transaction {
+  id: number;
+  needTitle: string;
+  amount: number;
+  currency: string;
+  status: 'Pending' | 'Completed' | 'Failed' | 'Refunded';
+  transactionDate: string;
+  type: 'Payment' | 'Refund';
+  offerId: number;
+  needId: number;
+}
+
+export interface TransactionFilters {
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export const userAPI = {
   updateProfile: (data: Partial<User>): Promise<User> =>
     api.put('/user/profile', data).then(res => res.data),
-  
+
   uploadProfileImage: (imageData: FormData): Promise<{ imageUrl: string }> =>
     api.post('/user/profile/image', imageData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     }).then(res => res.data),
+
+  getUserStats: (): Promise<UserStats> =>
+    api.get('/user/stats').then(res => res.data),
+
+  getTransactionHistory: (filters: TransactionFilters = {}): Promise<Transaction[]> =>
+    api.get('/user/transactions', { params: filters }).then(res => res.data?.items || res.data),
 };
 
 export const searchAPI = {

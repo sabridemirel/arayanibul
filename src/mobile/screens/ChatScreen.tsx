@@ -239,12 +239,18 @@ const ChatScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+        accessibilityRole="button"
+        accessibilityLabel="Geri"
+        accessibilityHint="Önceki sayfaya dönmek için dokunun"
+      >
         <MaterialIcons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
       <View style={styles.headerInfo}>
-        <Text style={styles.headerTitle}>Mesajlaşma</Text>
-        <Text style={styles.headerSubtitle}>Teklif #{offerId}</Text>
+        <Text style={styles.headerTitle} allowFontScaling={true}>Mesajlaşma</Text>
+        <Text style={styles.headerSubtitle} allowFontScaling={true}>Teklif #{offerId}</Text>
       </View>
     </View>
   );
@@ -252,11 +258,23 @@ const ChatScreen: React.FC = () => {
   const renderInputArea = () => (
     <View style={styles.inputContainer}>
       <View style={styles.inputRow}>
-        <TouchableOpacity onPress={handleSendImage} style={styles.attachButton}>
+        <TouchableOpacity
+          onPress={handleSendImage}
+          style={styles.attachButton}
+          accessibilityRole="button"
+          accessibilityLabel="Fotoğraf gönder"
+          accessibilityHint="Mesaja fotoğraf eklemek için dokunun"
+        >
           <MaterialIcons name="photo" size={24} color={colors.primary} />
         </TouchableOpacity>
-        
-        <TouchableOpacity onPress={handleSendLocation} style={styles.attachButton}>
+
+        <TouchableOpacity
+          onPress={handleSendLocation}
+          style={styles.attachButton}
+          accessibilityRole="button"
+          accessibilityLabel="Konum paylaş"
+          accessibilityHint="Mesaja konum eklemek için dokunun"
+        >
           <MaterialIcons name="location-on" size={24} color={colors.primary} />
         </TouchableOpacity>
         
@@ -271,10 +289,14 @@ const ChatScreen: React.FC = () => {
           returnKeyType="send"
         />
         
-        <TouchableOpacity 
-          onPress={handleSendText} 
+        <TouchableOpacity
+          onPress={handleSendText}
           style={[styles.sendButton, { opacity: newMessage.trim() ? 1 : 0.5 }]}
           disabled={!newMessage.trim() || sending}
+          accessibilityRole="button"
+          accessibilityLabel="Gönder"
+          accessibilityHint="Mesajı göndermek için dokunun"
+          accessibilityState={{ disabled: !newMessage.trim() || sending }}
         >
           <MaterialIcons name="send" size={24} color={colors.surface} />
         </TouchableOpacity>

@@ -20,6 +20,8 @@ import ConversationsScreen from '../screens/ConversationsScreen';
 import SearchScreen from '../screens/SearchScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import PaymentScreen from '../screens/PaymentScreen';
+import TransactionHistoryScreen from '../screens/TransactionHistoryScreen';
 
 // Types
 export type RootStackParamList = {
@@ -34,6 +36,8 @@ export type RootStackParamList = {
   MyOffers: undefined;
   Notifications: undefined;
   NotificationSettings: undefined;
+  Payment: { offerId: number };
+  TransactionHistory: undefined;
 };
 
 export type AuthStackParamList = {
@@ -134,9 +138,36 @@ interface AppNavigatorProps {
   isAuthenticated: boolean;
 }
 
+// Deep linking configuration
+const linking = {
+  prefixes: ['arayanibul://'],
+  config: {
+    screens: {
+      Main: {
+        screens: {
+          Home: 'home',
+          Search: 'search',
+          MyNeeds: 'my-needs',
+          Messages: 'messages',
+          Profile: 'profile',
+        },
+      },
+      NeedDetail: 'need/:needId',
+      CreateNeed: 'create-need',
+      CreateOffer: 'create-offer/:needId',
+      MyOffers: 'my-offers',
+      Chat: 'chat/:offerId',
+      Notifications: 'notifications',
+      NotificationSettings: 'notification-settings',
+      Payment: 'payment/:offerId',
+      TransactionHistory: 'transaction-history',
+    },
+  },
+};
+
 const AppNavigator: React.FC<AppNavigatorProps> = ({ isAuthenticated }) => {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
@@ -148,6 +179,8 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({ isAuthenticated }) => {
             <RootStack.Screen name="Chat" component={ChatScreen} />
             <RootStack.Screen name="Notifications" component={NotificationsScreen} />
             <RootStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+            <RootStack.Screen name="Payment" component={PaymentScreen} />
+            <RootStack.Screen name="TransactionHistory" component={TransactionHistoryScreen} />
           </>
         ) : (
           <RootStack.Screen name="Auth" component={AuthNavigator} />

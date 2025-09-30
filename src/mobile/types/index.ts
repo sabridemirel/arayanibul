@@ -19,6 +19,9 @@ export type {
   UpdateReviewRequest,
   UserRating,
   ReviewFilters,
+  UserStats,
+  Transaction,
+  TransactionFilters,
 } from '../services/api';
 
 // Navigation types
@@ -52,6 +55,8 @@ export type RootStackParamList = {
   };
   ReviewHistory: { userId?: string };
   SecuritySettings: undefined;
+  Payment: { offerId: number };
+  TransactionHistory: undefined;
 };
 
 export type AuthStackParamList = {

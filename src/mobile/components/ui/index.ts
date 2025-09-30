@@ -10,6 +10,7 @@ export { default as AuthPromptModal } from './AuthPromptModal';
 export { default as ConversionBanner } from './ConversionBanner';
 export { default as GuestWelcomeCard } from './GuestWelcomeCard';
 export { default as GuestAccessModal } from './GuestAccessModal';
+export { default as FilterModal } from './FilterModal';
 export { default as InAppNotification } from './InAppNotification';
 export { default as NotificationBadge } from './NotificationBadge';
 export { StarRating } from './StarRating';

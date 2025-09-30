@@ -16,6 +16,7 @@ import { Button, Card, Loading, ErrorMessage, NotificationBadge, UserRatingDispl
 import { colors, spacing, borderRadius, typography } from '../theme';
 import { User } from '../types';
 import { withProfileAuth } from '../hoc/withAuthPrompt';
+import { userAPI, UserStats } from '../services/api';
 
 interface Props {
   navigation: any;
@@ -33,6 +34,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   const userId = route?.params?.userId;
   const isOwnProfile = !userId || userId === currentUser?.id;
@@ -44,6 +48,12 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [userId, isOwnProfile]);
 
+  useEffect(() => {
+    if (isOwnProfile && currentUser) {
+      loadUserStats();
+    }
+  }, [isOwnProfile, currentUser]);
+
   const loadUserProfile = async (targetUserId: string) => {
     try {
       setLoading(true);
@@ -51,7 +61,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       // TODO: Implement userAPI.getUserById when backend supports it
       // const user = await userAPI.getUserById(targetUserId);
       // setProfileUser(user);
-      
+
       // For now, show error since this endpoint doesn't exist yet
       setError('Kullanıcı profili yüklenemedi');
     } catch (err: any) {
@@ -61,12 +71,27 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  const handleRefresh = async () => {
-    if (!isOwnProfile && userId) {
-      setRefreshing(true);
-      await loadUserProfile(userId);
-      setRefreshing(false);
+  const loadUserStats = async () => {
+    try {
+      setStatsLoading(true);
+      setStatsError(null);
+      const statsData = await userAPI.getUserStats();
+      setStats(statsData);
+    } catch (err: any) {
+      setStatsError(err.response?.data?.message || 'İstatistikler yüklenirken hata oluştu');
+    } finally {
+      setStatsLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    if (!isOwnProfile && userId) {
+      await loadUserProfile(userId);
+    } else if (isOwnProfile) {
+      await loadUserStats();
+    }
+    setRefreshing(false);
   };
 
   const handleEditProfile = () => {
@@ -104,12 +129,15 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.profileImageContainer}>
         <Image source={imageSource} style={styles.profileImage} />
         {isOwnProfile && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editImageButton}
             onPress={() => {
               // TODO: Implement image picker
               Alert.alert('Bilgi', 'Profil fotoğrafı değiştirme özelliği yakında eklenecek');
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Profil fotoğrafını değiştir"
+            accessibilityHint="Yeni profil fotoğrafı eklemek için dokunun"
           >
             <MaterialIcons name="camera-alt" size={16} color={colors.surface} />
           </TouchableOpacity>
@@ -123,10 +151,10 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
     return (
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>
+        <Text style={styles.userName} allowFontScaling={true}>
           {displayUser.firstName} {displayUser.lastName}
         </Text>
-        <Text style={styles.userEmail}>{displayUser.email}</Text>
+        <Text style={styles.userEmail} allowFontScaling={true}>{displayUser.email}</Text>
         
         {displayUser.rating !== undefined && (
           <UserRatingDisplay
@@ -156,12 +184,15 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
         <TouchableOpacity
           style={styles.notificationButton}
           onPress={() => navigation.navigate('Notifications')}
+          accessibilityRole="button"
+          accessibilityLabel={`Bildirimler${unreadCount > 0 ? `, ${unreadCount} okunmamış bildirim` : ', tüm bildirimler okundu'}`}
+          accessibilityHint="Bildirimler sayfasını açmak için dokunun"
         >
-          <View style={styles.notificationContent}>
+          <View style={styles.notificationContent} accessible={false}>
             <MaterialIcons name="notifications" size={24} color={colors.primary} />
             <View style={styles.notificationTextContainer}>
-              <Text style={styles.notificationTitle}>Bildirimler</Text>
-              <Text style={styles.notificationSubtitle}>
+              <Text style={styles.notificationTitle} allowFontScaling={true} accessible={false}>Bildirimler</Text>
+              <Text style={styles.notificationSubtitle} allowFontScaling={true} accessible={false}>
                 {unreadCount > 0 ? `${unreadCount} okunmamış bildirim` : 'Tüm bildirimler okundu'}
               </Text>
             </View>
@@ -209,24 +240,77 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const renderStats = () => {
-    // TODO: Add user statistics when backend supports it
+    if (!isOwnProfile) return null;
+
+    if (statsLoading) {
+      return (
+        <Card style={styles.statsCard}>
+          <Text style={styles.statsTitle}>İstatistikler</Text>
+          <Loading size="small" />
+        </Card>
+      );
+    }
+
+    if (statsError) {
+      return (
+        <Card style={styles.statsCard}>
+          <Text style={styles.statsTitle}>İstatistikler</Text>
+          <Text style={styles.statsError}>{statsError}</Text>
+          <Button
+            title="Tekrar Dene"
+            onPress={loadUserStats}
+            variant="outline"
+            size="small"
+            style={styles.retryButton}
+          />
+        </Card>
+      );
+    }
+
     return (
       <Card style={styles.statsCard}>
         <Text style={styles.statsTitle}>İstatistikler</Text>
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>-</Text>
-            <Text style={styles.statLabel}>İhtiyaçlar</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>-</Text>
-            <Text style={styles.statLabel}>Teklifler</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statNumber}>-</Text>
-            <Text style={styles.statLabel}>Tamamlanan</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={() => navigation.navigate('MyNeeds')}
+            accessibilityRole="button"
+            accessibilityLabel={`İhtiyaçlarım, ${stats?.needsCount ?? 0} adet`}
+            accessibilityHint="İhtiyaçlarım sayfasına gitmek için dokunun"
+          >
+            <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.needsCount ?? 0}</Text>
+            <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>İhtiyaçlar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={() => navigation.navigate('MyOffers')}
+            accessibilityRole="button"
+            accessibilityLabel={`Tekliflerim, ${stats?.offersGivenCount ?? 0} adet`}
+            accessibilityHint="Tekliflerim sayfasına gitmek için dokunun"
+          >
+            <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.offersGivenCount ?? 0}</Text>
+            <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>Teklifler</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={() => navigation.navigate('TransactionHistory')}
+            accessibilityRole="button"
+            accessibilityLabel={`Tamamlanan işlemler, ${stats?.completedTransactionsCount ?? 0} adet`}
+            accessibilityHint="İşlem geçmişi sayfasına gitmek için dokunun"
+          >
+            <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.completedTransactionsCount ?? 0}</Text>
+            <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>Tamamlanan</Text>
+          </TouchableOpacity>
         </View>
+
+        <Button
+          title="İşlemler"
+          onPress={() => navigation.navigate('TransactionHistory')}
+          icon="history"
+          variant="outline"
+          fullWidth
+          style={styles.transactionsButton}
+        />
       </Card>
     );
   };
@@ -416,6 +500,18 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  statsError: {
+    fontSize: 14,
+    color: colors.error,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  retryButton: {
+    marginTop: spacing.sm,
+  },
+  transactionsButton: {
+    marginTop: spacing.md,
   },
 });
 

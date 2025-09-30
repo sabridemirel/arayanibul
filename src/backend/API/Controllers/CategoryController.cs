@@ -20,6 +20,7 @@ public class CategoryController : ControllerBase
     /// Get all active categories with their subcategories
     /// </summary>
     [HttpGet]
+    [AllowAnonymous]
     [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any)] // Cache for 1 hour
     public async Task<ActionResult<List<Category>>> GetCategories()
     {
@@ -38,6 +39,7 @@ public class CategoryController : ControllerBase
     /// Get only main categories (parent categories)
     /// </summary>
     [HttpGet("main")]
+    [AllowAnonymous]
     [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any)] // Cache for 1 hour
     public async Task<ActionResult<List<Category>>> GetMainCategories()
     {
@@ -56,6 +58,7 @@ public class CategoryController : ControllerBase
     /// Get subcategories for a specific parent category
     /// </summary>
     [HttpGet("{parentId}/subcategories")]
+    [AllowAnonymous]
     [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "parentId" })]
     public async Task<ActionResult<List<Category>>> GetSubCategories(int parentId)
     {
@@ -80,6 +83,7 @@ public class CategoryController : ControllerBase
     /// Get a specific category by ID
     /// </summary>
     [HttpGet("{id}")]
+    [AllowAnonymous]
     [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "id" })]
     public async Task<ActionResult<Category>> GetCategory(int id)
     {

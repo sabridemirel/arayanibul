@@ -369,6 +369,18 @@ public class TestAuthService : IAuthService
         return new AuthResponseDto { Success = false, Message = "Not implemented in test" };
     }
 
+    public async Task<AuthResponseDto> ConvertGuestToUserAsync(string guestId, RegisterDto registerDto)
+    {
+        // Mock implementation for testing
+        return new AuthResponseDto { Success = false, Message = "Not implemented in test" };
+    }
+
+    public async Task CleanupExpiredGuestSessionsAsync()
+    {
+        // Mock implementation for testing
+        await Task.CompletedTask;
+    }
+
     public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
     {
         // Mock implementation for testing

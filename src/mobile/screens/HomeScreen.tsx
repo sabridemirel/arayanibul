@@ -10,13 +10,14 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI, categoryAPI } from '../services/api';
 import { optimizedApiService } from '../services/optimizedApiService';
 import { Need, Category, NeedFilters } from '../types';
-import Card from '../components/ui/Card';
+import NeedCard from '../src/components/NeedCard';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
@@ -24,8 +25,8 @@ import Header from '../components/ui/Header';
 import AuthPromptModal from '../components/ui/AuthPromptModal';
 import ConversionBanner from '../components/ui/ConversionBanner';
 import GuestWelcomeCard from '../components/ui/GuestWelcomeCard';
+import FilterModal from '../components/ui/FilterModal';
 import { VirtualizedList } from '../components/ui/VirtualizedList';
-import { LazyImage } from '../components/ui/LazyImage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import { usePerformanceMonitor } from '../hooks/usePerformanceMonitor';
@@ -129,7 +130,8 @@ const HomeScreen: React.FC = () => {
   useEffect(() => {
     loadNeeds();
     loadCategories();
-  }, [loadNeeds, loadCategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const handleSearch = () => {
     loadNeeds();
@@ -212,91 +214,78 @@ const HomeScreen: React.FC = () => {
   };
 
   const renderNeedItem = ({ item }: { item: Need }) => (
-    <TouchableOpacity onPress={() => handleNeedPress(item.id)}>
-      <Card style={styles.needCard}>
-        <View style={styles.needHeader}>
-          <View style={styles.needTitleContainer}>
-            <Text style={styles.needTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            <View style={[styles.urgencyBadge, { backgroundColor: getUrgencyColor(item.urgency) }]}>
-              <Text style={styles.urgencyText}>
-                {getUrgencyText(item.urgency)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <Text style={styles.needDescription} numberOfLines={3}>
-          {item.description}
-        </Text>
-
-        <View style={styles.needMeta}>
-          <View style={styles.metaRow}>
-            <MaterialIcons name="category" size={16} color={colors.textSecondary} />
-            <Text style={styles.metaText}>
-              {item.category?.nameTr || 'Kategori'}
-            </Text>
-          </View>
-
-          {(item.minBudget || item.maxBudget) && (
-            <View style={styles.metaRow}>
-              <MaterialIcons name="attach-money" size={16} color={colors.textSecondary} />
-              <Text style={styles.metaText}>
-                {formatBudget(item.minBudget, item.maxBudget, item.currency)}
-              </Text>
-            </View>
-          )}
-
-          {item.address && (
-            <View style={styles.metaRow}>
-              <MaterialIcons name="location-on" size={16} color={colors.textSecondary} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {item.address}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.needFooter}>
-          <View style={styles.userInfo}>
-            <MaterialIcons name="person" size={16} color={colors.textSecondary} />
-            <Text style={styles.userName}>
-              {item.user?.firstName} {item.user?.lastName}
-            </Text>
-          </View>
-          
-          <View style={styles.timeAndOffers}>
-            <Text style={styles.timeText}>
-              {formatDate(item.createdAt)}
-            </Text>
-            {item.offerCount !== undefined && item.offerCount > 0 && (
-              <View style={styles.offerBadge}>
-                <MaterialIcons name="local-offer" size={12} color={colors.primary} />
-                <Text style={styles.offerCount}>
-                  {item.offerCount} teklif
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </Card>
-    </TouchableOpacity>
+    <NeedCard need={item} onPress={handleNeedPress} />
   );
 
-  const renderFilterButton = () => (
-    <TouchableOpacity 
-      onPress={() => setShowFilters(!showFilters)}
-      style={styles.filterButton}
-    >
-      <MaterialIcons name="filter-list" size={24} color={colors.primary} />
-    </TouchableOpacity>
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.categoryId) count++;
+    if (filters.minBudget || filters.maxBudget) count++;
+    if (filters.radius) count++;
+    if (filters.urgency) count++;
+    return count;
+  };
+
+  const renderFilterButton = () => {
+    const activeCount = getActiveFilterCount();
+
+    return (
+      <TouchableOpacity
+        onPress={() => setShowFilters(!showFilters)}
+        style={styles.filterButton}
+        accessibilityRole="button"
+        accessibilityLabel={activeCount > 0 ? `Filtreler (${activeCount} aktif filtre)` : 'Filtreler'}
+        accessibilityHint="Filtreleme seçeneklerini açmak için dokunun"
+      >
+        <MaterialIcons name="filter-list" size={24} color={colors.primaryDark} />
+        {activeCount > 0 && (
+          <View style={styles.filterBadge} accessible={false}>
+            <Text style={styles.filterBadgeText} accessible={false}>{activeCount}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const renderAuthButton = () => {
+    if (user?.isGuest) {
+      return (
+        <TouchableOpacity
+          onPress={() => requireAuthForGuest('view_profile', () => {})}
+          style={styles.authButton}
+          accessibilityRole="button"
+          accessibilityLabel="Giriş Yap"
+          accessibilityHint="Giriş yapmak veya kayıt olmak için dokunun"
+        >
+          <MaterialIcons name="login" size={24} color={colors.primaryDark} />
+        </TouchableOpacity>
+      );
+    } else {
+      return (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Profile' as never)}
+          style={styles.authButton}
+          accessibilityRole="button"
+          accessibilityLabel="Profil"
+          accessibilityHint="Profil sayfanıza gitmek için dokunun"
+        >
+          <MaterialIcons name="account-circle" size={24} color={colors.primaryDark} />
+        </TouchableOpacity>
+      );
+    }
+  };
+
+  const renderHeaderRightComponent = () => (
+    <View style={styles.headerRightContainer}>
+      {renderFilterButton()}
+      {renderAuthButton()}
+    </View>
   );
 
   const renderSearchBar = () => (
     <View style={styles.searchContainer}>
       <View style={styles.searchInputContainer}>
-        <MaterialIcons name="search" size={20} color={colors.textSecondary} />
+        <MaterialIcons name="search" size={20} color={colors.secondaryOrange} />
         <TextInput
           style={styles.searchInput}
           placeholder="İhtiyaç ara..."
@@ -304,9 +293,17 @@ const HomeScreen: React.FC = () => {
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
           returnKeyType="search"
+          accessibilityLabel="İhtiyaç ara"
+          accessibilityHint="Aramak istediğiniz ihtiyacı yazın"
+          allowFontScaling={true}
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
+          <TouchableOpacity
+            onPress={() => setSearchQuery('')}
+            accessibilityRole="button"
+            accessibilityLabel="Aramayı temizle"
+            accessibilityHint="Arama kutusundaki metni silmek için dokunun"
+          >
             <MaterialIcons name="clear" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
@@ -322,11 +319,48 @@ const HomeScreen: React.FC = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <MaterialIcons name="search-off" size={64} color={colors.textSecondary} />
-      <Text style={styles.emptyTitle}>İhtiyaç bulunamadı</Text>
-      <Text style={styles.emptyDescription}>
-        {searchQuery ? 'Arama kriterlerinize uygun ihtiyaç bulunamadı.' : 'Henüz hiç ihtiyaç paylaşılmamış.'}
+      <View style={styles.emptyIllustration}>
+        <LinearGradient
+          colors={[colors.primaryLight, colors.secondaryOrangeLight]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.emptyCircle}
+        >
+          <MaterialIcons
+            name={searchQuery ? "search-off" : "inventory-2"}
+            size={80}
+            color={colors.primary}
+          />
+        </LinearGradient>
+      </View>
+      <Text style={styles.emptyTitle} allowFontScaling={true}>
+        {searchQuery ? 'Sonuç Bulunamadı' : 'Henüz İhtiyaç Yok'}
       </Text>
+      <Text style={styles.emptyDescription} allowFontScaling={true}>
+        {searchQuery
+          ? 'Arama kriterlerinizi değiştirerek tekrar deneyin.'
+          : 'İlk ihtiyacı siz paylaşın ve teklifler almaya başlayın!'}
+      </Text>
+      {!searchQuery && (
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.emptyButton}
+        >
+          <TouchableOpacity
+            onPress={handleCreateNeed}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="İhtiyaç oluştur"
+            accessibilityHint="İlk ihtiyacınızı paylaşmak için dokunun"
+            style={styles.emptyButtonInner}
+          >
+            <MaterialIcons name="add-circle" size={20} color={colors.onPrimary} />
+            <Text style={styles.emptyButtonText} allowFontScaling={true} accessible={false}>İhtiyaç Oluştur</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      )}
     </View>
   );
 
@@ -369,11 +403,11 @@ const HomeScreen: React.FC = () => {
   if (loading && !refreshing) {
     return (
       <View style={styles.container}>
-        <Header 
-          title="İhtiyaçlar" 
-          showSearch 
+        <Header
+          title="İhtiyaçlar"
+          showSearch
           onSearchPress={handleSearchPress}
-          rightComponent={renderFilterButton()}
+          rightComponent={renderHeaderRightComponent()}
         />
         <Loading text="İhtiyaçlar yükleniyor..." />
       </View>
@@ -383,16 +417,16 @@ const HomeScreen: React.FC = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Header 
-          title="İhtiyaçlar" 
-          showSearch 
+        <Header
+          title="İhtiyaçlar"
+          showSearch
           onSearchPress={handleSearchPress}
-          rightComponent={renderFilterButton()}
+          rightComponent={renderHeaderRightComponent()}
         />
-        <ErrorMessage 
-          message={error} 
-          onRetry={() => loadNeeds()} 
-          showRetry 
+        <ErrorMessage
+          message={error}
+          onRetry={() => loadNeeds()}
+          showRetry
         />
       </View>
     );
@@ -400,11 +434,11 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header 
-        title="İhtiyaçlar" 
-        showSearch 
+      <Header
+        title="İhtiyaçlar"
+        showSearch
         onSearchPress={handleSearchPress}
-        rightComponent={renderFilterButton()}
+        rightComponent={renderHeaderRightComponent()}
       />
       {renderSearchBar()}
       
@@ -431,13 +465,23 @@ const HomeScreen: React.FC = () => {
         scrollEventThrottle={1000}
       />
 
-      <TouchableOpacity
+      <LinearGradient
+        colors={[colors.primary, colors.primaryDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.fab}
-        onPress={handleCreateNeed}
-        activeOpacity={0.8}
       >
-        <MaterialIcons name="add" size={24} color={colors.surface} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleCreateNeed}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Yeni ihtiyaç oluştur"
+          accessibilityHint="Yeni bir ihtiyaç ilanı eklemek için dokunun"
+          style={styles.fabInner}
+        >
+          <MaterialIcons name="add" size={24} color={colors.onPrimary} />
+        </TouchableOpacity>
+      </LinearGradient>
 
       <AuthPromptModal
         visible={modalVisible}
@@ -445,6 +489,21 @@ const HomeScreen: React.FC = () => {
         onLogin={handleLogin}
         onRegister={handleRegister}
         onDismiss={handleDismiss}
+      />
+
+      <FilterModal
+        visible={showFilters}
+        filters={filters}
+        categories={categories}
+        onApply={(newFilters) => {
+          setFilters(newFilters);
+          loadNeeds();
+        }}
+        onClear={() => {
+          setFilters({});
+          loadNeeds();
+        }}
+        onClose={() => setShowFilters(false)}
       />
     </View>
   );
@@ -455,7 +514,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  headerRightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   filterButton: {
+    padding: spacing.sm,
+    position: 'relative',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: colors.secondaryOrangeDark,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: colors.onOrangeDark,
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  authButton: {
     padding: spacing.sm,
   },
   searchContainer: {
@@ -485,116 +569,63 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     minWidth: 60,
+    backgroundColor: colors.secondaryOrangeDark,
   },
   listContainer: {
     padding: spacing.lg,
     paddingBottom: 80, // Space for FAB
-  },
-  needCard: {
-    marginBottom: spacing.lg,
-  },
-  needHeader: {
-    marginBottom: spacing.md,
-  },
-  needTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  needTitle: {
-    flex: 1,
-    fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight as any,
-    color: colors.text,
-    marginRight: spacing.md,
-  },
-  urgencyBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 12,
-  },
-  urgencyText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.surface,
-  },
-  needDescription: {
-    fontSize: typography.body.fontSize,
-    color: colors.textSecondary,
-    lineHeight: 22,
-    marginBottom: spacing.md,
-  },
-  needMeta: {
-    marginBottom: spacing.md,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  metaText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  needFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  userName: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: spacing.sm,
-  },
-  timeAndOffers: {
-    alignItems: 'flex-end',
-  },
-  timeText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  offerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  offerCount: {
-    fontSize: 12,
-    color: colors.primary,
-    marginLeft: 4,
-    fontWeight: '500',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
+    paddingVertical: 60,
+  },
+  emptyIllustration: {
+    marginBottom: spacing.xl,
+  },
+  emptyCircle: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight as any,
+    fontSize: 24,
+    fontWeight: '700',
     color: colors.text,
-    marginTop: spacing.lg,
     marginBottom: spacing.md,
+    textAlign: 'center',
   },
   emptyDescription: {
-    fontSize: typography.body.fontSize,
+    fontSize: 16,
     color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.md,
+  },
+  emptyButton: {
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  emptyButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: 8,
+  },
+  emptyButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.onPrimary,
   },
   fab: {
     position: 'absolute',
@@ -603,14 +634,17 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
+  },
+  fabInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

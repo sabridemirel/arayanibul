@@ -108,10 +108,22 @@ const Input: React.FC<InputProps> = ({
   const renderRightIcon = () => {
     if (showPasswordToggle && secureTextEntry !== undefined) {
       return (
-        <TouchableOpacity onPress={handlePasswordToggle} style={{ padding: spacing.xs }}>
-          <MaterialIcons 
-            name={isPasswordVisible ? "visibility" : "visibility-off"} 
-            size={20} 
+        <TouchableOpacity
+          onPress={handlePasswordToggle}
+          style={{
+            padding: spacing.xs,
+            minHeight: 44,
+            minWidth: 44,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={isPasswordVisible ? "Şifreyi gizle" : "Şifreyi göster"}
+          accessibilityHint="Şifre görünürlüğünü değiştirmek için dokunun"
+        >
+          <MaterialIcons
+            name={isPasswordVisible ? "visibility" : "visibility-off"}
+            size={20}
             color={colors.textSecondary}
           />
         </TouchableOpacity>
@@ -119,16 +131,24 @@ const Input: React.FC<InputProps> = ({
     }
 
     if (!rightIcon) return null;
-    
+
     return (
-      <TouchableOpacity 
-        onPress={onRightIconPress} 
-        style={{ padding: spacing.xs }}
+      <TouchableOpacity
+        onPress={onRightIconPress}
+        style={{
+          padding: spacing.xs,
+          minHeight: 44,
+          minWidth: 44,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
         disabled={!onRightIconPress}
+        accessibilityRole="button"
+        accessibilityLabel="Sağ simge"
       >
-        <MaterialIcons 
-          name={rightIcon} 
-          size={20} 
+        <MaterialIcons
+          name={rightIcon}
+          size={20}
           color={colors.textSecondary}
         />
       </TouchableOpacity>
@@ -138,12 +158,17 @@ const Input: React.FC<InputProps> = ({
   return (
     <View style={[getContainerStyle(), containerStyle]}>
       {label && (
-        <Text style={[getLabelStyle(), labelStyle]}>{label}</Text>
+        <Text
+          style={[getLabelStyle(), labelStyle]}
+          allowFontScaling={true}
+        >
+          {label}
+        </Text>
       )}
-      
+
       <View style={getInputContainerStyle()}>
         {renderLeftIcon()}
-        
+
         <TextInput
           style={[getInputStyle(), inputStyle]}
           onFocus={() => setIsFocused(true)}
@@ -153,14 +178,25 @@ const Input: React.FC<InputProps> = ({
           multiline={multiline}
           numberOfLines={numberOfLines}
           textAlignVertical={multiline ? 'top' : 'center'}
+          allowFontScaling={true}
+          // Accessibility props
+          accessibilityLabel={label || textInputProps.placeholder}
+          accessibilityHint={error || undefined}
           {...textInputProps}
         />
-        
+
         {renderRightIcon()}
       </View>
-      
+
       {error && (
-        <Text style={[getErrorStyle(), errorStyle]}>{error}</Text>
+        <Text
+          style={[getErrorStyle(), errorStyle]}
+          allowFontScaling={true}
+          accessibilityLiveRegion="polite"
+          accessibilityRole="alert"
+        >
+          {error}
+        </Text>
       )}
     </View>
   );

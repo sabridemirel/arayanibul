@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar, View, Text, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Import real screens
 import LoginScreen from './screens/LoginScreen';
@@ -20,6 +22,8 @@ import MyOffersScreen from './screens/MyOffersScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import PaymentScreen from './screens/PaymentScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -55,6 +59,11 @@ function AppNavigator() {
         <Stack.Screen name="Conversations" component={ConversationsScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{ title: 'Ödeme' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -81,6 +90,7 @@ function LoadingScreen() {
 
 export default function App() {
   const [appIsReady, setAppIsReady] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
     async function prepare() {
@@ -90,8 +100,13 @@ export default function App() {
           // Load any custom fonts here if needed
           // For now, we just ensure the system is ready for vector icons
         });
+
+        // Check if user has seen onboarding
+        const onboardingCompleted = await AsyncStorage.getItem('@arayanibul_onboarding_completed');
+        setHasSeenOnboarding(onboardingCompleted === 'true');
       } catch (e) {
         console.warn(e);
+        setHasSeenOnboarding(true); // Default to true if error occurs
       } finally {
         // Tell the application to render
         setAppIsReady(true);
@@ -102,14 +117,31 @@ export default function App() {
     prepare();
   }, []);
 
-  if (!appIsReady) {
+  const handleOnboardingComplete = async () => {
+    try {
+      await AsyncStorage.setItem('@arayanibul_onboarding_completed', 'true');
+      setHasSeenOnboarding(true);
+    } catch (error) {
+      console.error('Error saving onboarding state:', error);
+      setHasSeenOnboarding(true);
+    }
+  };
+
+  if (!appIsReady || hasSeenOnboarding === null) {
     return <LoadingScreen />;
+  }
+
+  // Show onboarding if user hasn't seen it yet
+  if (!hasSeenOnboarding) {
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <NotificationProvider>
+          <AppContent />
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

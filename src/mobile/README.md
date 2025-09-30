@@ -78,13 +78,66 @@ React Native/Expo ile geliştirilmiş modern mobil uygulama.
 const API_BASE_URL = 'http://localhost:5000/api'; // Backend URL
 ```
 
+### Environment Variables
+
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Update `.env` with your configuration:
+   - API base URL
+   - OAuth credentials (if using social login)
+   - EAS project ID
+
+**Note**: `.env` is gitignored and should never be committed.
+
+### OAuth Configuration (Google & Facebook)
+
+Social login requires native builds and proper OAuth configuration:
+
+```bash
+# Detailed setup guide
+cat OAUTH_SETUP.md
+```
+
+Required files (not in repository):
+- `google-services.json` (Android)
+- `GoogleService-Info.plist` (iOS)
+
+Update `app.json` with your OAuth credentials:
+- Google: Replace `YOUR_REVERSED_CLIENT_ID`
+- Facebook: Replace `YOUR_FACEBOOK_APP_ID`
+
+### Firebase Push Notifications
+
+Push bildirimler için Firebase yapılandırması gereklidir:
+
+```bash
+# Detaylı kurulum rehberi
+cat FIREBASE_SETUP.md
+```
+
+Firebase config dosyaları:
+- `config/google-services.json` (Android)
+- `config/GoogleService-Info.plist` (iOS)
+- Template dosyaları: `config/*.example`
+
+**Not**: Firebase config dosyaları gitignore'dadır ve repository'ye commit edilmemelidir.
+
 ### Expo Go Sınırlamaları
+
 Expo Go'da çalışmayan özellikler:
 - Google Sign-In (native kod gerekli)
 - Facebook SDK (native kod gerekli)
-- Push notifications (konfigürasyon gerekli)
+- Push notifications (Firebase konfigürasyonu gerekli)
 
-Bu özellikler için development build veya production build gereklidir.
+Bu özellikler için development build veya production build gereklidir:
+```bash
+# Development build oluştur
+eas build --profile development --platform ios
+eas build --profile development --platform android
+```
 
 ## 🛠️ Teknolojiler
 
@@ -120,12 +173,54 @@ npx expo start
 # Cache temizle
 npx expo start --clear
 
+# iOS simulator'da çalıştır
+npx expo run:ios
+
+# Android emulator'da çalıştır
+npx expo run:android
+
 # Production build (EAS Build gerekli)
 eas build --platform ios
 eas build --platform android
 
 # Expo Go'da test et
 npx expo start --go
+```
+
+## 📦 Building & Deployment
+
+### iOS Build
+
+For detailed iOS build instructions including TestFlight and App Store submission:
+
+```bash
+# See comprehensive iOS build guide
+cat IOS_BUILD_GUIDE.md
+```
+
+Key commands:
+```bash
+# Development build for testing
+eas build --profile development --platform ios
+
+# Run on iOS simulator
+npx expo run:ios
+
+# Submit to TestFlight/App Store
+eas submit --platform ios
+```
+
+### Android Build
+
+```bash
+# Development build
+eas build --profile development --platform android
+
+# Production build
+eas build --platform android
+
+# Run on Android emulator
+npx expo run:android
 ```
 
 ## 📚 Kaynaklar
