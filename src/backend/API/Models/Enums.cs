@@ -37,3 +37,21 @@ public enum MessageType
     Image = 2,
     Location = 3
 }
+
+public enum TransactionStatus
+{
+    Pending = 1,        // Payment initialized, waiting for user to complete
+    Processing = 2,     // Payment in process (3D Secure flow)
+    Completed = 3,      // Payment completed, funds in escrow
+    Released = 4,       // Funds released to provider
+    Refunded = 5,       // Payment refunded to buyer
+    Failed = 6,         // Payment failed
+    Cancelled = 7       // Transaction cancelled
+}
+
+public enum PaymentGateway
+{
+    Iyzico = 1,
+    PayTR = 2,
+    Stripe = 3
+}

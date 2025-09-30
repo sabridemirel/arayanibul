@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Notification> Notifications { get; set; }
     public DbSet<SearchHistory> SearchHistories { get; set; }
     public DbSet<UserBehavior> UserBehaviors { get; set; }
+    public DbSet<Transaction> Transactions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -196,5 +197,50 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<UserBehavior>()
             .HasIndex(ub => new { ub.TargetId, ub.TargetType, ub.CreatedAt })
             .HasDatabaseName("IX_UserBehaviors_TargetId_TargetType_CreatedAt");
+
+        // Transaction relationships
+        builder.Entity<Transaction>()
+            .HasOne(t => t.Offer)
+            .WithMany()
+            .HasForeignKey(t => t.OfferId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Transaction>()
+            .HasOne(t => t.Buyer)
+            .WithMany()
+            .HasForeignKey(t => t.BuyerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Transaction>()
+            .HasOne(t => t.Provider)
+            .WithMany()
+            .HasForeignKey(t => t.ProviderId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Transaction decimal precision
+        builder.Entity<Transaction>()
+            .Property(t => t.Amount)
+            .HasPrecision(18, 2);
+
+        // Transaction indexes
+        builder.Entity<Transaction>()
+            .HasIndex(t => new { t.OfferId, t.Status })
+            .HasDatabaseName("IX_Transactions_OfferId_Status");
+
+        builder.Entity<Transaction>()
+            .HasIndex(t => new { t.BuyerId, t.Status, t.CreatedAt })
+            .HasDatabaseName("IX_Transactions_BuyerId_Status_CreatedAt");
+
+        builder.Entity<Transaction>()
+            .HasIndex(t => new { t.ProviderId, t.Status, t.CreatedAt })
+            .HasDatabaseName("IX_Transactions_ProviderId_Status_CreatedAt");
+
+        builder.Entity<Transaction>()
+            .HasIndex(t => t.GatewayTransactionId)
+            .HasDatabaseName("IX_Transactions_GatewayTransactionId");
+
+        builder.Entity<Transaction>()
+            .HasIndex(t => t.ConversationId)
+            .HasDatabaseName("IX_Transactions_ConversationId");
     }
 }

@@ -122,6 +122,7 @@ public static class ServiceExtensions
         services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IRecommendationService, RecommendationService>();
+        services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<QueryOptimizationService>();
         services.AddHttpClient<FacebookService>();
         
