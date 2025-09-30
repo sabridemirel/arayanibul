@@ -11,17 +11,20 @@ public class UserService : IUserService
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFileStorageService _fileStorageService;
+    private readonly ICacheService _cacheService;
     private readonly ILogger<UserService> _logger;
 
     public UserService(
         ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IFileStorageService fileStorageService,
+        ICacheService cacheService,
         ILogger<UserService> logger)
     {
         _context = context;
         _userManager = userManager;
         _fileStorageService = fileStorageService;
+        _cacheService = cacheService;
         _logger = logger;
     }
 
@@ -162,6 +165,176 @@ public class UserService : IUserService
         {
             _logger.LogError(ex, "Error deleting profile image for user {UserId}", userId);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Gets full statistics for the authenticated user including private financial data
+    /// Results are cached for 5 minutes
+    /// </summary>
+    public async Task<UserStatisticsResponse?> GetUserStatisticsAsync(string userId)
+    {
+        try
+        {
+            // Check cache first
+            var cacheKey = $"user_stats_{userId}";
+            var cachedStats = await _cacheService.GetAsync<UserStatisticsResponse>(cacheKey);
+            if (cachedStats != null)
+            {
+                _logger.LogDebug("User statistics cache hit for user {UserId}", userId);
+                return cachedStats;
+            }
+
+            // Get user
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("User not found for statistics: {UserId}", userId);
+                return null;
+            }
+
+            // Calculate statistics using efficient LINQ queries
+            var stats = new UserStatisticsResponse
+            {
+                // Count needs created by user
+                NeedsCount = await _context.Needs
+                    .AsNoTracking()
+                    .Where(n => n.UserId == userId)
+                    .CountAsync(),
+
+                // Count offers given by user (as provider)
+                OffersGivenCount = await _context.Offers
+                    .AsNoTracking()
+                    .Where(o => o.ProviderId == userId)
+                    .CountAsync(),
+
+                // Count offers received on user's needs (as buyer)
+                OffersReceivedCount = await _context.Offers
+                    .AsNoTracking()
+                    .Where(o => o.Need.UserId == userId)
+                    .CountAsync(),
+
+                // Count completed transactions (Released status means completed)
+                CompletedTransactionsCount = await _context.Transactions
+                    .AsNoTracking()
+                    .Where(t => (t.BuyerId == userId || t.ProviderId == userId) &&
+                                t.Status == TransactionStatus.Released)
+                    .CountAsync(),
+
+                // Total spent - sum of Released transactions where user is buyer
+                TotalSpent = await _context.Transactions
+                    .AsNoTracking()
+                    .Where(t => t.BuyerId == userId && t.Status == TransactionStatus.Released)
+                    .SumAsync(t => (decimal?)t.Amount) ?? 0m,
+
+                // Total earned - sum of Released transactions where user is provider
+                TotalEarned = await _context.Transactions
+                    .AsNoTracking()
+                    .Where(t => t.ProviderId == userId && t.Status == TransactionStatus.Released)
+                    .SumAsync(t => (decimal?)t.Amount) ?? 0m,
+
+                // Average rating - only count visible reviews
+                AverageRating = await _context.Reviews
+                    .AsNoTracking()
+                    .Where(r => r.RevieweeId == userId && r.IsVisible)
+                    .AverageAsync(r => (double?)r.Rating) ?? 0.0,
+
+                // Review count
+                ReviewCount = await _context.Reviews
+                    .AsNoTracking()
+                    .Where(r => r.RevieweeId == userId && r.IsVisible)
+                    .CountAsync(),
+
+                // Verification badges
+                VerificationBadges = user.VerificationBadges,
+
+                // Member since
+                MemberSince = user.CreatedAt
+            };
+
+            // Cache the results for 5 minutes
+            await _cacheService.SetAsync(cacheKey, stats, TimeSpan.FromMinutes(5));
+
+            _logger.LogInformation("User statistics calculated for user {UserId}: {Stats}",
+                userId, System.Text.Json.JsonSerializer.Serialize(stats));
+
+            return stats;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user statistics for user {UserId}", userId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets public statistics for any user (no authentication required)
+    /// Results are cached for 5 minutes
+    /// </summary>
+    public async Task<PublicUserStatisticsResponse?> GetPublicUserStatisticsAsync(string userId)
+    {
+        try
+        {
+            // Check cache first
+            var cacheKey = $"user_public_stats_{userId}";
+            var cachedStats = await _cacheService.GetAsync<PublicUserStatisticsResponse>(cacheKey);
+            if (cachedStats != null)
+            {
+                _logger.LogDebug("Public user statistics cache hit for user {UserId}", userId);
+                return cachedStats;
+            }
+
+            // Get user
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                _logger.LogWarning("User not found for public statistics: {UserId}", userId);
+                return null;
+            }
+
+            // Calculate public statistics using efficient LINQ queries
+            var stats = new PublicUserStatisticsResponse
+            {
+                // Count completed transactions (Released status means completed)
+                CompletedTransactionsCount = await _context.Transactions
+                    .AsNoTracking()
+                    .Where(t => (t.BuyerId == userId || t.ProviderId == userId) &&
+                                t.Status == TransactionStatus.Released)
+                    .CountAsync(),
+
+                // Average rating - only count visible reviews
+                AverageRating = await _context.Reviews
+                    .AsNoTracking()
+                    .Where(r => r.RevieweeId == userId && r.IsVisible)
+                    .AverageAsync(r => (double?)r.Rating) ?? 0.0,
+
+                // Review count
+                ReviewCount = await _context.Reviews
+                    .AsNoTracking()
+                    .Where(r => r.RevieweeId == userId && r.IsVisible)
+                    .CountAsync(),
+
+                // Verification badges
+                VerificationBadges = user.VerificationBadges,
+
+                // Member since
+                MemberSince = user.CreatedAt,
+
+                // User type
+                UserType = user.UserType
+            };
+
+            // Cache the results for 5 minutes
+            await _cacheService.SetAsync(cacheKey, stats, TimeSpan.FromMinutes(5));
+
+            _logger.LogInformation("Public user statistics calculated for user {UserId}", userId);
+
+            return stats;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting public user statistics for user {UserId}", userId);
+            return null;
         }
     }
 }

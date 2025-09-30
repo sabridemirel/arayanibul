@@ -195,4 +195,54 @@ public class UserController : ControllerBase
 
         return Ok(new { message = "Profil resmi başarıyla silindi" });
     }
+
+    /// <summary>
+    /// Gets authenticated user's full statistics including financial data
+    /// </summary>
+    /// <returns>User statistics with needs count, offers count, transactions, spending/earnings</returns>
+    /// <response code="200">Returns user statistics</response>
+    /// <response code="401">Unauthorized - user not authenticated</response>
+    /// <response code="404">User not found</response>
+    [HttpGet("stats")]
+    [ProducesResponseType(typeof(UserStatisticsResponse), 200)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<UserStatisticsResponse>> GetUserStatistics()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { message = "Kullanıcı kimliği bulunamadı" });
+        }
+
+        var stats = await _userService.GetUserStatisticsAsync(userId);
+        if (stats == null)
+        {
+            return NotFound(new { message = "Kullanıcı bulunamadı" });
+        }
+
+        return Ok(stats);
+    }
+
+    /// <summary>
+    /// Gets public statistics for any user (no authentication required)
+    /// </summary>
+    /// <param name="userId">The user ID to get statistics for</param>
+    /// <returns>Public user statistics (completed transactions, rating, badges)</returns>
+    /// <response code="200">Returns public user statistics</response>
+    /// <response code="404">User not found</response>
+    [HttpGet("stats/{userId}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(PublicUserStatisticsResponse), 200)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<PublicUserStatisticsResponse>> GetPublicUserStatistics(string userId)
+    {
+        var stats = await _userService.GetPublicUserStatisticsAsync(userId);
+        if (stats == null)
+        {
+            return NotFound(new { message = "Kullanıcı bulunamadı" });
+        }
+
+        return Ok(stats);
+    }
 }
