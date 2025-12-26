@@ -14,11 +14,30 @@ namespace API.Configuration;
 
 public static class ServiceExtensions
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        // Database
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+        // Database - Use PostgreSQL in Production, SQLite in Development
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        if (environment.IsProduction() && !string.IsNullOrEmpty(connectionString) && connectionString.Contains("Host="))
+        {
+            // PostgreSQL for Production
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(connectionString));
+
+            // Health checks for PostgreSQL
+            services.AddHealthChecks()
+                .AddNpgSql(connectionString, name: "database");
+        }
+        else
+        {
+            // SQLite for Development
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlite(connectionString ?? "Data Source=app.db"));
+
+            // Basic health check for SQLite
+            services.AddHealthChecks();
+        }
 
         // Identity
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -137,25 +156,44 @@ public static class ServiceExtensions
         return services;
     }
 
-    public static IServiceCollection AddCorsPolicy(this IServiceCollection services)
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services, IConfiguration configuration)
     {
+        // Get allowed origins from configuration (for production)
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+
         services.AddCors(options =>
         {
             options.AddPolicy("AllowMobile", policy =>
             {
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader();
+                if (allowedOrigins.Length > 0)
+                {
+                    // Production: use configured origins
+                    policy.WithOrigins(allowedOrigins)
+                          .AllowAnyMethod()
+                          .AllowAnyHeader()
+                          .AllowCredentials();
+                }
+                else
+                {
+                    // Development: allow any origin
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                }
             });
 
             options.AddPolicy("AllowSignalR", policy =>
             {
-                policy.WithOrigins(
+                var signalROrigins = allowedOrigins.Length > 0
+                    ? allowedOrigins
+                    : new[] {
                         "http://localhost:8081",
-                        "exp://192.168.1.7:8081",  // Updated IP
+                        "exp://192.168.1.7:8081",
                         "exp://192.168.1.100:8081",
-                        "http://192.168.1.7:8081"  // Added HTTP variant
-                      )
+                        "http://192.168.1.7:8081"
+                      };
+
+                policy.WithOrigins(signalROrigins)
                       .AllowAnyMethod()
                       .AllowAnyHeader()
                       .AllowCredentials();

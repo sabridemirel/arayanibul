@@ -71,10 +71,10 @@ export const colors = {
   accent: '#2D3748',            // Navy/charcoal (11.58:1 - WCAG AAA)
   accentLight: 'rgba(45, 55, 72, 0.1)',
 
-  // Gradients
-  primaryGradient: ['#9D4EDD', '#7B2CBF', '#5A189A'],
-  orangeGradient: ['#FCD34D', '#F59E0B', '#D97706'],
-  purpleOrangeGradient: ['#7B2CBF', '#9D4EDD', '#F59E0B'],
+  // Gradients (as const for type safety with LinearGradient)
+  primaryGradient: ['#9D4EDD', '#7B2CBF', '#5A189A'] as const,
+  orangeGradient: ['#FCD34D', '#F59E0B', '#D97706'] as const,
+  purpleOrangeGradient: ['#7B2CBF', '#9D4EDD', '#F59E0B'] as const,
 
   // Status colors
   info: '#17a2b8',              // Teal (4.52:1 - WCAG AA)
