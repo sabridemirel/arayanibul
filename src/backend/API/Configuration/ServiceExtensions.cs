@@ -111,19 +111,31 @@ public static class ServiceExtensions
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
-        })
-        .AddGoogle(options =>
-        {
-            var googleSettings = configuration.GetSection("OAuth:Google");
-            options.ClientId = googleSettings["ClientId"]!;
-            options.ClientSecret = googleSettings["ClientSecret"]!;
-        })
-        .AddFacebook(options =>
-        {
-            var facebookSettings = configuration.GetSection("OAuth:Facebook");
-            options.AppId = facebookSettings["AppId"]!;
-            options.AppSecret = facebookSettings["AppSecret"]!;
         });
+
+        // Add Google OAuth if configured
+        var googleSettings = configuration.GetSection("OAuth:Google");
+        var googleClientId = googleSettings["ClientId"];
+        if (!string.IsNullOrEmpty(googleClientId))
+        {
+            services.AddAuthentication().AddGoogle(options =>
+            {
+                options.ClientId = googleClientId;
+                options.ClientSecret = googleSettings["ClientSecret"]!;
+            });
+        }
+
+        // Add Facebook OAuth if configured
+        var facebookSettings = configuration.GetSection("OAuth:Facebook");
+        var facebookAppId = facebookSettings["AppId"];
+        if (!string.IsNullOrEmpty(facebookAppId))
+        {
+            services.AddAuthentication().AddFacebook(options =>
+            {
+                options.AppId = facebookAppId;
+                options.AppSecret = facebookSettings["AppSecret"]!;
+            });
+        }
 
         return services;
     }
