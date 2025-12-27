@@ -45,7 +45,7 @@ orleans.codegen.cs
 *.sqlite3
 
 # Entity Framework
-**/Migrations/
+# Migrations are now tracked for deployment
 
 # Node.js
 node_modules/
