@@ -17,8 +17,8 @@ const getApiBaseUrl = () => {
       return 'http://192.168.1.7:5001/api';
     }
   } else {
-    // Production API URL - buraya gerçek API URL'inizi yazın
-    return 'https://api.arayanibul.com/api';
+    // Production API URL - AWS EC2
+    return 'http://13.62.223.188:5000/api';
   }
 };
 
