@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(curl -s http://localhost:5000/api/categories)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(ls:*)",
+      "Bash(npm create:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
