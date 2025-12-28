@@ -4,12 +4,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Image,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Input, Button, Divider, GuestAccessModal } from '../components/ui';
@@ -27,6 +27,7 @@ interface RegisterFormData extends RegisterData {
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { register, googleLogin, facebookLogin, guestContinue, isLoading } = useAuth();
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const validateRegister = (values: RegisterFormData) => {
     const errors: Partial<Record<keyof RegisterFormData, string>> = {};
@@ -85,72 +86,73 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     validate: validateRegister,
     onSubmit: async (formValues) => {
       try {
+        setError(null);
         await register({
           firstName: formValues.firstName.trim(),
           lastName: formValues.lastName.trim(),
           email: formValues.email.trim(),
           password: formValues.password,
         });
-        Alert.alert('Başarılı', 'Kayıt başarılı!', [
-          {
-            text: 'Tamam',
-            onPress: () => {
-              // AuthContext otomatik navigation yapacak
-            }
-          }
-        ]);
+        // Haptics sessizce başarısız olabilir
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {}
+        navigation.goBack();
       } catch (error: any) {
-        Alert.alert('Hata', error.message);
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        } catch {}
+        setError(error.message || 'Kayıt sırasında bir hata oluştu');
       }
     },
   });
 
   const handleGoogleRegister = async () => {
     try {
+      setError(null);
       await googleLogin();
-      Alert.alert('Başarılı', 'Google ile kayıt başarılı!', [
-        {
-          text: 'Tamam',
-          onPress: () => {
-            // AuthContext otomatik navigation yapacak
-          }
-        }
-      ]);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+      navigation.goBack();
     } catch (error: any) {
-      Alert.alert('Hata', error.message);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch {}
+      setError(error.message || 'Google ile kayıt sırasında bir hata oluştu');
     }
   };
 
   const handleFacebookRegister = async () => {
     try {
+      setError(null);
       await facebookLogin();
-      Alert.alert('Başarılı', 'Facebook ile kayıt başarılı!', [
-        {
-          text: 'Tamam',
-          onPress: () => {
-            // AuthContext otomatik navigation yapacak
-          }
-        }
-      ]);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+      navigation.goBack();
     } catch (error: any) {
-      Alert.alert('Hata', error.message);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch {}
+      setError(error.message || 'Facebook ile kayıt sırasında bir hata oluştu');
     }
   };
 
   const handleGuestLogin = async () => {
     try {
+      setError(null);
       setShowGuestModal(false);
       await guestContinue();
-      Alert.alert('Başarılı', 'Misafir girişi başarılı!', [
-        {
-          text: 'Tamam',
-          onPress: () => {
-            // AuthContext otomatik navigation yapacak
-          }
-        }
-      ]);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+      navigation.goBack();
     } catch (error: any) {
-      Alert.alert('Hata', error.message);
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } catch {}
+      setError(error.message || 'Misafir girişi sırasında bir hata oluştu');
     }
   };
 
@@ -159,20 +161,30 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Image 
-            source={require('../assets/images/logo.jpg')} 
+          <Image
+            source={require('../assets/images/logo.jpg')}
             style={styles.logo}
             resizeMode="contain"
           />
           <Text style={styles.title}>Hesap Oluştur</Text>
           <Text style={styles.subtitle}>Yeni hesabınızı oluşturun</Text>
         </View>
+
+        {error && (
+          <View style={styles.errorBanner}>
+            <MaterialIcons name="error-outline" size={20} color="#fff" />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={() => setError(null)}>
+              <MaterialIcons name="close" size={20} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.form}>
           <Input
@@ -327,6 +339,21 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#666',
+  },
+  errorBanner: {
+    backgroundColor: '#dc3545',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  errorText: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   form: {
     marginBottom: 30,

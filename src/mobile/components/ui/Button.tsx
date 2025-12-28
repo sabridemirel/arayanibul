@@ -74,7 +74,8 @@ const Button: React.FC<ButtonProps> = ({
       justifyContent: 'center',
       borderRadius: borderRadius.md,
       borderWidth: variant === 'outline' ? 2 : 0,
-      overflow: 'hidden',
+      // Only use overflow hidden for gradient buttons, not outline
+      overflow: gradient ? 'hidden' : 'visible',
     };
 
     // Size styles - All sizes meet 44pt minimum touch target (WCAG)
@@ -136,6 +137,7 @@ const Button: React.FC<ButtonProps> = ({
   const getTextStyle = (): TextStyle => {
     const baseTextStyle: TextStyle = {
       fontWeight: '600',
+      includeFontPadding: false, // Fix Android text clipping
     };
 
     // Size styles

@@ -441,7 +441,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 </ScrollView>
 
                 {/* Action Buttons */}
-                <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.xl) + spacing.lg }]}>
+                <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.md }]}>
                   <Button
                   title="Temizle"
                   onPress={handleClear}

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -98,26 +97,14 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     navigation.navigate('EditProfile');
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Çıkış Yap',
-      'Hesabınızdan çıkış yapmak istediğinizden emin misiniz?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Çıkış Yap',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-              Alert.alert('Başarılı', 'Çıkış yapıldı');
-            } catch (error: any) {
-              Alert.alert('Hata', error.message);
-            }
-          },
-        },
-      ]
-    );
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // Navigation will automatically redirect to auth screen
+    } catch (error: any) {
+      console.error('Logout error:', error.message);
+      // Silently fail - user can try again
+    }
   };
 
   const renderProfileImage = () => {
@@ -132,12 +119,12 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           <TouchableOpacity
             style={styles.editImageButton}
             onPress={() => {
-              // TODO: Implement image picker
-              Alert.alert('Bilgi', 'Profil fotoğrafı değiştirme özelliği yakında eklenecek');
+              // TODO: Implement image picker - navigate to EditProfile for now
+              navigation.navigate('EditProfile');
             }}
             accessibilityRole="button"
             accessibilityLabel="Profil fotoğrafını değiştir"
-            accessibilityHint="Yeni profil fotoğrafı eklemek için dokunun"
+            accessibilityHint="Profil düzenleme sayfasına gitmek için dokunun"
           >
             <MaterialIcons name="camera-alt" size={16} color={colors.surface} />
           </TouchableOpacity>

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { notificationService, NotificationData } from '../services/notificationService';
 
 export interface InAppNotification {
@@ -94,7 +93,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const setupNotificationListeners = () => {
     // Listener for notifications received while app is in foreground
     notificationReceivedUnsubscribe.current = notificationService.onNotificationReceived(
-      (notification: Notifications.Notification) => {
+      (notification: any) => {
         console.log('Notification received in context:', notification);
         handleNotificationReceived(notification);
       }
@@ -102,7 +101,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     // Listener for notification responses (user tapped notification)
     notificationResponseUnsubscribe.current = notificationService.onNotificationResponse(
-      (response: Notifications.NotificationResponse) => {
+      (response: any) => {
         console.log('Notification response in context:', response);
         handleNotificationResponse(response);
       }
@@ -111,7 +110,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     console.log('Notification listeners setup in context');
   };
 
-  const handleNotificationReceived = (notification: Notifications.Notification) => {
+  const handleNotificationReceived = (notification: any) => {
+    if (!notification?.request?.content) return;
+
     // Add notification to local state when received in foreground
     const notificationData = notification.request.content.data as NotificationData;
 
@@ -132,7 +133,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     notificationService.setBadgeCount(newUnreadCount);
   };
 
-  const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+  const handleNotificationResponse = (response: any) => {
+    if (!response?.notification?.request?.content) return;
+
     // User tapped on notification - navigate to appropriate screen
     const notificationData = response.notification.request.content.data as NotificationData;
 
