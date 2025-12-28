@@ -161,12 +161,9 @@
 
 ## Faz 5: Mobile App Güncelleme
 
-- [ ] **AWS-10**: Mobile app API URL güncelleme
-  - [ ] `src/mobile/src/services/api.ts` dosyasında BASE_URL güncelle:
-    ```typescript
-    const API_BASE_URL = 'http://13.62.223.188:5000/api';
-    ```
-  - [ ] Test et
+- [x] **AWS-10**: Mobile app API URL güncelleme
+  - [x] `src/mobile/services/api.ts` dosyasında production URL güncellendi
+  - [x] Production URL: `http://13.62.223.188:5000/api`
 
 ---
 
