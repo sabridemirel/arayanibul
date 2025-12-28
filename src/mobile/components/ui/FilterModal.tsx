@@ -15,9 +15,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, spacing, typography, borderRadius } from '../../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, spacing, borderRadius } from '../../theme';
 import { NeedFilters, Category } from '../../types';
 import Button from './Button';
+
+// Icons for urgency levels
+const URGENCY_ICONS: Record<string, string> = {
+  Flexible: 'event-available',
+  Normal: 'schedule',
+  Urgent: 'flash-on',
+};
 
 interface FilterModalProps {
   visible: boolean;
@@ -42,6 +50,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onClear,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [localFilters, setLocalFilters] = useState<NeedFilters>(filters);
 
@@ -187,15 +196,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View style={[styles.overlay, { opacity }]}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.modalContainer,
-                { transform: [{ translateY }] },
-              ]}
-            >
+      <View style={styles.overlayContainer}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <Animated.View style={[styles.overlayBackground, { opacity }]} />
+        </TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            { transform: [{ translateY }] },
+          ]}
+        >
               {/* Handle bar */}
               <View style={styles.handleBar} />
 
@@ -220,12 +230,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 </TouchableOpacity>
               </View>
 
-              <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.contentContainer}
-              >
-                {/* Category Filter */}
+              <View style={styles.contentWrapper}>
+                <ScrollView
+                  style={styles.content}
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.contentContainer}
+                >
+                  {/* Category Filter */}
                 <View style={styles.filterSection}>
                   <Text style={styles.filterLabel}>Kategori</Text>
                   <View style={styles.chipsContainer}>
@@ -427,11 +438,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     })}
                   </View>
                 </View>
-              </ScrollView>
+                </ScrollView>
 
-              {/* Action Buttons */}
-              <View style={styles.footer}>
-                <Button
+                {/* Action Buttons */}
+                <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.xl) + spacing.lg }]}>
+                  <Button
                   title="Temizle"
                   onPress={handleClear}
                   variant="outline"
@@ -455,12 +466,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   >
                     <Text style={styles.applyButtonText}>Uygula</Text>
                   </TouchableOpacity>
-                </LinearGradient>
+                  </LinearGradient>
+                </View>
               </View>
-            </Animated.View>
-          </TouchableWithoutFeedback>
         </Animated.View>
-      </TouchableWithoutFeedback>
+      </View>
     </Modal>
   );
 };
@@ -520,7 +530,7 @@ const CategoryChip: React.FC<{
   );
 };
 
-// UrgencyPill Component
+// UrgencyPill Component with icon
 const UrgencyPill: React.FC<{
   urgency: UrgencyType;
   label: string;
@@ -545,6 +555,8 @@ const UrgencyPill: React.FC<{
     }).start();
   };
 
+  const iconName = URGENCY_ICONS[urgency] || 'schedule';
+
   return (
     <Animated.View style={[styles.urgencyPillWrapper, { transform: [{ scale: scaleAnim }] }]}>
       <Pressable
@@ -562,6 +574,12 @@ const UrgencyPill: React.FC<{
         accessibilityLabel={`Aciliyet: ${label}`}
         accessibilityState={{ checked: selected }}
       >
+        <MaterialIcons
+          name={iconName as any}
+          size={20}
+          color={selected ? colors.onPrimary : urgencyColor}
+          style={styles.urgencyIcon}
+        />
         <Text style={[
           styles.urgencyText,
           selected && { color: colors.onPrimary }
@@ -574,21 +592,26 @@ const UrgencyPill: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  overlayContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+  },
+  overlayBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    height: MODAL_HEIGHT,
     maxHeight: MODAL_HEIGHT,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+    flexDirection: 'column',
   },
   handleBar: {
     width: 40,
@@ -639,22 +662,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  contentWrapper: {
+    flex: 1,
+    overflow: 'hidden',
+  },
   content: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.xl * 2,
+    flexGrow: 1,
   },
   filterSection: {
     marginBottom: spacing.xl,
+    backgroundColor: colors.surface,
   },
   filterLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
     marginBottom: spacing.md,
+    letterSpacing: 0.5,
   },
 
   // Category Chips
@@ -780,17 +810,23 @@ const styles = StyleSheet.create({
   urgencyPill: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 12,
+    paddingHorizontal: spacing.xs,
+    borderRadius: 22,
     borderWidth: 2,
     borderColor: colors.border,
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  urgencyIcon: {
+    marginRight: 2,
   },
   urgencyText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.text,
   },
 
@@ -798,32 +834,42 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingTop: spacing.lg,
     gap: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     backgroundColor: colors.surface,
+    alignItems: 'center',
   },
   clearButton: {
     flex: 1,
+    height: 52,
+    minHeight: 52,
+    justifyContent: 'center',
   },
   applyButtonGradient: {
     flex: 1,
+    height: 52,
     borderRadius: borderRadius.md,
     overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   applyButton: {
     width: '100%',
     height: '100%',
-    minHeight: 48,
+    minHeight: 52,
     justifyContent: 'center',
     alignItems: 'center',
   },
   applyButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: colors.onPrimary,
+    letterSpacing: 0.5,
   },
 });
 

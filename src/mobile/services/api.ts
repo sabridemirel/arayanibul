@@ -4,22 +4,11 @@ import { Platform } from 'react-native';
 
 // Platform bazlı API URL konfigürasyonu
 const getApiBaseUrl = () => {
-  // Production'da gerçek API URL'inizi kullanın
-  if (__DEV__) {
-    // Development modunda:
-    // iOS simulator için localhost çalışır
-    // Android emulator için 10.0.2.2 kullanın
-    // Android fiziksel cihaz için bilgisayarınızın IP'sini kullanın
-    if (Platform.OS === 'ios') {
-      return 'http://localhost:5001/api';
-    } else {
-      // Android için IP adresinizi kullanın
-      return 'http://192.168.1.7:5001/api';
-    }
-  } else {
-    // Production API URL - AWS EC2
-    return 'http://13.62.223.188:5000/api';
-  }
+  // AWS EC2 API - hem development hem production için
+  // Local backend test etmek için aşağıdaki satırı yorumdan çıkarın:
+  // return Platform.OS === 'ios' ? 'http://localhost:5000/api' : 'http://10.0.2.2:5000/api';
+
+  return 'http://13.62.223.188:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

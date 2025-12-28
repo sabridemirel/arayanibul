@@ -18,7 +18,6 @@ import { needAPI, categoryAPI } from '../services/api';
 import { optimizedApiService } from '../services/optimizedApiService';
 import { Need, Category, NeedFilters } from '../types';
 import NeedCard from '../src/components/NeedCard';
-import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import Header from '../components/ui/Header';
@@ -67,6 +66,7 @@ const HomeScreen: React.FC = () => {
   const [filters, setFilters] = useState<NeedFilters>({});
   const [showFilters, setShowFilters] = useState(false);
   const [showWelcomeCard, setShowWelcomeCard] = useState(true);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const loadNeeds = useCallback(async (refresh = false) => {
     await measureOperation('loadNeeds', async () => {
@@ -282,40 +282,68 @@ const HomeScreen: React.FC = () => {
     </View>
   );
 
-  const renderSearchBar = () => (
-    <View style={styles.searchContainer}>
-      <View style={styles.searchInputContainer}>
-        <MaterialIcons name="search" size={20} color={colors.secondaryOrange} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="İhtiyaç ara..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-          accessibilityLabel="İhtiyaç ara"
-          accessibilityHint="Aramak istediğiniz ihtiyacı yazın"
-          allowFontScaling={true}
-        />
-        {searchQuery.length > 0 && (
+  const renderSearchBar = () => {
+    const activeFilterCount = getActiveFilterCount();
+
+    return (
+      <View style={styles.searchContainer}>
+        <View style={[
+          styles.searchCard,
+          searchFocused && styles.searchCardFocused
+        ]}>
+          <MaterialIcons
+            name="search"
+            size={22}
+            color={searchFocused ? colors.primary : colors.secondaryOrange}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Arayanı Bul..."
+            placeholderTextColor={colors.textSecondary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={handleSearch}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            returnKeyType="search"
+            accessibilityLabel="Arayanı Bul"
+            accessibilityHint="Aramak istediğiniz şeyi yazın ve enter'a basın"
+            allowFontScaling={true}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                setSearchQuery('');
+                handleSearch();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Aramayı temizle"
+              accessibilityHint="Arama kutusundaki metni silmek için dokunun"
+              style={styles.clearButton}
+            >
+              <MaterialIcons name="clear" size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
-            onPress={() => setSearchQuery('')}
+            onPress={() => setShowFilters(!showFilters)}
+            style={styles.filterButtonInSearch}
             accessibilityRole="button"
-            accessibilityLabel="Aramayı temizle"
-            accessibilityHint="Arama kutusundaki metni silmek için dokunun"
+            accessibilityLabel={activeFilterCount > 0 ? `Filtreler (${activeFilterCount} aktif filtre)` : 'Filtreler'}
+            accessibilityHint="Filtreleme seçeneklerini açmak için dokunun"
           >
-            <MaterialIcons name="clear" size={20} color={colors.textSecondary} />
+            <MaterialIcons name="tune" size={22} color={colors.primary} />
+            {activeFilterCount > 0 && (
+              <View style={styles.searchFilterBadge} accessible={false}>
+                <Text style={styles.searchFilterBadgeText} accessible={false}>
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-        )}
+        </View>
       </View>
-      <Button
-        title="Ara"
-        onPress={handleSearch}
-        size="small"
-        style={styles.searchButton}
-      />
-    </View>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
@@ -543,33 +571,66 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
   },
-  searchInputContainer: {
-    flex: 1,
+  searchCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginRight: spacing.md,
+    paddingVertical: 12,
+    shadowColor: 'rgba(123, 44, 191, 0.3)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    gap: spacing.sm,
+  },
+  searchCardFocused: {
+    borderColor: 'rgba(123, 44, 191, 0.3)',
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 6,
   },
   searchInput: {
     flex: 1,
     fontSize: typography.body.fontSize,
     color: colors.text,
-    marginLeft: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginLeft: spacing.xs,
   },
-  searchButton: {
-    minWidth: 60,
+  clearButton: {
+    padding: spacing.xs,
+  },
+  filterButtonInSearch: {
+    backgroundColor: 'rgba(123, 44, 191, 0.08)',
+    borderRadius: 12,
+    padding: 10,
+    position: 'relative',
+  },
+  searchFilterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
     backgroundColor: colors.secondaryOrangeDark,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.surface,
+  },
+  searchFilterBadgeText: {
+    color: colors.onOrangeDark,
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   listContainer: {
     padding: spacing.lg,
