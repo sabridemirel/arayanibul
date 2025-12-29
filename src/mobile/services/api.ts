@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 // Platform bazlı API URL konfigürasyonu
 const getApiBaseUrl = () => {
   // Local development
-  return Platform.OS === 'ios' ? 'http://localhost:5000/api' : 'http://10.0.2.2:5000/api';
+  return Platform.OS === 'ios' ? 'http://localhost:5001/api' : 'http://10.0.2.2:5001/api';
 
   // AWS EC2 API - production için (şu an durdurulmuş)
   // return 'http://13.62.223.188:5000/api';
