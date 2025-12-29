@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// API Base URL
-const API_BASE_URL = 'http://13.62.223.188:5000/api';
+// API Base URL - Production veya development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://13.62.223.188:5000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
