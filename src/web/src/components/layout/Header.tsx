@@ -32,9 +32,11 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">A</span>
-            </div>
+            <img
+              src="/assets/mascot.png"
+              alt="Arayanibul Maskot"
+              className="h-10 w-10 object-contain"
+            />
             <span className="text-xl font-bold text-primary">Arayanibul</span>
           </Link>
 

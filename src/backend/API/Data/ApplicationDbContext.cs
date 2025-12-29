@@ -128,7 +128,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<Need>()
             .HasIndex(n => new { n.Latitude, n.Longitude })
             .HasDatabaseName("IX_Needs_Location")
-            .HasFilter("Latitude IS NOT NULL AND Longitude IS NOT NULL");
+            .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
 
         builder.Entity<Offer>()
             .HasIndex(o => new { o.NeedId, o.Status })

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251227194443_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251229121803_InitialPostgres")]
+    partial class InitialPostgres
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -298,7 +298,7 @@ namespace API.Migrations
 
                     b.HasIndex("Latitude", "Longitude")
                         .HasDatabaseName("IX_Needs_Location")
-                        .HasFilter("Latitude IS NOT NULL AND Longitude IS NOT NULL");
+                        .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
 
                     b.HasIndex("CategoryId", "Status", "CreatedAt")
                         .HasDatabaseName("IX_Needs_CategoryId_Status_CreatedAt");

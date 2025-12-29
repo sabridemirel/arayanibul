@@ -16,28 +16,16 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
-        // Database - Use PostgreSQL in Production, SQLite in Development
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        // Database - Always use PostgreSQL
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? "Host=localhost;Database=arayanibul;Username=postgres;Password=Arayanibul2024";
 
-        if (environment.IsProduction() && !string.IsNullOrEmpty(connectionString) && connectionString.Contains("Host="))
-        {
-            // PostgreSQL for Production
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(connectionString));
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseNpgsql(connectionString));
 
-            // Health checks for PostgreSQL
-            services.AddHealthChecks()
-                .AddNpgSql(connectionString, name: "database");
-        }
-        else
-        {
-            // SQLite for Development
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite(connectionString ?? "Data Source=app.db"));
-
-            // Basic health check for SQLite
-            services.AddHealthChecks();
-        }
+        // Health checks for PostgreSQL
+        services.AddHealthChecks()
+            .AddNpgSql(connectionString, name: "database");
 
         // Identity
         services.AddIdentity<ApplicationUser, IdentityRole>(options =>

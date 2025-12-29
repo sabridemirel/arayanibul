@@ -104,50 +104,88 @@ const HomePage: React.FC = () => {
         <section className="bg-gradient-to-br from-primary to-primary-dark py-16 lg:py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="text-3xl lg:text-5xl font-bold text-white mb-4">
-                Ne Ariyorsunuz?
-              </h1>
+              {/* Logo */}
+              <div className="mb-8">
+                <img
+                  src="/assets/logo.jpg"
+                  alt="Arayanibul Logo"
+                  className="h-32 sm:h-40 lg:h-48 mx-auto rounded-2xl shadow-2xl"
+                />
+              </div>
               <p className="text-lg lg:text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-                Arayanibul ile ihtiyacinizi ilan edin, saticilarin tekliflerini alin.
-                Aradiginizi bulmak hic bu kadar kolay olmamisti!
+                Hizmet veya ürün mü sunuyorsunuz? Arayanları bulun, teklif verin!
+                Müşterileriniz sizi bekliyor.
               </p>
 
               {/* Search Bar */}
-              <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
-                <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-text-secondary" />
-                  <input
-                    type="text"
-                    placeholder="Ne ariyorsunuz? (ornegin: 'ikinci el bisiklet', 'ev tasima')"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-32 py-4 rounded-xl text-lg border-0 shadow-lg focus:ring-2 focus:ring-secondary-orange focus:outline-none"
-                  />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                  >
-                    Ara
-                  </Button>
+              <form onSubmit={handleSearch} className="max-w-3xl mx-auto mb-8">
+                <div className="relative group">
+                  {/* Glow Effect on Focus */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-secondary-orange to-yellow-400 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-30 transition-opacity duration-500"></div>
+
+                  {/* Main Search Container */}
+                  <div className="relative bg-white rounded-2xl shadow-2xl group-focus-within:shadow-[0_20px_60px_rgba(245,158,11,0.3)] transition-all duration-300">
+                    {/* Search Icon */}
+                    <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <MagnifyingGlassIcon className="h-7 w-7 text-secondary-orange group-focus-within:scale-110 transition-transform duration-200" />
+                    </div>
+
+                    {/* Input Field */}
+                    <input
+                      type="text"
+                      placeholder="Hangi hizmeti sunuyorsunuz? (örn: 'temizlik', 'nakliye')"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-16 pr-24 sm:pr-36 py-5 text-base sm:text-lg lg:text-xl border-0 rounded-2xl focus:outline-none placeholder:text-text-secondary/60 font-normal"
+                    />
+
+                    {/* Search Button */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <button
+                        type="submit"
+                        className="bg-gradient-to-r from-secondary-orange to-secondary-orangeDark text-white px-4 sm:px-8 py-3.5 rounded-xl font-semibold text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-1 sm:gap-2"
+                      >
+                        <span className="hidden sm:inline">Ara</span>
+                        <MagnifyingGlassIcon className="h-5 w-5 sm:h-5 sm:w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Popular Searches */}
+                  <div className="mt-4 flex flex-wrap items-center gap-2 justify-center">
+                    <span className="text-white/70 text-sm">Popüler ihtiyaçlar:</span>
+                    {['Tadilat', 'Temizlik', 'Nakliye', 'Mobilya'].map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => setSearchQuery(term)}
+                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-sm rounded-full border border-white/20 hover:border-white/40 transition-all duration-200"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </form>
 
-              {/* CTA Button */}
-              <Button
-                variant="secondary"
-                size="lg"
-                leftIcon={<PlusCircleIcon className="h-5 w-5" />}
-                onClick={() => {
-                  if (isAuthenticated) {
-                    navigate('/create-need');
-                  } else {
-                    navigate('/login');
-                  }
-                }}
-              >
-                Ucretsiz Ilan Ver
-              </Button>
+              {/* CTA Button - for buyers */}
+              <div className="mt-6">
+                <p className="text-white/60 text-sm mb-3">Bir şey mi arıyorsunuz?</p>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  leftIcon={<PlusCircleIcon className="h-5 w-5" />}
+                  onClick={() => {
+                    if (isAuthenticated) {
+                      navigate('/create-need');
+                    } else {
+                      navigate('/login');
+                    }
+                  }}
+                >
+                  Ücretsiz İhtiyaç İlanı Ver
+                </Button>
+              </div>
             </div>
           </div>
         </section>
