@@ -140,11 +140,18 @@ const CreateNeedScreen: React.FC = () => {
     try {
       setLoading(true);
 
+      // Map urgency string to backend enum value
+      const urgencyMap: Record<string, number> = {
+        'Flexible': 1,
+        'Normal': 2,
+        'Urgent': 3,
+      };
+
       const requestData: CreateNeedRequest = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         categoryId: formData.categoryId!,
-        urgency: formData.urgency,
+        urgency: urgencyMap[formData.urgency] as unknown as 'Flexible' | 'Normal' | 'Urgent',
       };
 
       if (formData.minBudget) {
@@ -212,6 +219,92 @@ const CreateNeedScreen: React.FC = () => {
       default:
         return urgency;
     }
+  };
+
+  // Format number with thousand separator (Turkish format: 1.000.000)
+  const formatBudget = (value: string): string => {
+    const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
+    return Number(numericValue).toLocaleString('tr-TR');
+  };
+
+  // Parse formatted budget string to raw number string
+  const parseBudget = (formattedValue: string): string => {
+    return formattedValue.replace(/\./g, '');
+  };
+
+  // Handle budget input change with formatting
+  const handleBudgetChange = (field: 'minBudget' | 'maxBudget', value: string) => {
+    const rawValue = parseBudget(value);
+    setFormData(prev => ({ ...prev, [field]: rawValue }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  // Validate individual field on blur
+  const validateField = (field: keyof FormData) => {
+    const newErrors: FormErrors = { ...errors };
+
+    switch (field) {
+      case 'title':
+        if (!formData.title.trim()) {
+          newErrors.title = 'Başlık gereklidir';
+        } else if (formData.title.length < 10) {
+          newErrors.title = 'Başlık en az 10 karakter olmalıdır';
+        } else if (formData.title.length > 100) {
+          newErrors.title = 'Başlık en fazla 100 karakter olabilir';
+        } else {
+          delete newErrors.title;
+        }
+        break;
+
+      case 'description':
+        if (!formData.description.trim()) {
+          newErrors.description = 'Açıklama gereklidir';
+        } else if (formData.description.length < 20) {
+          newErrors.description = 'Açıklama en az 20 karakter olmalıdır';
+        } else if (formData.description.length > 1000) {
+          newErrors.description = 'Açıklama en fazla 1000 karakter olabilir';
+        } else {
+          delete newErrors.description;
+        }
+        break;
+
+      case 'minBudget':
+        if (formData.minBudget && isNaN(Number(formData.minBudget))) {
+          newErrors.minBudget = 'Geçerli bir sayı giriniz';
+        } else {
+          delete newErrors.minBudget;
+        }
+        break;
+
+      case 'maxBudget':
+        if (formData.maxBudget && isNaN(Number(formData.maxBudget))) {
+          newErrors.maxBudget = 'Geçerli bir sayı giriniz';
+        } else if (formData.minBudget && formData.maxBudget) {
+          const min = Number(formData.minBudget);
+          const max = Number(formData.maxBudget);
+          if (min >= max) {
+            newErrors.maxBudget = 'Maksimum bütçe minimum bütçeden büyük olmalıdır';
+          } else {
+            delete newErrors.maxBudget;
+          }
+        } else {
+          delete newErrors.maxBudget;
+        }
+        break;
+
+      case 'categoryId':
+        if (!formData.categoryId) {
+          newErrors.categoryId = 'Kategori seçimi gereklidir';
+        } else {
+          delete newErrors.categoryId;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
   };
 
   const renderCategoryItem = ({ item }: { item: Category }) => (
@@ -288,6 +381,7 @@ const CreateNeedScreen: React.FC = () => {
             placeholder="İhtiyacınızı kısaca özetleyin"
             value={formData.title}
             onChangeText={(text) => setFormData(prev => ({ ...prev, title: text }))}
+            onBlur={() => validateField('title')}
             error={errors.title}
             maxLength={100}
           />
@@ -297,6 +391,7 @@ const CreateNeedScreen: React.FC = () => {
             placeholder="İhtiyacınızı detaylı bir şekilde açıklayın"
             value={formData.description}
             onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+            onBlur={() => validateField('description')}
             error={errors.description}
             multiline
             numberOfLines={4}
@@ -339,8 +434,9 @@ const CreateNeedScreen: React.FC = () => {
             <Input
               label="Minimum Bütçe (TL)"
               placeholder="0"
-              value={formData.minBudget}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, minBudget: text }))}
+              value={formatBudget(formData.minBudget)}
+              onChangeText={(text) => handleBudgetChange('minBudget', text)}
+              onBlur={() => validateField('minBudget')}
               error={errors.minBudget}
               keyboardType="numeric"
               style={styles.budgetInput}
@@ -349,8 +445,9 @@ const CreateNeedScreen: React.FC = () => {
             <Input
               label="Maksimum Bütçe (TL)"
               placeholder="0"
-              value={formData.maxBudget}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, maxBudget: text }))}
+              value={formatBudget(formData.maxBudget)}
+              onChangeText={(text) => handleBudgetChange('maxBudget', text)}
+              onBlur={() => validateField('maxBudget')}
               error={errors.maxBudget}
               keyboardType="numeric"
               style={styles.budgetInput}

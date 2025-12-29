@@ -154,6 +154,8 @@ const CreateNeedPage: React.FC = () => {
     setSubmitError(null);
 
     if (!validateForm()) {
+      // Scroll to top to show validation errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -165,11 +167,18 @@ const CreateNeedPage: React.FC = () => {
     try {
       setIsLoading(true);
 
+      // Map urgency string to backend enum value
+      const urgencyMap: Record<string, number> = {
+        'Flexible': 1,
+        'Normal': 2,
+        'Urgent': 3,
+      };
+
       const requestData: CreateNeedRequest = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         categoryId: formData.categoryId!,
-        urgency: formData.urgency,
+        urgency: urgencyMap[formData.urgency],
       };
 
       if (formData.minBudget) {
@@ -194,8 +203,16 @@ const CreateNeedPage: React.FC = () => {
         state: { message: 'Ihtiyaciniz basariyla olusturuldu!' }
       });
     } catch (err: unknown) {
-      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Ihtiyac olusturulurken hata olustu. Lutfen tekrar deneyin.';
+      console.error('Need creation error:', err);
+      const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
+      let errorMessage = 'Ihtiyac olusturulurken hata olustu. Lutfen tekrar deneyin.';
+
+      if (axiosError.response?.status === 401) {
+        errorMessage = 'Oturum suresi dolmus. Lutfen tekrar giris yapin.';
+      } else if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message;
+      }
+
       setSubmitError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -214,6 +231,84 @@ const CreateNeedPage: React.FC = () => {
     if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  // Validate individual field on blur
+  const validateField = (field: keyof FormData) => {
+    const newErrors: FormErrors = { ...errors };
+
+    switch (field) {
+      case 'title':
+        if (!formData.title.trim()) {
+          newErrors.title = 'Baslik gereklidir';
+        } else if (formData.title.length < 10) {
+          newErrors.title = 'Baslik en az 10 karakter olmalidir';
+        } else if (formData.title.length > 100) {
+          newErrors.title = 'Baslik en fazla 100 karakter olabilir';
+        } else {
+          delete newErrors.title;
+        }
+        break;
+
+      case 'description':
+        if (!formData.description.trim()) {
+          newErrors.description = 'Aciklama gereklidir';
+        } else if (formData.description.length < 20) {
+          newErrors.description = 'Aciklama en az 20 karakter olmalidir';
+        } else if (formData.description.length > 1000) {
+          newErrors.description = 'Aciklama en fazla 1000 karakter olabilir';
+        } else {
+          delete newErrors.description;
+        }
+        break;
+
+      case 'minBudget':
+        if (formData.minBudget && isNaN(Number(formData.minBudget))) {
+          newErrors.minBudget = 'Gecerli bir sayi giriniz';
+        } else {
+          delete newErrors.minBudget;
+        }
+        break;
+
+      case 'maxBudget':
+        if (formData.maxBudget && isNaN(Number(formData.maxBudget))) {
+          newErrors.maxBudget = 'Gecerli bir sayi giriniz';
+        } else if (formData.minBudget && formData.maxBudget) {
+          const min = Number(formData.minBudget);
+          const max = Number(formData.maxBudget);
+          if (min >= max) {
+            newErrors.maxBudget = 'Maksimum butce minimum butceden buyuk olmalidir';
+          } else {
+            delete newErrors.maxBudget;
+          }
+        } else {
+          delete newErrors.maxBudget;
+        }
+        break;
+
+      case 'expiryDate':
+        if (formData.expiryDate) {
+          const expiryDate = new Date(formData.expiryDate);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (expiryDate < today) {
+            newErrors.expiryDate = 'Bitis tarihi gecmis bir tarih olamaz';
+          } else {
+            delete newErrors.expiryDate;
+          }
+        }
+        break;
+
+      case 'categoryId':
+        if (!formData.categoryId) {
+          newErrors.categoryId = 'Kategori secimi gereklidir';
+        } else {
+          delete newErrors.categoryId;
+        }
+        break;
+    }
+
+    setErrors(newErrors);
   };
 
   // Image handling
@@ -284,6 +379,29 @@ const CreateNeedPage: React.FC = () => {
     }
   };
 
+  // Format number with thousand separator (Turkish format: 1.000.000)
+  const formatBudget = (value: string): string => {
+    // Remove non-digit characters
+    const numericValue = value.replace(/\D/g, '');
+    if (!numericValue) return '';
+    // Format with thousand separator
+    return Number(numericValue).toLocaleString('tr-TR');
+  };
+
+  // Parse formatted budget string to raw number string
+  const parseBudget = (formattedValue: string): string => {
+    return formattedValue.replace(/\./g, '');
+  };
+
+  // Handle budget input change with formatting
+  const handleBudgetChange = (field: 'minBudget' | 'maxBudget', value: string) => {
+    const rawValue = parseBudget(value);
+    setFormData(prev => ({ ...prev, [field]: rawValue }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
   if (isCategoriesLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -333,6 +451,7 @@ const CreateNeedPage: React.FC = () => {
                   placeholder="Ihtiyacinizi kisaca ozetleyin"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
+                  onBlur={() => validateField('title')}
                   error={errors.title}
                   maxLength={100}
                 />
@@ -350,6 +469,7 @@ const CreateNeedPage: React.FC = () => {
                   placeholder="Ihtiyacinizi detayli bir sekilde aciklayin"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
+                  onBlur={() => validateField('description')}
                   maxLength={1000}
                   rows={4}
                   className={`
@@ -512,19 +632,21 @@ const CreateNeedPage: React.FC = () => {
                 <Input
                   label="Minimum Butce (TL)"
                   placeholder="0"
-                  type="number"
-                  min="0"
-                  value={formData.minBudget}
-                  onChange={(e) => handleInputChange('minBudget', e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatBudget(formData.minBudget)}
+                  onChange={(e) => handleBudgetChange('minBudget', e.target.value)}
+                  onBlur={() => validateField('minBudget')}
                   error={errors.minBudget}
                 />
                 <Input
                   label="Maksimum Butce (TL)"
                   placeholder="0"
-                  type="number"
-                  min="0"
-                  value={formData.maxBudget}
-                  onChange={(e) => handleInputChange('maxBudget', e.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  value={formatBudget(formData.maxBudget)}
+                  onChange={(e) => handleBudgetChange('maxBudget', e.target.value)}
+                  onBlur={() => validateField('maxBudget')}
                   error={errors.maxBudget}
                 />
               </div>
@@ -559,6 +681,7 @@ const CreateNeedPage: React.FC = () => {
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => handleInputChange('expiryDate', e.target.value)}
+                onBlur={() => validateField('expiryDate')}
                 error={errors.expiryDate}
                 leftIcon={<CalendarIcon className="h-5 w-5" />}
                 min={new Date().toISOString().split('T')[0]}

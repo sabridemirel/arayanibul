@@ -122,7 +122,7 @@ export interface CreateNeedRequest {
   latitude?: number;
   longitude?: number;
   address?: string;
-  urgency: 'Flexible' | 'Normal' | 'Urgent';
+  urgency: number; // 1=Flexible, 2=Normal, 3=Urgent
   images?: string[];
 }
 

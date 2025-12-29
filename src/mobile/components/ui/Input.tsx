@@ -41,6 +41,8 @@ const Input: React.FC<InputProps> = ({
   secureTextEntry,
   multiline = false,
   numberOfLines = 1,
+  onBlur,
+  onFocus,
   ...textInputProps
 }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -171,8 +173,14 @@ const Input: React.FC<InputProps> = ({
 
         <TextInput
           style={[getInputStyle(), inputStyle]}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={(e) => {
+            setIsFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setIsFocused(false);
+            onBlur?.(e);
+          }}
           secureTextEntry={showPasswordToggle ? !isPasswordVisible : secureTextEntry}
           placeholderTextColor={colors.textSecondary}
           multiline={multiline}
