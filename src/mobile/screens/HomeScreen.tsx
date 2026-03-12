@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +26,8 @@ import AuthPromptModal from '../components/ui/AuthPromptModal';
 import ConversionBanner from '../components/ui/ConversionBanner';
 import GuestWelcomeCard from '../components/ui/GuestWelcomeCard';
 import FilterModal from '../components/ui/FilterModal';
+import ResultsBar, { ActiveSort } from '../components/ui/ResultsBar';
+import SortBottomSheet, { SORT_OPTIONS, SortOption } from '../components/ui/SortBottomSheet';
 import { VirtualizedList } from '../components/ui/VirtualizedList';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
@@ -68,7 +71,17 @@ const HomeScreen: React.FC = () => {
   const [showWelcomeCard, setShowWelcomeCard] = useState(true);
   const [searchFocused, setSearchFocused] = useState(false);
 
-  const loadNeeds = useCallback(async (refresh = false) => {
+  // Advanced filter additions
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [totalCount, setTotalCount] = useState<number | null>(null);
+  const [showSortSheet, setShowSortSheet] = useState(false);
+  const [activeSort, setActiveSort] = useState<ActiveSort>({
+    label: 'En Yeni',
+    sortBy: 'CreatedAt',
+    sortDescending: true,
+  });
+
+  const loadNeeds = useCallback(async (refresh = false, overrideFilters?: NeedFilters) => {
     await measureOperation('loadNeeds', async () => {
       try {
         if (refresh) {
@@ -78,31 +91,46 @@ const HomeScreen: React.FC = () => {
         }
         setError(null);
 
+        // overrideFilters fixes stale closure: caller can pass fresh filter state
+        const baseFilters = overrideFilters !== undefined ? overrideFilters : filters;
         const searchFilters: NeedFilters = {
-          ...filters,
+          ...baseFilters,
           search: searchQuery || undefined,
+          sortBy: activeSort.sortBy,
+          sortDescending: activeSort.sortDescending,
         };
 
-        // Use optimized API service with caching for non-refresh requests
-        const needsData = refresh 
-          ? await needAPI.getNeeds(searchFilters)
-          : await optimizedApiService.get('/need', {
-              categoryId: searchFilters.categoryId,
-              minBudget: searchFilters.minBudget,
-              maxBudget: searchFilters.maxBudget,
-              latitude: searchFilters.latitude,
-              longitude: searchFilters.longitude,
-              radiusKm: searchFilters.radius,
-              urgency: searchFilters.urgency,
-              searchText: searchFilters.search,
-              page: searchFilters.page,
-              pageSize: searchFilters.pageSize,
-            }, { 
-              cache: true, 
-              cacheTime: 2 * 60 * 1000 // 2 minutes cache
-            });
-        const items = Array.isArray(needsData) ? needsData : ((needsData as any)?.items || []);
-        setNeeds(items);
+        // Use needAPI directly when overrideFilters is provided (fresh apply)
+        // otherwise use optimized API service with caching for non-refresh requests
+        if (overrideFilters !== undefined || refresh) {
+          const result = await needAPI.getNeeds(searchFilters);
+          setNeeds(result.items);
+          setTotalCount(result.totalCount);
+        } else {
+          const needsData = await optimizedApiService.get('/need', {
+            categoryId: searchFilters.categoryId,
+            minBudget: searchFilters.minBudget,
+            maxBudget: searchFilters.maxBudget,
+            latitude: searchFilters.latitude,
+            longitude: searchFilters.longitude,
+            radiusKm: searchFilters.radius,
+            urgency: searchFilters.urgency,
+            searchText: searchFilters.search,
+            page: searchFilters.page,
+            pageSize: searchFilters.pageSize,
+            sortBy: searchFilters.sortBy,
+            sortDescending: searchFilters.sortDescending,
+          }, {
+            cache: true,
+            cacheTime: 2 * 60 * 1000, // 2 minutes cache
+          });
+          const items = Array.isArray(needsData) ? needsData : ((needsData as any)?.items || []);
+          const count = Array.isArray(needsData)
+            ? needsData.length
+            : ((needsData as any)?.totalCount ?? (needsData as any)?.total ?? items.length);
+          setNeeds(items);
+          setTotalCount(count);
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || 'İhtiyaçlar yüklenirken hata oluştu');
       } finally {
@@ -110,7 +138,7 @@ const HomeScreen: React.FC = () => {
         setRefreshing(false);
       }
     });
-  }, [filters, searchQuery, measureOperation]);
+  }, [filters, searchQuery, activeSort, measureOperation]);
 
   const loadCategories = useCallback(async () => {
     await measureOperation('loadCategories', async () => {
@@ -127,9 +155,28 @@ const HomeScreen: React.FC = () => {
     });
   }, [measureOperation]);
 
+  const requestLocation = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        return; // Permission denied — userLocation stays null
+      }
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setUserLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+    } catch (err) {
+      console.error('Konum alınamadı:', err);
+    }
+  }, []);
+
   useEffect(() => {
     loadNeeds();
     loadCategories();
+    requestLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -469,7 +516,15 @@ const HomeScreen: React.FC = () => {
         rightComponent={renderHeaderRightComponent()}
       />
       {renderSearchBar()}
-      
+
+      <ResultsBar
+        totalCount={totalCount}
+        loading={loading && !refreshing}
+        activeSort={activeSort}
+        hasActiveFilters={getActiveFilterCount() > 0}
+        onSortPress={() => setShowSortSheet(true)}
+      />
+
       <VirtualizedList
         data={needs}
         renderItem={renderNeedItem}
@@ -523,15 +578,39 @@ const HomeScreen: React.FC = () => {
         visible={showFilters}
         filters={filters}
         categories={categories}
+        userLocation={userLocation}
         onApply={(newFilters) => {
           setFilters(newFilters);
-          loadNeeds();
+          // Sync activeSort from filter modal sort selection
+          if (newFilters.sortBy) {
+            const matchedSort = SORT_OPTIONS.find(
+              (o) => o.sortBy === newFilters.sortBy && o.sortDescending === newFilters.sortDescending
+            );
+            if (matchedSort) {
+              setActiveSort({ label: matchedSort.label, sortBy: matchedSort.sortBy, sortDescending: matchedSort.sortDescending });
+            }
+          }
+          loadNeeds(true, newFilters);
         }}
         onClear={() => {
           setFilters({});
-          loadNeeds();
+          setActiveSort({ label: 'En Yeni', sortBy: 'CreatedAt', sortDescending: true });
+          loadNeeds(true, {});
         }}
         onClose={() => setShowFilters(false)}
+      />
+
+      <SortBottomSheet
+        visible={showSortSheet}
+        activeSort={activeSort}
+        onSelect={(option: SortOption) => {
+          const newSort: ActiveSort = { label: option.label, sortBy: option.sortBy, sortDescending: option.sortDescending };
+          setActiveSort(newSort);
+          const newFilters: NeedFilters = { ...filters, sortBy: option.sortBy, sortDescending: option.sortDescending };
+          setFilters(newFilters);
+          loadNeeds(true, newFilters);
+        }}
+        onClose={() => setShowSortSheet(false)}
       />
     </View>
   );

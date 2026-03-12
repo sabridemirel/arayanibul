@@ -27,6 +27,22 @@ const URGENCY_ICONS: Record<string, string> = {
   Urgent: 'flash-on',
 };
 
+// Sort options embedded in the filter modal
+interface SortOption {
+  label: string;
+  sortBy: import('../../services/api').SortBy;
+  sortDescending: boolean;
+  icon: string;
+}
+
+const SORT_OPTIONS: SortOption[] = [
+  { label: 'En Yeni', sortBy: 'CreatedAt', sortDescending: true, icon: 'schedule' },
+  { label: 'En Eski', sortBy: 'CreatedAt', sortDescending: false, icon: 'history' },
+  { label: 'Bütçe: Yüksek → Düşük', sortBy: 'Budget', sortDescending: true, icon: 'trending-down' },
+  { label: 'Bütçe: Düşük → Yüksek', sortBy: 'Budget', sortDescending: false, icon: 'trending-up' },
+  { label: 'Aciliyet', sortBy: 'Urgency', sortDescending: true, icon: 'flash-on' },
+];
+
 interface FilterModalProps {
   visible: boolean;
   filters: NeedFilters;
@@ -34,6 +50,7 @@ interface FilterModalProps {
   onApply: (filters: NeedFilters) => void;
   onClear: () => void;
   onClose: () => void;
+  userLocation?: { latitude: number; longitude: number } | null;
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -49,6 +66,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onApply,
   onClear,
   onClose,
+  userLocation,
 }) => {
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -58,6 +76,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
   const [minBudget, setMinBudget] = useState<number>(filters.minBudget || 0);
   const [maxBudget, setMaxBudget] = useState<number>(filters.maxBudget || 50000);
   const [radius, setRadius] = useState<number>(filters.radius || 10);
+
+  // Sort state — mirrors the active sort from the parent
+  const [selectedSort, setSelectedSort] = useState<SortOption>(
+    SORT_OPTIONS.find(
+      (o) => o.sortBy === filters.sortBy && o.sortDescending === filters.sortDescending
+    ) || SORT_OPTIONS[0]
+  );
 
   // Urgency levels matching backend enum
   const urgencyLevels: Array<{ label: string; value: UrgencyType }> = [
@@ -71,6 +96,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setMinBudget(filters.minBudget || 0);
     setMaxBudget(filters.maxBudget || 50000);
     setRadius(filters.radius || 10);
+    setSelectedSort(
+      SORT_OPTIONS.find(
+        (o) => o.sortBy === filters.sortBy && o.sortDescending === filters.sortDescending
+      ) || SORT_OPTIONS[0]
+    );
   }, [filters]);
 
   useEffect(() => {
@@ -91,11 +121,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
   }, [visible, slideAnim]);
 
   const handleApply = () => {
+    const hasRadius = radius > 0 && userLocation != null;
     const appliedFilters: NeedFilters = {
       ...localFilters,
       minBudget: minBudget > 0 ? minBudget : undefined,
       maxBudget: maxBudget < 50000 ? maxBudget : undefined,
       radius: radius > 0 ? radius : undefined,
+      latitude: hasRadius ? userLocation!.latitude : undefined,
+      longitude: hasRadius ? userLocation!.longitude : undefined,
+      sortBy: selectedSort.sortBy,
+      sortDescending: selectedSort.sortDescending,
     };
     onApply(appliedFilters);
     onClose();
@@ -107,6 +142,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setMinBudget(0);
     setMaxBudget(50000);
     setRadius(10);
+    setSelectedSort(SORT_OPTIONS[0]);
     onClear();
   };
 
@@ -390,26 +426,46 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     </Text>
                   </View>
 
-                  <Slider
-                    value={radius}
-                    minimumValue={0}
-                    maximumValue={100}
-                    step={5}
-                    onValueChange={(value) => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setRadius(value);
-                    }}
-                    minimumTrackTintColor={colors.secondaryOrangeDark}
-                    maximumTrackTintColor={colors.border}
-                    thumbTintColor={colors.secondaryOrangeDark}
-                    style={styles.slider}
-                    accessibilityRole="adjustable"
-                    accessibilityLabel="Konum yarıçapı"
-                    accessibilityValue={{ min: 0, max: 100, now: radius }}
-                  />
-                  <View style={styles.sliderMinMax}>
-                    <Text style={styles.sliderMinMaxText}>0 km</Text>
-                    <Text style={styles.sliderMinMaxText}>100 km</Text>
+                  {/* Location Banner */}
+                  {userLocation == null ? (
+                    <View style={styles.locationBannerWarning}>
+                      <MaterialIcons name="location-off" size={16} color="#D97706" />
+                      <Text style={styles.locationBannerTextWarning}>
+                        GPS izni gerekli — konum filtresi devre dışı
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.locationBannerSuccess}>
+                      <MaterialIcons name="my-location" size={16} color="#1e7e34" />
+                      <Text style={styles.locationBannerTextSuccess}>
+                        {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={userLocation == null ? styles.sliderDisabled : undefined}>
+                    <Slider
+                      value={radius}
+                      minimumValue={0}
+                      maximumValue={100}
+                      step={5}
+                      disabled={userLocation == null}
+                      onValueChange={(value) => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        setRadius(value);
+                      }}
+                      minimumTrackTintColor={userLocation == null ? colors.border : colors.secondaryOrangeDark}
+                      maximumTrackTintColor={colors.border}
+                      thumbTintColor={userLocation == null ? colors.border : colors.secondaryOrangeDark}
+                      style={styles.slider}
+                      accessibilityRole="adjustable"
+                      accessibilityLabel="Konum yarıçapı"
+                      accessibilityValue={{ min: 0, max: 100, now: radius }}
+                    />
+                    <View style={styles.sliderMinMax}>
+                      <Text style={styles.sliderMinMaxText}>0 km</Text>
+                      <Text style={styles.sliderMinMaxText}>100 km</Text>
+                    </View>
                   </View>
                   <Text style={styles.helperText}>
                     <MaterialIcons name="info-outline" size={14} color={colors.textSecondary} />
@@ -433,6 +489,29 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           selected={isSelected}
                           urgencyColor={urgencyColor}
                           onPress={() => handleUrgencySelect(level.value)}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Sort Section */}
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterLabel}>Sıralama</Text>
+                  <View style={styles.sortList}>
+                    {SORT_OPTIONS.map((option) => {
+                      const active =
+                        option.sortBy === selectedSort.sortBy &&
+                        option.sortDescending === selectedSort.sortDescending;
+                      return (
+                        <SortRadioRow
+                          key={`${option.sortBy}-${option.sortDescending}`}
+                          option={option}
+                          active={active}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setSelectedSort(option);
+                          }}
                         />
                       );
                     })}
@@ -588,6 +667,53 @@ const UrgencyPill: React.FC<{
         </Text>
       </Pressable>
     </Animated.View>
+  );
+};
+
+// SortRadioRow — inline radio option for the Sort section in FilterModal
+const SortRadioRow: React.FC<{
+  option: SortOption;
+  active: boolean;
+  onPress: () => void;
+}> = ({ option, active, onPress }) => {
+  const innerScale = useRef(new Animated.Value(active ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(innerScale, {
+      toValue: active ? 1 : 0,
+      useNativeDriver: true,
+      tension: 80,
+      friction: 10,
+    }).start();
+  }, [active, innerScale]);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.sortRow,
+        active && styles.sortRowActive,
+        pressed && styles.sortRowPressed,
+      ]}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: active }}
+      accessibilityLabel={option.label}
+    >
+      <MaterialIcons
+        name={option.icon as any}
+        size={18}
+        color={active ? colors.primary : colors.textSecondary}
+        style={styles.sortRowIcon}
+      />
+      <Text style={[styles.sortRowLabel, active && styles.sortRowLabelActive]}>
+        {option.label}
+      </Text>
+      <View style={[styles.sortRadioOuter, active && styles.sortRadioOuterActive]}>
+        <Animated.View
+          style={[styles.sortRadioInner, { transform: [{ scale: innerScale }] }]}
+        />
+      </View>
+    </Pressable>
   );
 };
 
@@ -870,6 +996,101 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.onPrimary,
     letterSpacing: 0.5,
+  },
+
+  // Location banners
+  locationBannerWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  locationBannerTextWarning: {
+    fontSize: 13,
+    color: '#D97706',
+    fontWeight: '500',
+    flex: 1,
+  },
+  locationBannerSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'rgba(30, 126, 52, 0.08)',
+    borderWidth: 1,
+    borderColor: '#1e7e34',
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  locationBannerTextSuccess: {
+    fontSize: 13,
+    color: '#1e7e34',
+    fontWeight: '500',
+    flex: 1,
+  },
+  sliderDisabled: {
+    opacity: 0.35,
+  },
+
+  // Sort radio rows
+  sortList: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sortRowActive: {
+    backgroundColor: 'rgba(123, 44, 191, 0.06)',
+  },
+  sortRowPressed: {
+    backgroundColor: 'rgba(123, 44, 191, 0.04)',
+  },
+  sortRowIcon: {
+    marginRight: spacing.md,
+  },
+  sortRowLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '400',
+    color: colors.text,
+  },
+  sortRowLabelActive: {
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  sortRadioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortRadioOuterActive: {
+    borderColor: colors.primary,
+  },
+  sortRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
   },
 });
 

@@ -8,6 +8,7 @@ import {
   ChevronDownIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassCircleIcon,
+  MapPinIcon,
 } from '@heroicons/react/24/outline';
 import { Header, Footer } from '../components/layout';
 import { Button, Card, Loading } from '../components/ui';
@@ -31,6 +32,7 @@ const SearchPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filter state
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>(
@@ -39,6 +41,15 @@ const SearchPage: React.FC = () => {
   const [minBudget, setMinBudget] = useState<string>(searchParams.get('minBudget') || '');
   const [maxBudget, setMaxBudget] = useState<string>(searchParams.get('maxBudget') || '');
   const [urgency, setUrgency] = useState<string>(searchParams.get('urgency') || '');
+  const [sortBy, setSortBy] = useState<string>('');
+
+  // Location state
+  const [locationEnabled, setLocationEnabled] = useState(false);
+  const [userLatitude, setUserLatitude] = useState<number | undefined>(undefined);
+  const [userLongitude, setUserLongitude] = useState<number | undefined>(undefined);
+  const [radiusKm, setRadiusKm] = useState<number>(10);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Load categories on mount
   useEffect(() => {
@@ -51,6 +62,30 @@ const SearchPage: React.FC = () => {
       }
     };
     loadCategories();
+  }, []);
+
+  // Request geolocation
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Tarayiciniz konum desteklemiyor.');
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLatitude(pos.coords.latitude);
+        setUserLongitude(pos.coords.longitude);
+        setLocationEnabled(true);
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationLoading(false);
+        setLocationEnabled(false);
+        setLocationError('Konum alinamadi. Lutfen tarayici izinlerini kontrol edin.');
+      },
+      { timeout: 10000, maximumAge: 300000 }
+    );
   }, []);
 
   // Build filters object
@@ -66,8 +101,20 @@ const SearchPage: React.FC = () => {
     if (urgency) filters.urgency = urgency;
     if (searchQuery.trim()) filters.search = searchQuery.trim();
 
+    if (locationEnabled && userLatitude && userLongitude) {
+      filters.latitude = userLatitude;
+      filters.longitude = userLongitude;
+      filters.radius = radiusKm;
+    }
+
+    if (sortBy) {
+      const [field, direction] = sortBy.split('_');
+      filters.sortBy = field;
+      filters.sortDescending = direction !== 'asc';
+    }
+
     return filters;
-  }, [selectedCategoryId, minBudget, maxBudget, urgency, searchQuery, currentPage]);
+  }, [selectedCategoryId, minBudget, maxBudget, urgency, searchQuery, currentPage, locationEnabled, userLatitude, userLongitude, radiusKm, sortBy]);
 
   // Perform search
   const performSearch = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -82,12 +129,13 @@ const SearchPage: React.FC = () => {
       const filters = buildFilters();
       filters.page = page;
 
-      const results = await searchAPI.search(searchQuery.trim(), filters);
+      const { items: results, totalCount: count } = await searchAPI.search(searchQuery.trim(), filters);
 
       if (append) {
         setNeeds(prev => [...prev, ...results]);
       } else {
         setNeeds(results);
+        setTotalCount(count);
       }
 
       setHasMore(results.length === ITEMS_PER_PAGE);
@@ -101,10 +149,10 @@ const SearchPage: React.FC = () => {
     }
   }, [buildFilters, searchQuery]);
 
-  // Initial load and URL param changes
+  // Initial load and filter changes
   useEffect(() => {
     performSearch(1, false);
-  }, [selectedCategoryId, minBudget, maxBudget, urgency]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCategoryId, minBudget, maxBudget, urgency, locationEnabled, radiusKm, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle search form submit
   const handleSearch = (e: React.FormEvent) => {
@@ -136,6 +184,10 @@ const SearchPage: React.FC = () => {
     setMaxBudget('');
     setUrgency('');
     setSearchQuery('');
+    setSortBy('');
+    setLocationEnabled(false);
+    setRadiusKm(10);
+    setLocationError(null);
     setSearchParams(new URLSearchParams());
     setCurrentPage(1);
   };
@@ -146,6 +198,8 @@ const SearchPage: React.FC = () => {
     if (selectedCategoryId) count++;
     if (minBudget || maxBudget) count++;
     if (urgency) count++;
+    if (locationEnabled) count++;
+    if (sortBy) count++;
     return count;
   };
 
@@ -156,6 +210,23 @@ const SearchPage: React.FC = () => {
     { value: 'Normal', label: 'Normal' },
     { value: 'Flexible', label: 'Esnek' },
   ];
+
+  // Urgency label helper
+  const urgencyLabel = (val: string) => {
+    const map: Record<string, string> = { Urgent: 'Acil', Normal: 'Normal', Flexible: 'Esnek' };
+    return map[val] || val;
+  };
+
+  // Sort label helper
+  const sortLabel = (val: string) => {
+    const map: Record<string, string> = {
+      'CreatedAt_asc': 'En Eski',
+      'Budget_asc': 'Butce: Dusuk',
+      'Budget_desc': 'Butce: Yuksek',
+      'OfferCount_desc': 'En Cok Teklif',
+    };
+    return map[val] || val;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -312,6 +383,88 @@ const SearchPage: React.FC = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Location Filter */}
+              <div className="mt-4 pt-4 border-t border-border">
+                <label className="block text-sm font-medium text-text mb-2">
+                  Konum Bazli Arama
+                </label>
+
+                {/* Idle state */}
+                {!locationEnabled && !locationLoading && !locationError && (
+                  <button
+                    type="button"
+                    onClick={requestLocation}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-text-secondary hover:border-primary hover:text-primary transition-colors text-sm font-medium"
+                  >
+                    <MapPinIcon className="h-4 w-4" />
+                    Konumumu Kullan
+                  </button>
+                )}
+
+                {/* Loading state */}
+                {locationLoading && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-text-secondary">
+                    <svg className="animate-spin h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Konum aliniyor...
+                  </div>
+                )}
+
+                {/* Active state */}
+                {locationEnabled && !locationLoading && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationEnabled(false);
+                        setUserLatitude(undefined);
+                        setUserLongitude(undefined);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors"
+                    >
+                      <MapPinIcon className="h-4 w-4" />
+                      Konum Aktif
+                      <XMarkIcon className="h-4 w-4 ml-1" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-text-secondary">Yaricap:</span>
+                      <div className="relative">
+                        <select
+                          value={radiusKm}
+                          onChange={(e) => setRadiusKm(parseInt(e.target.value))}
+                          className="pl-3 pr-8 py-2 rounded-lg border border-border bg-background text-text text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                        >
+                          {[5, 10, 25, 50, 100].map((r) => (
+                            <option key={r} value={r}>{r} km</option>
+                          ))}
+                        </select>
+                        <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error state */}
+                {locationError && !locationLoading && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                    <ExclamationTriangleIcon className="h-4 w-4 flex-shrink-0" />
+                    <span>{locationError}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationError(null);
+                        requestLocation();
+                      }}
+                      className="ml-2 underline hover:text-red-900 transition-colors whitespace-nowrap"
+                    >
+                      Yeniden Dene
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -319,20 +472,134 @@ const SearchPage: React.FC = () => {
         {/* Results Section */}
         <section className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Results Count */}
+
+            {/* Results Header: count + sort + active tags */}
             {!isLoading && !error && (
-              <p className="text-text-secondary mb-6">
-                {needs.length === 0 ? (
-                  'Sonuc bulunamadi'
-                ) : (
-                  <>
-                    <span className="font-medium text-text">{needs.length}</span> ilan bulundu
-                    {searchQuery && (
-                      <> - "<span className="font-medium">{searchQuery}</span>" icin</>
+              <div className="mb-6 space-y-3">
+                {/* Count + Sort row */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-text-secondary">
+                    {needs.length === 0 ? (
+                      'Sonuc bulunamadi'
+                    ) : (
+                      <>
+                        <span className="font-medium text-text">{totalCount > 0 ? totalCount : needs.length}</span> ilan bulundu
+                        {searchQuery && (
+                          <> - "<span className="font-medium">{searchQuery}</span>" icin</>
+                        )}
+                      </>
                     )}
-                  </>
+                  </p>
+
+                  {/* Sort dropdown */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-text-secondary whitespace-nowrap">Sirala:</span>
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="pl-3 pr-8 py-2 rounded-lg border border-border bg-background text-text text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                      >
+                        <option value="">En Yeni</option>
+                        <option value="CreatedAt_asc">En Eski</option>
+                        <option value="Budget_asc">Butce: Dusuk → Yuksek</option>
+                        <option value="Budget_desc">Butce: Yuksek → Dusuk</option>
+                        <option value="OfferCount_desc">En Cok Teklif Alan</option>
+                      </select>
+                      <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active filter tags */}
+                {getActiveFilterCount() > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {selectedCategoryId && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {categories.find(c => c.id === selectedCategoryId)?.nameTr || categories.find(c => c.id === selectedCategoryId)?.name || 'Kategori'}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCategoryId(undefined)}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    )}
+
+                    {(minBudget || maxBudget) && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600">
+                        {minBudget && maxBudget
+                          ? `${minBudget} - ${maxBudget} TRY`
+                          : minBudget
+                          ? `Min ${minBudget} TRY`
+                          : `Max ${maxBudget} TRY`}
+                        <button
+                          type="button"
+                          onClick={() => { setMinBudget(''); setMaxBudget(''); }}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    )}
+
+                    {urgency && (
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                        urgency === 'Urgent'
+                          ? 'bg-red-500/10 text-red-600'
+                          : urgency === 'Flexible'
+                          ? 'bg-green-500/10 text-green-600'
+                          : 'bg-primary/10 text-primary'
+                      }`}>
+                        {urgencyLabel(urgency)}
+                        <button
+                          type="button"
+                          onClick={() => setUrgency('')}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    )}
+
+                    {locationEnabled && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600">
+                        <MapPinIcon className="h-3.5 w-3.5" />
+                        {radiusKm} km yakinimda
+                        <button
+                          type="button"
+                          onClick={() => { setLocationEnabled(false); setUserLatitude(undefined); setUserLongitude(undefined); }}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    )}
+
+                    {sortBy && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {sortLabel(sortBy)}
+                        <button
+                          type="button"
+                          onClick={() => setSortBy('')}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="text-xs text-text-secondary hover:text-red-500 transition-colors underline ml-1"
+                    >
+                      Tumunu Temizle
+                    </button>
+                  </div>
                 )}
-              </p>
+              </div>
             )}
 
             {/* Loading State */}

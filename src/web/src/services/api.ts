@@ -137,6 +137,8 @@ export interface NeedFilters {
   search?: string;
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
 export interface Offer {
@@ -303,8 +305,12 @@ export interface UserStats {
   offersGivenCount: number;
   offersReceivedCount: number;
   completedTransactionsCount: number;
+  totalSpent: number;
+  totalEarned: number;
   averageRating: number;
-  totalReviews: number;
+  reviewCount: number;
+  verificationBadges: number;
+  memberSince: string;
 }
 
 export interface Transaction {
@@ -342,17 +348,27 @@ export const userAPI = {
 };
 
 export const searchAPI = {
-  // Use backend quick search and return results array
-  search: (query: string, filters: NeedFilters = {}): Promise<Need[]> => {
+  // Use /need endpoint with full filter support
+  search: (query: string, filters: NeedFilters = {}): Promise<{ items: Need[]; totalCount: number }> => {
     const params: Record<string, unknown> = {
-      q: query,
-      page: filters.page,
-      pageSize: filters.pageSize,
-      lat: filters.latitude,
-      lng: filters.longitude,
-      radius: filters.radius,
+      searchText: query || undefined,
+      categoryId: filters.categoryId,
+      minBudget: filters.minBudget,
+      maxBudget: filters.maxBudget,
+      urgency: filters.urgency,
+      latitude: filters.latitude,
+      longitude: filters.longitude,
+      radiusKm: filters.radius,
+      sortBy: filters.sortBy,
+      sortDescending: filters.sortDescending,
+      page: filters.page || 1,
+      pageSize: filters.pageSize || 12,
     };
-    return api.get('/search/quick', { params }).then(res => res.data?.results || res.data?.items || res.data || []);
+    Object.keys(params).forEach(k => params[k] === undefined && delete params[k]);
+    return api.get('/need', { params }).then(res => ({
+      items: res.data?.items || (Array.isArray(res.data) ? res.data : []),
+      totalCount: res.data?.totalCount ?? (Array.isArray(res.data) ? res.data.length : 0),
+    }));
   },
 
   getRecommendations: (): Promise<Need[]> =>

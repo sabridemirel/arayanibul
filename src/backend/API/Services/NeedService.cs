@@ -180,6 +180,7 @@ public class NeedService : INeedService
             "budget" => filter.SortDescending ? query.OrderByDescending(n => n.MaxBudget ?? n.MinBudget ?? 0) : query.OrderBy(n => n.MaxBudget ?? n.MinBudget ?? 0),
             "urgency" => filter.SortDescending ? query.OrderByDescending(n => n.Urgency) : query.OrderBy(n => n.Urgency),
             "updatedat" => filter.SortDescending ? query.OrderByDescending(n => n.UpdatedAt) : query.OrderBy(n => n.UpdatedAt),
+            "offercount" => filter.SortDescending ? query.OrderByDescending(n => n.Offers.Count) : query.OrderBy(n => n.Offers.Count),
             _ => filter.SortDescending ? query.OrderByDescending(n => n.CreatedAt) : query.OrderBy(n => n.CreatedAt)
         };
 

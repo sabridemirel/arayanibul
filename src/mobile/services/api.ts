@@ -135,6 +135,8 @@ export interface CreateNeedRequest {
   images?: string[];
 }
 
+export type SortBy = 'CreatedAt' | 'Budget' | 'Urgency';
+
 export interface NeedFilters {
   categoryId?: number;
   minBudget?: number;
@@ -146,6 +148,8 @@ export interface NeedFilters {
   search?: string;
   page?: number;
   pageSize?: number;
+  sortBy?: SortBy;
+  sortDescending?: boolean;
 }
 
 export interface Offer {
@@ -244,7 +248,7 @@ export const needAPI = {
     api.post('/need', data).then(res => res.data),
   
   // Map filters to backend parameter names and unwrap paged response
-  getNeeds: (filters: NeedFilters = {}): Promise<Need[]> => {
+  getNeeds: (filters: NeedFilters = {}): Promise<{ items: Need[]; totalCount: number }> => {
     const params: any = {
       categoryId: filters.categoryId,
       minBudget: filters.minBudget,
@@ -256,8 +260,13 @@ export const needAPI = {
       searchText: filters.search,
       page: filters.page,
       pageSize: filters.pageSize,
+      sortBy: filters.sortBy,
+      sortDescending: filters.sortDescending,
     };
-    return api.get('/need', { params }).then(res => res.data?.items || res.data);
+    return api.get('/need', { params }).then(res => ({
+      items: res.data?.items || (Array.isArray(res.data) ? res.data : []),
+      totalCount: res.data?.totalCount ?? res.data?.total ?? (Array.isArray(res.data) ? res.data.length : 0),
+    }));
   },
   
   getNeedById: (id: number): Promise<Need> =>
@@ -312,8 +321,12 @@ export interface UserStats {
   offersGivenCount: number;
   offersReceivedCount: number;
   completedTransactionsCount: number;
+  totalSpent: number;
+  totalEarned: number;
   averageRating: number;
-  totalReviews: number;
+  reviewCount: number;
+  verificationBadges: number;
+  memberSince: string;
 }
 
 export interface Transaction {
