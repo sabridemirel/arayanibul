@@ -40,6 +40,7 @@
     "android": {
       "package": "com.arayanibul.app",
       "versionCode": 1,
+      "edgeToEdgeEnabled": false,
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -55,6 +56,12 @@
         "WRITE_EXTERNAL_STORAGE",
         "NOTIFICATIONS"
       ]
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#ffffff",
+      "barStyle": "dark-content",
+      "translucent": false,
+      "hidden": false
     },
     "web": {
       "output": "static",

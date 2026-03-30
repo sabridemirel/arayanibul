@@ -78,7 +78,7 @@ const HomePage: React.FC = () => {
       case 'Normal':
         return <Badge variant="warning">Normal</Badge>;
       default:
-        return <Badge variant="default">Esnek</Badge>;
+        return <Badge variant="warning">Normal</Badge>;
     }
   };
 
@@ -198,8 +198,8 @@ const HomePage: React.FC = () => {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary-light rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-primary">1</span>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#7B2CBF] to-[#5A189A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
+                  <span className="text-2xl font-bold text-white">1</span>
                 </div>
                 <h3 className="text-lg font-semibold text-text mb-2">
                   Ilaninizi Olusturun
@@ -209,8 +209,8 @@ const HomePage: React.FC = () => {
                 </p>
               </div>
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary-light rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-primary">2</span>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#7B2CBF] to-[#5A189A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
+                  <span className="text-2xl font-bold text-white">2</span>
                 </div>
                 <h3 className="text-lg font-semibold text-text mb-2">
                   Teklifleri Alin
@@ -220,8 +220,8 @@ const HomePage: React.FC = () => {
                 </p>
               </div>
               <div className="text-center">
-                <div className="w-16 h-16 bg-primary-light rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl font-bold text-primary">3</span>
+                <div className="w-16 h-16 bg-gradient-to-br from-[#7B2CBF] to-[#5A189A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
+                  <span className="text-2xl font-bold text-white">3</span>
                 </div>
                 <h3 className="text-lg font-semibold text-text mb-2">
                   Secin ve Anlasın
@@ -348,7 +348,7 @@ const HomePage: React.FC = () => {
         </section>
 
         {/* CTA Section */}
-        <section className="py-16 bg-primary">
+        <section className="py-16 bg-gradient-to-br from-primary to-primary-dark">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">
               Aradiginizi Bulmaya Hazir misiniz?

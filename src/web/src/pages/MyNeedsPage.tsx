@@ -153,7 +153,7 @@ const MyNeedsPage: React.FC = () => {
       case 'Normal':
         return <Badge variant="warning">Normal</Badge>;
       default:
-        return <Badge variant="default">Esnek</Badge>;
+        return <Badge variant="warning">Normal</Badge>;
     }
   };
 

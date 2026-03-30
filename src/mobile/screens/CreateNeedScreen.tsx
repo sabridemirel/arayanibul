@@ -5,11 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Alert,
   Modal,
   FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -34,7 +34,7 @@ interface FormData {
   minBudget: string;
   maxBudget: string;
   address: string;
-  urgency: 'Flexible' | 'Normal' | 'Urgent';
+  urgency: 'Normal' | 'Urgent';
 }
 
 interface FormErrors {
@@ -201,8 +201,6 @@ const CreateNeedScreen: React.FC = () => {
         return colors.urgent;
       case 'Normal':
         return colors.normal;
-      case 'Flexible':
-        return colors.flexible;
       default:
         return colors.textSecondary;
     }
@@ -214,8 +212,6 @@ const CreateNeedScreen: React.FC = () => {
         return 'Acil';
       case 'Normal':
         return 'Normal';
-      case 'Flexible':
-        return 'Esnek';
       default:
         return urgency;
     }
@@ -325,27 +321,43 @@ const CreateNeedScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  const renderUrgencyOption = (urgency: 'Flexible' | 'Normal' | 'Urgent') => (
-    <TouchableOpacity
-      key={urgency}
-      style={[
-        styles.urgencyOption,
-        formData.urgency === urgency && styles.urgencyOptionSelected,
-      ]}
-      onPress={() => setFormData(prev => ({ ...prev, urgency }))}
-    >
-      <View style={[
-        styles.urgencyIndicator,
-        { backgroundColor: getUrgencyColor(urgency) }
-      ]} />
-      <Text style={[
-        styles.urgencyText,
-        formData.urgency === urgency && styles.urgencyTextSelected,
-      ]}>
-        {getUrgencyText(urgency)}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderUrgencyOption = (urgency: 'Normal' | 'Urgent') => {
+    const isDisabled = urgency === 'Urgent';
+    const isSelected = formData.urgency === urgency;
+
+    return (
+      <TouchableOpacity
+        key={urgency}
+        style={[
+          styles.urgencyOption,
+          isSelected && styles.urgencyOptionSelected,
+          isDisabled && styles.urgencyOptionDisabled,
+        ]}
+        onPress={() => {
+          if (isDisabled) return;
+          setFormData(prev => ({ ...prev, urgency }));
+        }}
+        activeOpacity={isDisabled ? 1 : 0.7}
+      >
+        <View style={[
+          styles.urgencyIndicator,
+          { backgroundColor: isDisabled ? colors.border : getUrgencyColor(urgency) },
+        ]} />
+        <Text style={[
+          styles.urgencyText,
+          isSelected && styles.urgencyTextSelected,
+          isDisabled && styles.urgencyTextDisabled,
+        ]}>
+          {getUrgencyText(urgency)}
+        </Text>
+        {isDisabled && (
+          <View style={styles.comingSoonBadge}>
+            <Text style={styles.comingSoonText}>Yakında</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   if (categoriesLoading) {
     return (
@@ -478,7 +490,6 @@ const CreateNeedScreen: React.FC = () => {
           </Text>
 
           <View style={styles.urgencyContainer}>
-            {renderUrgencyOption('Flexible')}
             {renderUrgencyOption('Normal')}
             {renderUrgencyOption('Urgent')}
           </View>
@@ -647,6 +658,26 @@ const styles = StyleSheet.create({
   urgencyTextSelected: {
     color: colors.primary,
     fontWeight: '600',
+  },
+  urgencyOptionDisabled: {
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    opacity: 0.5,
+  },
+  urgencyTextDisabled: {
+    color: colors.textSecondary,
+  },
+  comingSoonBadge: {
+    marginLeft: spacing.sm,
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  comingSoonText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
   actionContainer: {
     marginTop: spacing.lg,

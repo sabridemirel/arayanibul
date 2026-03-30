@@ -208,12 +208,11 @@ const SearchPage: React.FC = () => {
     { value: '', label: 'Tumu' },
     { value: 'Urgent', label: 'Acil' },
     { value: 'Normal', label: 'Normal' },
-    { value: 'Flexible', label: 'Esnek' },
   ];
 
   // Urgency label helper
   const urgencyLabel = (val: string) => {
-    const map: Record<string, string> = { Urgent: 'Acil', Normal: 'Normal', Flexible: 'Esnek' };
+    const map: Record<string, string> = { Urgent: 'Acil', Normal: 'Normal' };
     return map[val] || val;
   };
 
@@ -234,7 +233,7 @@ const SearchPage: React.FC = () => {
 
       <main className="flex-1">
         {/* Search Header */}
-        <section className="bg-surface border-b border-border py-6">
+        <section className="bg-white border-b-2 border-primary/20 py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 className="text-2xl lg:text-3xl font-bold text-text mb-4">
               Ilanlar
@@ -284,7 +283,7 @@ const SearchPage: React.FC = () => {
 
         {/* Filters Panel */}
         {showFilters && (
-          <section className="bg-surface border-b border-border py-4">
+          <section className="bg-surface border-b border-primary/10 py-4">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -528,7 +527,7 @@ const SearchPage: React.FC = () => {
                     )}
 
                     {(minBudget || maxBudget) && (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
                         {minBudget && maxBudget
                           ? `${minBudget} - ${maxBudget} TRY`
                           : minBudget
@@ -548,8 +547,6 @@ const SearchPage: React.FC = () => {
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
                         urgency === 'Urgent'
                           ? 'bg-red-500/10 text-red-600'
-                          : urgency === 'Flexible'
-                          ? 'bg-green-500/10 text-green-600'
                           : 'bg-primary/10 text-primary'
                       }`}>
                         {urgencyLabel(urgency)}

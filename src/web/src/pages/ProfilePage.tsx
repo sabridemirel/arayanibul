@@ -136,10 +136,10 @@ const ProfilePage: React.FC = () => {
                   <img
                     src={user.profileImageUrl}
                     alt={`${user.firstName} ${user.lastName}`}
-                    className="w-28 h-28 rounded-full object-cover border-4 border-primary-light"
+                    className="w-28 h-28 rounded-full object-cover border-4 border-[#7B2CBF]/30 ring-4 ring-[#7B2CBF]/10"
                   />
                 ) : (
-                  <div className="w-28 h-28 rounded-full bg-primary-light flex items-center justify-center border-4 border-primary/20">
+                  <div className="w-28 h-28 rounded-full bg-primary-light flex items-center justify-center border-4 border-[#7B2CBF]/30 ring-4 ring-[#7B2CBF]/10">
                     <UserCircleIcon className="h-20 w-20 text-primary" />
                   </div>
                 )}
@@ -181,7 +181,7 @@ const ProfilePage: React.FC = () => {
             {/* Notifications Button */}
             <button
               onClick={() => navigate('/notifications')}
-              className="w-full flex items-center justify-between p-4 bg-background rounded-lg mb-4 hover:bg-gray-100 transition-colors"
+              className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-lg mb-4 hover:bg-purple-100 border border-purple-100 transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -283,7 +283,7 @@ const ProfilePage: React.FC = () => {
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <button
                     onClick={() => navigate('/my-needs')}
-                    className="flex flex-col items-center p-4 bg-background rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors"
                   >
                     <DocumentTextIcon className="h-8 w-8 text-primary mb-2" />
                     <span className="text-2xl font-bold text-primary">
@@ -294,7 +294,7 @@ const ProfilePage: React.FC = () => {
 
                   <button
                     onClick={() => navigate('/my-offers')}
-                    className="flex flex-col items-center p-4 bg-background rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors"
                   >
                     <ChatBubbleLeftRightIcon className="h-8 w-8 text-primary mb-2" />
                     <span className="text-2xl font-bold text-primary">
@@ -305,7 +305,7 @@ const ProfilePage: React.FC = () => {
 
                   <button
                     onClick={() => navigate('/transactions')}
-                    className="flex flex-col items-center p-4 bg-background rounded-lg hover:bg-gray-100 transition-colors"
+                    className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors"
                   >
                     <CheckCircleIcon className="h-8 w-8 text-primary mb-2" />
                     <span className="text-2xl font-bold text-primary">

@@ -28,6 +28,10 @@ export default {
         warning: '#ffc107',
         info: '#17a2b8',
       },
+      fontFamily: {
+        display: ['Nunito', 'sans-serif'],
+        body: ['Nunito', 'sans-serif'],
+      },
     },
   },
   plugins: [],

@@ -10,7 +10,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingSlide1 from './onboarding/OnboardingSlide1';
 import OnboardingSlide2 from './onboarding/OnboardingSlide2';
-import OnboardingSlide3 from './onboarding/OnboardingSlide3';
 
 interface OnboardingScreenProps {
   navigation?: any;
@@ -54,7 +53,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation, onCompl
   };
 
   const handleNext = () => {
-    if (currentIndex < 2) {
+    if (currentIndex < 1) {
       goToSlide(currentIndex + 1);
     }
   };
@@ -91,7 +90,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation, onCompl
   const slides = [
     { id: '1', component: OnboardingSlide1 },
     { id: '2', component: OnboardingSlide2 },
-    { id: '3', component: OnboardingSlide3 },
   ];
 
   const renderItem = ({ item, index }: { item: typeof slides[0]; index: number }) => {
@@ -101,16 +99,6 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation, onCompl
       return (
         <View style={styles.slide}>
           <Component onNext={handleNext} onSkip={handleSkip} />
-        </View>
-      );
-    } else if (index === 1) {
-      return (
-        <View style={styles.slide}>
-          <Component
-            onNext={handleNext}
-            onBack={handleBack}
-            onSkip={handleSkip}
-          />
         </View>
       );
     } else {

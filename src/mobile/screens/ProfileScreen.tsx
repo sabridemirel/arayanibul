@@ -8,6 +8,7 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -324,30 +325,61 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          enabled={!isOwnProfile}
-        />
-      }
-    >
-      <View style={styles.header}>
-        {renderProfileImage()}
-        {renderUserInfo()}
-      </View>
+  const handleBackPress = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Home');
+    }
+  };
 
-      {renderActions()}
-      {renderStats()}
-    </ScrollView>
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={handleBackPress}
+        accessibilityRole="button"
+        accessibilityLabel="Geri git"
+        accessibilityHint="Önceki sayfaya dönmek için dokunun"
+      >
+        <MaterialIcons name="arrow-back" size={24} color="#7B2CBF" />
+      </TouchableOpacity>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            enabled={!isOwnProfile}
+          />
+        }
+      >
+        <View style={styles.header}>
+          {renderProfileImage()}
+          {renderUserInfo()}
+        </View>
+
+        {renderActions()}
+        {renderStats()}
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
+    marginTop: spacing.xs,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,

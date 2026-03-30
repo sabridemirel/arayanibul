@@ -41,7 +41,7 @@ export const useConversionPrompts = () => {
 
     const viewCount = getGuestViewCount();
     const shouldShow = shouldShowAuthPrompt();
-    
+
     // Show soft prompt after 3+ views if not shown recently
     if (shouldShow && !conversionState.bannerDismissedToday && canShowPrompt()) {
       setShowSoftPrompt(true);
@@ -51,7 +51,7 @@ export const useConversionPrompts = () => {
     if (viewCount > 5 && viewCount % 3 === 0 && !conversionState.bannerDismissedToday) {
       setShowScrollPrompt(true);
     }
-  }, [isGuest, getGuestViewCount(), shouldShowAuthPrompt(), conversionState]);
+  }, [isGuest, conversionState.bannerDismissedToday]);
 
   const loadConversionState = async () => {
     try {

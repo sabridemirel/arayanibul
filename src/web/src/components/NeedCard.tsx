@@ -25,7 +25,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
       case 'Normal':
         return <Badge variant="warning">Normal</Badge>;
       default:
-        return <Badge variant="default">Esnek</Badge>;
+        return <Badge variant="warning">Normal</Badge>;
     }
   };
 
@@ -62,7 +62,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
     <Link to={`/needs/${need.id}`} className={`block ${className}`}>
       <Card
         hover
-        className="h-full transition-all duration-200 hover:shadow-lg hover:border-primary/30"
+        className="h-full transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:shadow-primary/10"
       >
         {/* Header: Title and Urgency Badge */}
         <div className="flex items-start justify-between gap-3 mb-3">
@@ -157,32 +157,32 @@ export const NeedCardSkeleton: React.FC = () => {
       {/* Header skeleton */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 space-y-2">
-          <div className="h-5 bg-gray-200 rounded w-3/4" />
-          <div className="h-4 bg-gray-200 rounded w-1/2" />
+          <div className="h-5 bg-purple-100 rounded w-3/4" />
+          <div className="h-4 bg-purple-100 rounded w-1/2" />
         </div>
-        <div className="h-6 bg-gray-200 rounded-full w-14" />
+        <div className="h-6 bg-purple-100 rounded-full w-14" />
       </div>
 
       {/* Description skeleton */}
       <div className="space-y-2 mb-4">
-        <div className="h-4 bg-gray-200 rounded w-full" />
-        <div className="h-4 bg-gray-200 rounded w-2/3" />
+        <div className="h-4 bg-purple-100 rounded w-full" />
+        <div className="h-4 bg-purple-100 rounded w-2/3" />
       </div>
 
       {/* Meta skeleton */}
       <div className="space-y-2 mb-4">
-        <div className="h-4 bg-gray-200 rounded w-1/3" />
-        <div className="h-4 bg-gray-200 rounded w-1/2" />
-        <div className="h-4 bg-gray-200 rounded w-2/5" />
+        <div className="h-4 bg-purple-100 rounded w-1/3" />
+        <div className="h-4 bg-purple-100 rounded w-1/2" />
+        <div className="h-4 bg-purple-100 rounded w-2/5" />
       </div>
 
       {/* Footer skeleton */}
       <div className="flex items-center justify-between pt-3 border-t border-border">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-gray-200 rounded-full" />
-          <div className="h-4 bg-gray-200 rounded w-24" />
+          <div className="w-6 h-6 bg-purple-100 rounded-full" />
+          <div className="h-4 bg-purple-100 rounded w-24" />
         </div>
-        <div className="h-4 bg-gray-200 rounded w-20" />
+        <div className="h-4 bg-purple-100 rounded w-20" />
       </div>
     </Card>
   );

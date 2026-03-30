@@ -212,7 +212,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             value={values.email}
             onChangeText={(text) => setValue('email', text)}
             onBlur={() => setFieldTouched('email')}
-            keyboardType="email-address"
+            keyboardType="default"
             autoCapitalize="none"
             autoCorrect={false}
             leftIcon="email"

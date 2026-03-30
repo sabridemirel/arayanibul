@@ -90,7 +90,6 @@ const OnboardingSlide1: React.FC<OnboardingSlide1Props> = ({ onNext, onSkip }) =
         <View style={styles.paginationContainer}>
           <View style={[styles.dot, styles.dotActive]} />
           <View style={styles.dot} />
-          <View style={styles.dot} />
         </View>
 
         {/* Next Button */}

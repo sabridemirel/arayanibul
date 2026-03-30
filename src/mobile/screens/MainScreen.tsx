@@ -6,9 +6,9 @@ import {
     ScrollView,
     TouchableOpacity,
     Image,
-    SafeAreaView,
-    FlatList,
+      FlatList,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CATEGORIES } from '../data/categories';
 import { MOCK_ADS } from '../data/mockData';

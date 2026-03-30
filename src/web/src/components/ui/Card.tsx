@@ -27,8 +27,8 @@ const Card: React.FC<CardProps> = ({
       className={`
         bg-surface rounded-lg shadow-sm
         ${paddingClasses[padding]}
-        ${border ? 'border border-border' : ''}
-        ${hover ? 'transition-shadow duration-200 hover:shadow-md cursor-pointer' : ''}
+        ${border ? 'border border-[#e9ecef]' : ''}
+        ${hover ? 'transition-all duration-200 hover:shadow-lg hover:shadow-purple-100/50 hover:border-purple-200 cursor-pointer' : ''}
         ${className}
       `}
       {...props}

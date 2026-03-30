@@ -100,6 +100,22 @@ npm run test:coverage
 - **Authentication**: JWT tokens with Google/Facebook OAuth integration
 - **Development**: ESLint for code quality, Swagger for API documentation
 
+## Çalışma Kuralları
+
+Uygun görevlerde doğrudan kod yazmak yerine **önce agent veya skill kullan**:
+
+| Görev | Kullan |
+|-------|--------|
+| Frontend tasarım (web) | `frontend-design` skill |
+| Web özellik geliştirme | `web-feature-developer` agent |
+| Mobil özellik/değişiklik | `mobile-feature-developer` agent |
+| Backend API/veritabanı | `dotnet-backend-developer` agent |
+| Yeni özellik planlama | `arayanibul-product-manager` agent |
+| Bug araştırma/fix | `bug` skill veya `feature-dev:code-reviewer` agent |
+| Kod inceleme | `feature-dev:code-reviewer` agent |
+
+Tek satırlık basit düzeltmeler (typo, bir elementi kaldırma vb.) için agent şart değil.
+
 ## Important Notes
 - Google/Facebook authentication requires native builds (won't work in Expo Go)
 - Email/password and guest authentication work in Expo Go

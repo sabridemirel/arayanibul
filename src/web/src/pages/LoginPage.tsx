@@ -65,22 +65,28 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#5A189A] via-[#7B2CBF] to-[#3c0764] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">A</span>
-            </div>
+          <Link to="/" className="inline-flex flex-col items-center gap-2">
+            <img
+              src="/assets/mascot.png"
+              alt="Arayanibul Maskot"
+              className="h-20 w-20 object-contain mx-auto"
+            />
+            <span className="text-2xl font-extrabold">
+              <span className="text-white">Arayanı</span>
+              <span className="text-[#F59E0B]">BUL</span>
+            </span>
           </Link>
-          <h1 className="mt-4 text-2xl font-bold text-text">Giris Yap</h1>
-          <p className="mt-2 text-text-secondary">
+          <h1 className="mt-4 text-2xl font-bold text-white">Giris Yap</h1>
+          <p className="mt-2 text-white/70">
             Hesabiniza giris yaparak ilanlari inceleyin
           </p>
         </div>
 
-        <Card padding="lg">
+        <Card padding="lg" className="!bg-white/95 backdrop-blur-sm !shadow-2xl shadow-purple-900/50">
           {/* Error Message */}
           {error && (
             <ErrorMessage
@@ -121,7 +127,7 @@ const LoginPage: React.FC = () => {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
+                  className="w-4 h-4 accent-[#7B2CBF] border-border rounded focus:ring-primary"
                 />
                 <span className="text-sm text-text-secondary">Beni Hatirla</span>
               </label>

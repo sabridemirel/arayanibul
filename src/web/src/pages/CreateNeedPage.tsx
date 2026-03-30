@@ -22,7 +22,7 @@ interface FormData {
   minBudget: string;
   maxBudget: string;
   address: string;
-  urgency: 'Flexible' | 'Normal' | 'Urgent';
+  urgency: 'Normal' | 'Urgent';
   expiryDate: string;
 }
 
@@ -169,7 +169,6 @@ const CreateNeedPage: React.FC = () => {
 
       // Map urgency string to backend enum value
       const urgencyMap: Record<string, number> = {
-        'Flexible': 1,
         'Normal': 2,
         'Urgent': 3,
       };
@@ -359,8 +358,6 @@ const CreateNeedPage: React.FC = () => {
         return 'bg-red-500';
       case 'Normal':
         return 'bg-yellow-500';
-      case 'Flexible':
-        return 'bg-green-500';
       default:
         return 'bg-gray-500';
     }
@@ -372,8 +369,6 @@ const CreateNeedPage: React.FC = () => {
         return 'Acil';
       case 'Normal':
         return 'Normal';
-      case 'Flexible':
-        return 'Esnek';
       default:
         return urgency;
     }
@@ -696,28 +691,40 @@ const CreateNeedPage: React.FC = () => {
               </p>
 
               <div className="space-y-2">
-                {(['Flexible', 'Normal', 'Urgent'] as const).map((urgency) => (
-                  <button
-                    key={urgency}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, urgency }))}
-                    className={`
-                      w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors
-                      ${formData.urgency === urgency
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                      }
-                    `}
+                {/* Normal - aktif ve varsayılan seçenek */}
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, urgency: 'Normal' }))}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors
+                    ${formData.urgency === 'Normal'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                    }
+                  `}
+                >
+                  <div className={`w-3 h-3 rounded-full ${getUrgencyColor('Normal')}`} />
+                  <span className={`font-medium ${formData.urgency === 'Normal' ? 'text-primary' : 'text-text'}`}>
+                    {getUrgencyText('Normal')}
+                  </span>
+                  {formData.urgency === 'Normal' && (
+                    <CheckIcon className="h-5 w-5 text-primary ml-auto" />
+                  )}
+                </button>
+
+                {/* Acil - devre dışı, yakında gelecek */}
+                <div
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border opacity-50 cursor-not-allowed"
+                >
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="font-medium text-text">Acil</span>
+                  <span
+                    className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B' }}
                   >
-                    <div className={`w-3 h-3 rounded-full ${getUrgencyColor(urgency)}`} />
-                    <span className={`font-medium ${formData.urgency === urgency ? 'text-primary' : 'text-text'}`}>
-                      {getUrgencyText(urgency)}
-                    </span>
-                    {formData.urgency === urgency && (
-                      <CheckIcon className="h-5 w-5 text-primary ml-auto" />
-                    )}
-                  </button>
-                ))}
+                    Yakında
+                  </span>
+                </div>
               </div>
             </Card>
 

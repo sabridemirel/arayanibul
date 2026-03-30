@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient'; // npx expo install expo-
 // import LottieView from 'lottie-react-native';
 
 interface OnboardingSlide2Props {
-  onNext: () => void;
+  onGetStarted: () => void;
   onBack: () => void;
   onSkip: () => void;
 }
@@ -23,7 +23,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const ANIMATION_HEIGHT = SCREEN_HEIGHT * 0.4;
 
 const OnboardingSlide2: React.FC<OnboardingSlide2Props> = ({
-  onNext,
+  onGetStarted,
   onBack,
   onSkip
 }) => {
@@ -112,7 +112,6 @@ const OnboardingSlide2: React.FC<OnboardingSlide2Props> = ({
           <View style={styles.paginationContainer}>
             <View style={styles.dot} />
             <View style={[styles.dot, styles.dotActive]} />
-            <View style={styles.dot} />
           </View>
 
           {/* Navigation Buttons */}
@@ -131,14 +130,13 @@ const OnboardingSlide2: React.FC<OnboardingSlide2Props> = ({
 
             <TouchableOpacity
               style={styles.nextButton}
-              onPress={onNext}
+              onPress={onGetStarted}
               activeOpacity={0.8}
               accessibilityRole="button"
-              accessibilityLabel="Devam et"
-              accessibilityHint="Son onboarding slaytına geçmek için dokunun"
+              accessibilityLabel="Başla"
+              accessibilityHint="Uygulamayı kullanmaya başlamak için dokunun"
             >
-              <Text style={styles.nextButtonText} allowFontScaling={true}>Devam Et</Text>
-              <MaterialIcons name="arrow-forward" size={20} color="#ffffff" />
+              <Text style={styles.nextButtonText} allowFontScaling={true}>Başla! 🎉</Text>
             </TouchableOpacity>
           </View>
         </View>
