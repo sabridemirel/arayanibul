@@ -19,7 +19,7 @@ public static class SeedData
             {
                 Name = "Electronics",
                 NameTr = "Elektronik",
-                Description = "Electronic devices and accessories",
+                Description = "Elektronik cihazlar ve aksesuarlar",
                 IconUrl = "/icons/electronics.png",
                 IsActive = true,
                 SortOrder = 1
@@ -28,7 +28,7 @@ public static class SeedData
             {
                 Name = "Home & Living",
                 NameTr = "Ev & Yaşam",
-                Description = "Home appliances and living essentials",
+                Description = "Ev aletleri ve yaşam ürünleri",
                 IconUrl = "/icons/home.png",
                 IsActive = true,
                 SortOrder = 2
@@ -37,7 +37,7 @@ public static class SeedData
             {
                 Name = "Services",
                 NameTr = "Hizmetler",
-                Description = "Professional and personal services",
+                Description = "Profesyonel ve kişisel hizmetler",
                 IconUrl = "/icons/services.png",
                 IsActive = true,
                 SortOrder = 3
@@ -46,7 +46,7 @@ public static class SeedData
             {
                 Name = "Fashion & Beauty",
                 NameTr = "Moda & Güzellik",
-                Description = "Clothing, accessories and beauty products",
+                Description = "Giyim, aksesuar ve güzellik ürünleri",
                 IconUrl = "/icons/fashion.png",
                 IsActive = true,
                 SortOrder = 4
@@ -55,7 +55,7 @@ public static class SeedData
             {
                 Name = "Automotive",
                 NameTr = "Otomotiv",
-                Description = "Vehicles and automotive services",
+                Description = "Araçlar ve otomotiv hizmetleri",
                 IconUrl = "/icons/automotive.png",
                 IsActive = true,
                 SortOrder = 5
@@ -64,7 +64,7 @@ public static class SeedData
             {
                 Name = "Health & Sports",
                 NameTr = "Sağlık & Spor",
-                Description = "Health products and sports equipment",
+                Description = "Sağlık ürünleri ve spor ekipmanları",
                 IconUrl = "/icons/health-sports.png",
                 IsActive = true,
                 SortOrder = 6
@@ -73,7 +73,7 @@ public static class SeedData
             {
                 Name = "Education & Books",
                 NameTr = "Eğitim & Kitap",
-                Description = "Educational services and books",
+                Description = "Eğitim hizmetleri ve kitaplar",
                 IconUrl = "/icons/education.png",
                 IsActive = true,
                 SortOrder = 7
@@ -82,7 +82,7 @@ public static class SeedData
             {
                 Name = "Food & Beverage",
                 NameTr = "Yiyecek & İçecek",
-                Description = "Food products and catering services",
+                Description = "Yiyecek ürünleri ve catering hizmetleri",
                 IconUrl = "/icons/food.png",
                 IsActive = true,
                 SortOrder = 8
@@ -91,7 +91,7 @@ public static class SeedData
             {
                 Name = "Real Estate",
                 NameTr = "Emlak",
-                Description = "Property sales and rentals",
+                Description = "Mülk satış ve kiralama",
                 IconUrl = "/icons/real-estate.png",
                 IsActive = true,
                 SortOrder = 9
@@ -100,7 +100,7 @@ public static class SeedData
             {
                 Name = "Travel & Tourism",
                 NameTr = "Seyahat & Turizm",
-                Description = "Travel services and tourism",
+                Description = "Seyahat hizmetleri ve turizm",
                 IconUrl = "/icons/travel.png",
                 IsActive = true,
                 SortOrder = 10
@@ -109,7 +109,7 @@ public static class SeedData
             {
                 Name = "Baby & Kids",
                 NameTr = "Bebek & Çocuk",
-                Description = "Baby and children products",
+                Description = "Bebek ve çocuk ürünleri",
                 IconUrl = "/icons/baby-kids.png",
                 IsActive = true,
                 SortOrder = 11
@@ -118,7 +118,7 @@ public static class SeedData
             {
                 Name = "Pets",
                 NameTr = "Evcil Hayvan",
-                Description = "Pet products and services",
+                Description = "Evcil hayvan ürünleri ve hizmetleri",
                 IconUrl = "/icons/pets.png",
                 IsActive = true,
                 SortOrder = 12
@@ -683,6 +683,39 @@ public static class SeedData
         allSubCategories.AddRange(petsSubCategories);
 
         context.Categories.AddRange(allSubCategories);
+        await context.SaveChangesAsync();
+    }
+
+    public static async Task UpdateCategoryDescriptionsAsync(ApplicationDbContext context)
+    {
+        var descriptions = new Dictionary<string, string>
+        {
+            { "Electronics",      "Elektronik cihazlar ve aksesuarlar" },
+            { "Home & Living",    "Ev aletleri ve yaşam ürünleri" },
+            { "Services",         "Profesyonel ve kişisel hizmetler" },
+            { "Fashion & Beauty", "Giyim, aksesuar ve güzellik ürünleri" },
+            { "Automotive",       "Araçlar ve otomotiv hizmetleri" },
+            { "Health & Sports",  "Sağlık ürünleri ve spor ekipmanları" },
+            { "Education & Books","Eğitim hizmetleri ve kitaplar" },
+            { "Food & Beverage",  "Yiyecek ürünleri ve catering hizmetleri" },
+            { "Real Estate",      "Mülk satış ve kiralama" },
+            { "Travel & Tourism", "Seyahat hizmetleri ve turizm" },
+            { "Baby & Kids",      "Bebek ve çocuk ürünleri" },
+            { "Pets",             "Evcil hayvan ürünleri ve hizmetleri" }
+        };
+
+        var categories = await context.Categories
+            .Where(c => descriptions.Keys.Contains(c.Name))
+            .ToListAsync();
+
+        foreach (var category in categories)
+        {
+            if (descriptions.TryGetValue(category.Name, out var description))
+            {
+                category.Description = description;
+            }
+        }
+
         await context.SaveChangesAsync();
     }
 }

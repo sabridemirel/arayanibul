@@ -55,6 +55,7 @@ if (!app.Environment.IsEnvironment("Testing"))
     {
         var context = scope.ServiceProvider.GetRequiredService<API.Data.ApplicationDbContext>();
         await API.Data.SeedData.SeedCategoriesAsync(context);
+        await API.Data.SeedData.UpdateCategoryDescriptionsAsync(context);
     }
 }
 
