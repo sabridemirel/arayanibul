@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { authAPI, RegisterData, LoginData, User } from './api';
+import { authAPI, RegisterData, LoginData, User, API_BASE_URL } from './api';
 import secureStorageService from './secureStorageService';
 import biometricAuthService from './biometricAuthService';
 
@@ -39,7 +39,7 @@ class AuthService {
     try {
       // Expo için WebBrowser kullanarak OAuth flow
       const redirectUrl = Linking.createURL('auth');
-      const authUrl = `http://localhost:5000/api/auth/google?redirect_uri=${encodeURIComponent(redirectUrl)}`;
+      const authUrl = `${API_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(redirectUrl)}`;
       
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
       
@@ -70,7 +70,7 @@ class AuthService {
     try {
       // Expo için WebBrowser kullanarak OAuth flow
       const redirectUrl = Linking.createURL('auth');
-      const authUrl = `http://localhost:5000/api/auth/facebook?redirect_uri=${encodeURIComponent(redirectUrl)}`;
+      const authUrl = `${API_BASE_URL}/auth/facebook?redirect_uri=${encodeURIComponent(redirectUrl)}`;
       
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
       

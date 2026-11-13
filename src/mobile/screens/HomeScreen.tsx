@@ -14,7 +14,7 @@ import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
-import { needAPI, categoryAPI } from '../services/api';
+import { needAPI, categoryAPI, normalizeNeed } from '../services/api';
 import { optimizedApiService } from '../services/optimizedApiService';
 import { Need, Category, NeedFilters } from '../types';
 import NeedCard from '../src/components/NeedCard';
@@ -123,7 +123,7 @@ const HomeScreen: React.FC = () => {
             cache: true,
             cacheTime: 2 * 60 * 1000, // 2 minutes cache
           });
-          const items = Array.isArray(needsData) ? needsData : ((needsData as any)?.items || []);
+          const items = (Array.isArray(needsData) ? needsData : ((needsData as any)?.items || [])).map(normalizeNeed);
           const count = Array.isArray(needsData)
             ? needsData.length
             : ((needsData as any)?.totalCount ?? (needsData as any)?.total ?? items.length);

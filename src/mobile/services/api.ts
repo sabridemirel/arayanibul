@@ -2,16 +2,15 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Platform bazlı API URL konfigürasyonu
+// API URL: set EXPO_PUBLIC_API_URL (e.g. https://api.example.com/api) for any deployed build.
+// Without it, fall back to the local Docker API (Android emulator reaches the host via 10.0.2.2).
 const getApiBaseUrl = () => {
-  // Local development
-  return Platform.OS === 'ios' ? 'http://localhost:5001/api' : 'http://10.0.2.2:5001/api';
-
-  // AWS EC2 API - production için (şu an durdurulmuş)
-  // return 'http://13.62.223.188:5000/api';
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv) return fromEnv.replace(/\/$/, '');
+  return Platform.OS === 'android' ? 'http://10.0.2.2:5001/api' : 'http://localhost:5001/api';
 };
 
-const API_BASE_URL = getApiBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -243,9 +242,56 @@ export const categoryAPI = {
     api.get(`/category/${parentId}/subcategories`).then(res => res.data),
 };
 
+// The API returns flat DTOs (categoryName, userName, needTitle, providerName, ...).
+// Screens read nested objects (need.category, need.user, offer.need, offer.provider),
+// so map the flat fields into that shape in one place.
+type Raw = Record<string, any>;
+
+const splitName = (full: unknown) => {
+  const parts = String(full ?? '').trim().split(/\s+/);
+  return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') };
+};
+
+export const normalizeNeed = (n: Raw): Need => {
+  if (!n || typeof n !== 'object') return n as Need;
+  return {
+    ...n,
+    category: n.category ?? (n.categoryName
+      ? { id: n.categoryId, name: n.categoryName, nameTr: n.categoryName }
+      : undefined),
+    user: n.user ?? (n.userName
+      ? { id: n.userId, ...splitName(n.userName), profileImageUrl: n.userProfileImageUrl }
+      : undefined),
+  } as Need;
+};
+
+export const normalizeOffer = (o: Raw): Offer => {
+  if (!o || typeof o !== 'object') return o as Offer;
+  const provider = o.provider ?? (o.providerName
+    ? {
+        id: o.providerId,
+        ...splitName(o.providerName),
+        profileImageUrl: o.providerProfileImageUrl,
+        rating: o.providerRating,
+        reviewCount: o.providerReviewCount,
+      }
+    : undefined);
+  return {
+    ...o,
+    need: o.need ? normalizeNeed(o.need) : (o.needId ? { id: o.needId, title: o.needTitle } : undefined),
+    provider,
+    user: o.user ?? provider,
+  } as unknown as Offer;
+};
+
+const normalizeList = <T>(data: unknown, fn: (x: Raw) => T): T[] => {
+  const items = (data as { items?: unknown[] })?.items ?? data;
+  return Array.isArray(items) ? items.map(x => fn(x as Raw)) : [];
+};
+
 export const needAPI = {
   createNeed: (data: CreateNeedRequest): Promise<Need> =>
-    api.post('/need', data).then(res => res.data),
+    api.post('/need', data).then(res => normalizeNeed(res.data)),
   
   // Map filters to backend parameter names and unwrap paged response
   getNeeds: (filters: NeedFilters = {}): Promise<{ items: Need[]; totalCount: number }> => {
@@ -264,19 +310,19 @@ export const needAPI = {
       sortDescending: filters.sortDescending,
     };
     return api.get('/need', { params }).then(res => ({
-      items: res.data?.items || (Array.isArray(res.data) ? res.data : []),
+      items: normalizeList(res.data, normalizeNeed),
       totalCount: res.data?.totalCount ?? res.data?.total ?? (Array.isArray(res.data) ? res.data.length : 0),
     }));
   },
   
   getNeedById: (id: number): Promise<Need> =>
-    api.get(`/need/${id}`).then(res => res.data),
+    api.get(`/need/${id}`).then(res => normalizeNeed(res.data)),
   
   getUserNeeds: (status?: string): Promise<Need[]> =>
-    api.get('/need/my-needs', { params: { status } }).then(res => res.data?.items || res.data),
+    api.get('/need/my-needs', { params: { status } }).then(res => normalizeList(res.data, normalizeNeed)),
   
   updateNeed: (id: number, data: Partial<CreateNeedRequest>): Promise<Need> =>
-    api.put(`/need/${id}`, data).then(res => res.data),
+    api.put(`/need/${id}`, data).then(res => normalizeNeed(res.data)),
   
   deleteNeed: (id: number): Promise<void> =>
     api.delete(`/need/${id}`).then(res => res.data),
@@ -284,13 +330,13 @@ export const needAPI = {
 
 export const offerAPI = {
   createOffer: (data: CreateOfferRequest): Promise<Offer> =>
-    api.post('/offer', data).then(res => res.data),
+    api.post('/offer', data).then(res => normalizeOffer(res.data)),
   
   getOffersForNeed: (needId: number): Promise<Offer[]> =>
-    api.get(`/offer/need/${needId}`).then(res => res.data?.items || res.data),
+    api.get(`/offer/need/${needId}`).then(res => normalizeList(res.data, normalizeOffer)),
   
   getMyOffers: (): Promise<Offer[]> =>
-    api.get('/offer/provider').then(res => res.data?.items || res.data),
+    api.get('/offer/provider').then(res => normalizeList(res.data, normalizeOffer)),
   
   acceptOffer: (offerId: number): Promise<void> =>
     api.post(`/offer/${offerId}/accept`).then(res => res.data),
@@ -299,7 +345,7 @@ export const offerAPI = {
     api.post(`/offer/${offerId}/reject`).then(res => res.data),
   
   updateOffer: (id: number, data: Partial<CreateOfferRequest>): Promise<Offer> =>
-    api.put(`/offer/${id}`, data).then(res => res.data),
+    api.put(`/offer/${id}`, data).then(res => normalizeOffer(res.data)),
 };
 
 export const messageAPI = {
@@ -381,15 +427,15 @@ export const searchAPI = {
     api.get('/recommendation/quick').then(res => res.data),
   
   getPopularNeeds: (): Promise<Need[]> =>
-    api.get('/recommendation/popular').then(res => res.data?.popularNeeds || res.data?.needs || []),
+    api.get('/recommendation/popular').then(res => normalizeList(res.data?.popularNeeds || res.data?.needs || [], normalizeNeed)),
   
   getTrendingNeeds: (): Promise<Need[]> =>
-    api.get('/recommendation/trending').then(res => res.data),
+    api.get('/recommendation/trending').then(res => normalizeList(res.data, normalizeNeed)),
   
   getLocationBasedRecommendations: (lat: number, lng: number, radius: number = 25): Promise<Need[]> =>
     api.get('/recommendation/location-based', { 
       params: { latitude: lat, longitude: lng, radiusKm: radius } 
-    }).then(res => res.data?.nearbyNeeds || []),
+    }).then(res => normalizeList(res.data?.nearbyNeeds || [], normalizeNeed)),
   
   getDiscoverRecommendations: (lat?: number, lng?: number): Promise<any> =>
     api.get('/recommendation/discover', { 
