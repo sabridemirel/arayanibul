@@ -62,7 +62,15 @@ export const emitAuthExpired = () => {
 };
 
 // 401 from these means wrong credentials, not an expired session
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/guest-login'];
+const AUTH_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/guest-login',
+  '/auth/google-login',
+  '/auth/facebook-login',
+  '/auth/apple-login',
+  '/auth/forgot-password',
+];
 const isAuthEndpoint = (url?: string) => !!url && AUTH_ENDPOINTS.some(path => url.includes(path));
 
 // Response interceptor - Token süresi dolmuşsa temizle
@@ -94,15 +102,17 @@ export interface LoginData {
   password: string;
 }
 
-export interface SocialLoginData {
-  provider: string;
-  accessToken: string;
+export interface AppleLoginData {
+  identityToken: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface AuthResponse {
   success: boolean;
   message: string;
   token?: string;
+  refreshToken?: string;
   user?: User;
 }
 
@@ -257,18 +267,21 @@ export const authAPI = {
   login: (data: LoginData): Promise<AuthResponse> =>
     api.post('/auth/login', data).then(res => res.data),
   
-  // Map generic social login to backend-specific endpoints
-  socialLogin: (data: SocialLoginData): Promise<AuthResponse> => {
-    const provider = data.provider.toLowerCase();
-    if (provider.includes('google')) {
-      return api.post('/auth/google-login', { token: data.accessToken }).then(res => res.data);
-    }
-    if (provider.includes('facebook')) {
-      return api.post('/auth/facebook-login', { token: data.accessToken }).then(res => res.data);
-    }
-    return Promise.reject(new Error('Unsupported social provider'));
-  },
-  
+  // Google ID token from the native Google Sign-In SDK
+  googleLogin: (idToken: string): Promise<AuthResponse> =>
+    api.post('/auth/google-login', { token: idToken }).then(res => res.data),
+
+  // Classic Facebook access token from the native Facebook SDK
+  facebookLogin: (accessToken: string): Promise<AuthResponse> =>
+    api.post('/auth/facebook-login', { token: accessToken }).then(res => res.data),
+
+  // Apple only sends the name on the very first sign-in, so pass it along when present
+  appleLogin: (data: AppleLoginData): Promise<AuthResponse> =>
+    api.post('/auth/apple-login', data).then(res => res.data),
+
+  forgotPassword: (email: string): Promise<{ message: string }> =>
+    api.post('/auth/forgot-password', { email }).then(res => res.data),
+
   guestLogin: (): Promise<AuthResponse> =>
     api.post('/auth/guest-login').then(res => res.data),
   
@@ -390,6 +403,9 @@ export const offerAPI = {
   
   rejectOffer: (offerId: number): Promise<void> =>
     api.post(`/offer/${offerId}/reject`).then(res => res.data),
+
+  withdrawOffer: (offerId: number): Promise<void> =>
+    api.post(`/offer/${offerId}/withdraw`).then(res => res.data),
   
   updateOffer: (id: number, data: Partial<CreateOfferRequest>): Promise<Offer> =>
     api.put(`/offer/${id}`, data).then(res => normalizeOffer(res.data)),
@@ -464,6 +480,10 @@ export const userAPI = {
 
   getTransactionHistory: (filters: TransactionFilters = {}): Promise<Transaction[]> =>
     api.get('/user/transactions', { params: filters }).then(res => res.data?.items || res.data),
+
+  // Permanently deletes the signed-in user's account
+  deleteAccount: (): Promise<{ message: string }> =>
+    api.delete('/user/account').then(res => res.data),
 };
 
 export const searchAPI = {

@@ -75,25 +75,25 @@ const OnboardingSlide3: React.FC<OnboardingSlide3Props> = ({
 
       {/* Content Area */}
       <View style={styles.contentContainer}>
-        <Text style={styles.heading} allowFontScaling={true}>Güvenli Öde</Text>
+        <Text style={styles.heading} allowFontScaling={true}>Güvenle Anlaşın</Text>
         <Text style={styles.description} allowFontScaling={true}>
-          İşiniz bitene kadar paranız emanette. Güvenli alışveriş!
+          Teklifleri karşılaştırın, satıcıyla mesajlaşın ve size en uygun teklifi seçin.
         </Text>
 
         {/* Features List */}
         <View style={styles.featuresList}>
           <FeatureItem
-            emoji="🔒"
-            text="Emanet ödeme sistemi"
+            emoji="💬"
+            text="Uygulama içi mesajlaşma"
           />
           <FeatureItem
             icon="check-circle"
-            text="Alıcı koruması"
+            text="Satıcı değerlendirmeleri"
             iconColor="#28a745"
           />
           <FeatureItem
-            emoji="💳"
-            text="Güvenli ödeme yöntemleri"
+            emoji="🤝"
+            text="Size uygun teklifi seçin"
           />
         </View>
       </View>

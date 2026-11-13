@@ -90,11 +90,17 @@ const MyOffersScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Note: This endpoint might need to be implemented in the backend
-              // For now, we'll show a message
-              Alert.alert('Bilgi', 'Teklif geri çekme özelliği yakında eklenecek.');
+              await offerAPI.withdrawOffer(offerId);
+              Alert.alert('Teklif geri çekildi');
+              await loadOffers();
             } catch (err: any) {
-              Alert.alert('Hata', err.response?.data?.message || 'Teklif geri çekilirken hata oluştu');
+              const serverMessage = err.response?.data?.message;
+              Alert.alert(
+                'Teklif geri çekilemedi',
+                typeof serverMessage === 'string' && serverMessage
+                  ? serverMessage
+                  : 'İnternet bağlantınızı kontrol edip tekrar deneyin.'
+              );
             }
           },
         },

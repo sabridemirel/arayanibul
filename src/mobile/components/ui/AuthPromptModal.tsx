@@ -58,7 +58,7 @@ const promptConfigs: Record<AuthPromptContext, PromptConfig> = {
     benefits: [
       'İstediğiniz fiyatı belirleyin',
       'Müşterilerle direkt iletişim',
-      'Güvenli ödeme sistemi',
+      'Ücretsiz teklif verme',
       'Profil puanlama sistemi'
     ],
     primaryAction: 'Kayıt Ol',

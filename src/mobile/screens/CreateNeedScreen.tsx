@@ -322,7 +322,7 @@ const CreateNeedScreen: React.FC = () => {
   );
 
   const renderUrgencyOption = (urgency: 'Normal' | 'Urgent') => {
-    const isDisabled = urgency === 'Urgent';
+    const isDisabled = false; // Both levels are supported by the API
     const isSelected = formData.urgency === urgency;
 
     return (

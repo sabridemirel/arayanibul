@@ -15,6 +15,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Input, Button, Divider, GuestAccessModal } from '../components/ui';
 import { useForm } from '../hooks/useForm';
 import { RegisterData } from '../services/api';
+import SocialLoginButtons from '../components/SocialLoginButtons';
+import LegalLinks, { RegisterConsentText } from '../components/LegalLinks';
 
 interface Props {
   navigation: any;
@@ -25,7 +27,7 @@ interface RegisterFormData extends RegisterData {
 }
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
-  const { register, googleLogin, facebookLogin, guestContinue, isLoading } = useAuth();
+  const { register, guestContinue, isLoading } = useAuth();
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,38 +109,6 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
-  const handleGoogleRegister = async () => {
-    try {
-      setError(null);
-      await googleLogin();
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
-      navigation.goBack();
-    } catch (error: any) {
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } catch {}
-      setError(error.message || 'Google ile kayıt sırasında bir hata oluştu');
-    }
-  };
-
-  const handleFacebookRegister = async () => {
-    try {
-      setError(null);
-      await facebookLogin();
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
-      navigation.goBack();
-    } catch (error: any) {
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } catch {}
-      setError(error.message || 'Facebook ile kayıt sırasında bir hata oluştu');
-    }
-  };
-
   const handleGuestLogin = async () => {
     try {
       setError(null);
@@ -212,7 +182,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             value={values.email}
             onChangeText={(text) => setValue('email', text)}
             onBlur={() => setFieldTouched('email')}
-            keyboardType="default"
+            keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
             leftIcon="email"
@@ -252,26 +222,16 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.registerButton}
           />
 
+          <RegisterConsentText style={styles.consent} />
+
           <Divider text="veya" />
 
-          <Button
-            title="Google ile Kayıt Ol"
-            onPress={handleGoogleRegister}
+          <SocialLoginButtons
+            mode="register"
             disabled={isLoading || isSubmitting}
-            variant="secondary"
-            icon="login"
-            fullWidth
-            style={[styles.socialButton, { backgroundColor: '#db4437', borderColor: '#db4437' }]}
-          />
-
-          <Button
-            title="Facebook ile Kayıt Ol"
-            onPress={handleFacebookRegister}
-            disabled={isLoading || isSubmitting}
-            variant="secondary"
-            icon="login"
-            fullWidth
-            style={[styles.socialButton, { backgroundColor: '#4267B2', borderColor: '#4267B2' }]}
+            onStart={() => setError(null)}
+            onSuccess={() => navigation.goBack()}
+            onError={setError}
           />
 
           <Button
@@ -291,6 +251,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.linkText}>Giriş Yap</Text>
           </TouchableOpacity>
         </View>
+
+        <LegalLinks style={styles.legalLinks} />
       </ScrollView>
 
       <GuestAccessModal
@@ -359,7 +321,13 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   registerButton: {
+    marginBottom: 12,
+  },
+  consent: {
     marginBottom: 20,
+  },
+  legalLinks: {
+    marginTop: 24,
   },
   socialButton: {
     marginBottom: 12,

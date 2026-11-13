@@ -15,6 +15,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Input, Button, Divider, GuestAccessModal } from '../components/ui';
 import { useForm } from '../hooks/useForm';
 import { LoginData } from '../services/api';
+import SocialLoginButtons from '../components/SocialLoginButtons';
+import LegalLinks from '../components/LegalLinks';
 
 interface Props {
   navigation: any;
@@ -23,7 +25,7 @@ interface Props {
 interface LoginFormData extends LoginData {}
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const { login, googleLogin, facebookLogin, guestContinue, isLoading } = useAuth();
+  const { login, guestContinue, isLoading } = useAuth();
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,38 +77,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       }
     },
   });
-
-  const handleGoogleLogin = async () => {
-    try {
-      setError(null);
-      await googleLogin();
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
-      navigation.goBack();
-    } catch (error: any) {
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } catch {}
-      setError(error.message || 'Google ile giriş sırasında bir hata oluştu');
-    }
-  };
-
-  const handleFacebookLogin = async () => {
-    try {
-      setError(null);
-      await facebookLogin();
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } catch {}
-      navigation.goBack();
-    } catch (error: any) {
-      try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } catch {}
-      setError(error.message || 'Facebook ile giriş sırasında bir hata oluştu');
-    }
-  };
 
   const handleGuestLogin = async () => {
     try {
@@ -161,7 +131,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             value={values.email}
             onChangeText={(text) => setValue('email', text)}
             onBlur={() => setFieldTouched('email')}
-            keyboardType="default"
+            keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
             leftIcon="email"
@@ -180,6 +150,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             error={touched.password ? errors.password : undefined}
           />
 
+          <TouchableOpacity
+            style={styles.forgotPassword}
+            onPress={() => navigation.navigate('ForgotPassword', { email: values.email.trim() })}
+            accessibilityRole="button"
+          >
+            <Text style={styles.linkText}>Şifremi Unuttum</Text>
+          </TouchableOpacity>
+
           <Button
             title="Giriş Yap"
             onPress={handleSubmit}
@@ -191,24 +169,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
           <Divider text="veya" />
 
-          <Button
-            title="Google ile Giriş"
-            onPress={handleGoogleLogin}
+          <SocialLoginButtons
+            mode="login"
             disabled={isLoading || isSubmitting}
-            variant="secondary"
-            icon="login"
-            fullWidth
-            style={[styles.socialButton, { backgroundColor: '#db4437', borderColor: '#db4437' }]}
-          />
-
-          <Button
-            title="Facebook ile Giriş"
-            onPress={handleFacebookLogin}
-            disabled={isLoading || isSubmitting}
-            variant="secondary"
-            icon="login"
-            fullWidth
-            style={[styles.socialButton, { backgroundColor: '#4267B2', borderColor: '#4267B2' }]}
+            onStart={() => setError(null)}
+            onSuccess={() => navigation.goBack()}
+            onError={setError}
           />
 
           <Button
@@ -228,6 +194,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.linkText}>Kayıt Ol</Text>
           </TouchableOpacity>
         </View>
+
+        <LegalLinks style={styles.legalLinks} />
       </ScrollView>
 
       <GuestAccessModal
@@ -300,6 +268,14 @@ const styles = StyleSheet.create({
   },
   socialButton: {
     marginBottom: 12,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
+  legalLinks: {
+    marginTop: 24,
   },
   footer: {
     flexDirection: 'row',

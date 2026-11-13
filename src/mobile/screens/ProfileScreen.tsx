@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,6 +18,14 @@ import { colors, spacing, borderRadius, typography } from '../theme';
 import { User } from '../types';
 import { withProfileAuth } from '../hoc/withAuthPrompt';
 import { userAPI, UserStats } from '../services/api';
+import { openWebPage, WebPage } from '../utils/webLinks';
+
+const LEGAL_LINKS: { page: WebPage; label: string; icon: keyof typeof MaterialIcons.glyphMap }[] = [
+  { page: 'privacy', label: 'Gizlilik Politikası', icon: 'privacy-tip' },
+  { page: 'terms', label: 'Kullanım Koşulları', icon: 'description' },
+  { page: 'kvkk', label: 'KVKK Aydınlatma Metni', icon: 'policy' },
+  { page: 'contact', label: 'İletişim', icon: 'mail-outline' },
+];
 
 interface Props {
   navigation: any;
@@ -28,7 +37,8 @@ interface Props {
 }
 
 const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { user: currentUser, logout } = useAuth();
+  const { user: currentUser, logout, deleteAccount } = useAuth();
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const { unreadCount } = useNotifications();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -108,6 +118,36 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const performDeleteAccount = async () => {
+    try {
+      setDeletingAccount(true);
+      await deleteAccount();
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+      Alert.alert('Hesabınız silindi.', 'Arayanibul\'u kullandığınız için teşekkür ederiz.');
+    } catch (err: any) {
+      const serverMessage = err?.response?.data?.message;
+      Alert.alert(
+        'Hesap silinemedi',
+        typeof serverMessage === 'string' && serverMessage
+          ? serverMessage
+          : 'İnternet bağlantınızı kontrol edip tekrar deneyin.'
+      );
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Hesabınızı silmek istiyor musunuz?',
+      'Hesabınız ve kişisel bilgileriniz kalıcı olarak silinir. Aktif ilanlarınız kapatılır, bekleyen teklifleriniz geri çekilir. Bu işlem geri alınamaz.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Hesabımı Sil', style: 'destructive', onPress: performDeleteAccount },
+      ]
+    );
+  };
+
   const renderProfileImage = () => {
     const imageSource = displayUser?.profileImageUrl
       ? { uri: displayUser.profileImageUrl }
@@ -116,20 +156,6 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <View style={styles.profileImageContainer}>
         <Image source={imageSource} style={styles.profileImage} />
-        {isOwnProfile && (
-          <TouchableOpacity
-            style={styles.editImageButton}
-            onPress={() => {
-              // TODO: Implement image picker - navigate to EditProfile for now
-              navigation.navigate('EditProfile');
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Profil fotoğrafını değiştir"
-            accessibilityHint="Profil düzenleme sayfasına gitmek için dokunun"
-          >
-            <MaterialIcons name="camera-alt" size={16} color={colors.surface} />
-          </TouchableOpacity>
-        )}
       </View>
     );
   };
@@ -227,6 +253,44 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   };
 
+  const renderLegalAndAccount = () => {
+    if (!isOwnProfile) return null;
+
+    return (
+      <View style={styles.legalSection}>
+        <Text style={styles.sectionTitle}>Yasal Bilgiler ve Destek</Text>
+        <Card style={styles.legalCard}>
+          {LEGAL_LINKS.map(({ page, label, icon }, index) => (
+            <TouchableOpacity
+              key={page}
+              style={[styles.legalRow, index < LEGAL_LINKS.length - 1 && styles.legalRowDivider]}
+              onPress={() => openWebPage(page)}
+              accessibilityRole="link"
+            >
+              <MaterialIcons name={icon} size={20} color={colors.textSecondary} />
+              <Text style={styles.legalRowText}>{label}</Text>
+              <MaterialIcons name="open-in-new" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </Card>
+
+        {!displayUser?.isGuest && (
+          <Button
+            title="Hesabımı Sil"
+            onPress={handleDeleteAccount}
+            variant="danger"
+            icon="delete-forever"
+            loading={deletingAccount}
+            disabled={deletingAccount}
+            fullWidth
+            style={styles.deleteAccountButton}
+            accessibilityHint="Hesabınızı kalıcı olarak silmek için onay ister"
+          />
+        )}
+      </View>
+    );
+  };
+
   const renderStats = () => {
     if (!isOwnProfile) return null;
 
@@ -279,26 +343,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
             <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.offersGivenCount ?? 0}</Text>
             <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>Teklifler</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={() => navigation.navigate('TransactionHistory')}
-            accessibilityRole="button"
-            accessibilityLabel={`Tamamlanan işlemler, ${stats?.completedTransactionsCount ?? 0} adet`}
-            accessibilityHint="İşlem geçmişi sayfasına gitmek için dokunun"
-          >
-            <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.completedTransactionsCount ?? 0}</Text>
-            <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>Tamamlanan</Text>
-          </TouchableOpacity>
         </View>
 
-        <Button
-          title="İşlemler"
-          onPress={() => navigation.navigate('TransactionHistory')}
-          icon="history"
-          variant="outline"
-          fullWidth
-          style={styles.transactionsButton}
-        />
       </Card>
     );
   };
@@ -362,6 +408,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {renderActions()}
         {renderStats()}
+        {renderLegalAndAccount()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -493,6 +540,38 @@ const styles = StyleSheet.create({
   logoutButton: {
     borderColor: colors.error,
   },
+  legalSection: {
+    marginTop: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: typography.h3.fontSize,
+    fontWeight: typography.h3.fontWeight as any,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  legalCard: {
+    paddingVertical: 0,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+  },
+  legalRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  legalRowText: {
+    flex: 1,
+    fontSize: typography.body.fontSize,
+    color: colors.text,
+  },
+  deleteAccountButton: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
+  },
   statsCard: {
     marginBottom: spacing.lg,
   },
@@ -528,9 +607,6 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: spacing.sm,
-  },
-  transactionsButton: {
-    marginTop: spacing.md,
   },
 });
 

@@ -94,11 +94,6 @@ const MyNeedsScreen: React.FC = () => {
     navigation.navigate('CreateNeed');
   };
 
-  const handleEditNeed = (needId: number) => {
-    // Navigate to edit screen (will be implemented later)
-    Alert.alert('Bilgi', 'İhtiyaç düzenleme özelliği yakında eklenecek.');
-  };
-
   const handleDeleteNeed = (needId: number, title: string) => {
     Alert.alert(
       'İhtiyacı Sil',
@@ -348,15 +343,6 @@ const MyNeedsScreen: React.FC = () => {
           </View>
 
           <View style={styles.actionButtons}>
-            {item.status === 'Active' && (
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => handleEditNeed(item.id)}
-              >
-                <MaterialIcons name="edit" size={16} color={colors.primary} />
-              </TouchableOpacity>
-            )}
-            
             {item.status === 'Completed' && (
               <TouchableOpacity
                 style={styles.actionButton}

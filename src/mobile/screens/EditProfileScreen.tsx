@@ -4,17 +4,15 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { Input, Button, Loading } from '../components/ui';
 import { useForm } from '../hooks/useForm';
-import { colors, spacing, borderRadius, typography } from '../theme';
+import { colors, spacing, typography } from '../theme';
 import { userAPI } from '../services/api';
 // import * as ImagePicker from 'expo-image-picker';
 
@@ -32,8 +30,7 @@ interface EditProfileFormData {
 
 const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, isLoading } = useAuth();
-  const [uploading, setUploading] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(
+  const [profileImage] = useState<string | null>(
     user?.profileImageUrl || null
   );
 
@@ -103,38 +100,6 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
-  const handleImagePicker = async () => {
-    try {
-      // Mock implementation - image picker not available
-      Alert.alert('Bilgi', 'Profil fotoğrafı değiştirme özelliği geliştirme aşamasında.');
-    } catch (error: any) {
-      Alert.alert('Hata', 'Fotoğraf seçilirken hata oluştu');
-    }
-  };
-
-  const uploadProfileImage = async (imageUri: string) => {
-    try {
-      setUploading(true);
-      
-      // Create FormData for image upload
-      const formData = new FormData();
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'profile.jpg',
-      } as any);
-
-      const response = await userAPI.uploadProfileImage(formData);
-      setProfileImage(response.imageUrl);
-      
-      Alert.alert('Başarılı', 'Profil fotoğrafı güncellendi');
-    } catch (error: any) {
-      Alert.alert('Hata', error.message || 'Fotoğraf yüklenirken hata oluştu');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const renderProfileImage = () => {
     const imageSource = profileImage
       ? { uri: profileImage }
@@ -142,18 +107,8 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <View style={styles.profileImageContainer}>
+        {/* Photo change is hidden until an image picker is added */}
         <Image source={imageSource} style={styles.profileImage} />
-        <TouchableOpacity 
-          style={styles.editImageButton}
-          onPress={handleImagePicker}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <Loading size="small" />
-          ) : (
-            <MaterialIcons name="camera-alt" size={20} color={colors.surface} />
-          )}
-        </TouchableOpacity>
       </View>
     );
   };
@@ -245,7 +200,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Button
             title="Kaydet"
             onPress={handleSubmit}
-            disabled={isSubmitting || uploading}
+            disabled={isSubmitting}
             loading={isSubmitting}
             fullWidth
             style={styles.saveButton}

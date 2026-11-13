@@ -1,16 +1,70 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
-import { authAPI, RegisterData, LoginData, User, API_BASE_URL } from './api';
+import { Platform } from 'react-native';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import { authAPI, AuthResponse, RegisterData, LoginData, User } from './api';
 import secureStorageService from './secureStorageService';
 import biometricAuthService from './biometricAuthService';
 
+// Thrown when the user closes a social sign-in sheet. Callers treat it as "nothing happened".
+export class AuthCancelledError extends Error {
+  constructor() {
+    super('Sign-in cancelled by user');
+    this.name = 'AuthCancelledError';
+  }
+}
+
+export const isAuthCancelled = (error: unknown): error is AuthCancelledError =>
+  error instanceof AuthCancelledError;
+
+// The Google and Facebook SDKs are native modules: the Google one throws at import time when
+// the native code is missing (Expo Go, tests), so load both lazily.
+type GoogleSignInModule = typeof import('@react-native-google-signin/google-signin');
+type FacebookModule = typeof import('react-native-fbsdk-next');
+
+const loadGoogleSignIn = (): GoogleSignInModule | null => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('@react-native-google-signin/google-signin');
+  } catch {
+    return null;
+  }
+};
+
+const loadFacebook = (): FacebookModule | null => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('react-native-fbsdk-next');
+  } catch {
+    return null;
+  }
+};
+
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+
 class AuthService {
+  private googleConfigured = false;
+  private facebookInitialized = false;
+
   async initializeGoogleSignIn() {
-    // Expo için WebBrowser kullanarak OAuth flow'u implement edilecek
-    console.log('Google Sign-In initialized for Expo');
+    this.configureGoogle();
   }
 
+  private configureGoogle(): GoogleSignInModule | null {
+    if (!GOOGLE_WEB_CLIENT_ID) return null;
+    const google = loadGoogleSignIn();
+    if (!google) return null;
+    if (!this.googleConfigured) {
+      google.GoogleSignin.configure({
+        // The web client ID makes the SDK return an ID token the backend can verify
+        webClientId: GOOGLE_WEB_CLIENT_ID,
+        iosClientId: GOOGLE_IOS_CLIENT_ID,
+      });
+      this.googleConfigured = true;
+    }
+    return google;
+  }
   async register(data: RegisterData) {
     try {
       const response = await authAPI.register(data);
@@ -35,65 +89,169 @@ class AuthService {
     }
   }
 
-  async googleSignIn() {
+  async googleSignIn(): Promise<AuthResponse> {
+    const google = this.configureGoogle();
+    if (!google) {
+      throw new Error('Google ile giriş şu anda kullanılamıyor.');
+    }
+    const { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } = google;
+
+    let idToken: string | null = null;
     try {
-      // Expo için WebBrowser kullanarak OAuth flow
-      const redirectUrl = Linking.createURL('auth');
-      const authUrl = `${API_BASE_URL}/auth/google?redirect_uri=${encodeURIComponent(redirectUrl)}`;
-      
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
-      
-      if (result.type === 'success' && result.url) {
-        const url = new URL(result.url);
-        const token = url.searchParams.get('token');
-        const error = url.searchParams.get('error');
-        
-        if (error) {
-          throw new Error(error);
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+      const result = await GoogleSignin.signIn();
+      if (!isSuccessResponse(result)) {
+        throw new AuthCancelledError();
+      }
+      idToken = result.data.idToken;
+    } catch (error) {
+      if (isAuthCancelled(error)) throw error;
+      if (isErrorWithCode(error)) {
+        if (error.code === statusCodes.SIGN_IN_CANCELLED || error.code === statusCodes.IN_PROGRESS) {
+          throw new AuthCancelledError();
         }
-        
-        if (token) {
-          // Token ile kullanıcı bilgilerini al
-          const user = await this.getUserFromToken(token);
-          await this.saveAuthData(token, user);
-          return { success: true, user, token };
+        if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+          throw new Error('Google ile giriş için Google Play Hizmetleri gerekli. Güncelleyip tekrar deneyin.');
         }
       }
-      
-      throw new Error('Google girişi iptal edildi');
-    } catch (error: any) {
-      throw new Error(error.message || 'Google girişi sırasında hata oluştu');
+      console.warn('Google sign-in failed:', error);
+      throw new Error('Google ile giriş yapılamadı. Lütfen tekrar deneyin.');
+    }
+
+    if (!idToken) {
+      throw new Error('Google ile giriş yapılamadı. Lütfen tekrar deneyin.');
+    }
+    const token = idToken;
+    return this.completeSocialLogin(
+      () => authAPI.googleLogin(token),
+      'Google ile giriş yapılamadı. Lütfen tekrar deneyin.'
+    );
+  }
+
+  async facebookSignIn(): Promise<AuthResponse> {
+    const facebook = FACEBOOK_APP_ID ? loadFacebook() : null;
+    if (!facebook) {
+      throw new Error('Facebook ile giriş şu anda kullanılamıyor.');
+    }
+    const { LoginManager, AccessToken, Settings } = facebook;
+
+    let accessToken: string | undefined;
+    try {
+      if (!this.facebookInitialized) {
+        Settings.initializeSDK();
+        this.facebookInitialized = true;
+      }
+      // Classic login: the backend verifies an access token via the Graph API. On iOS the SDK
+      // falls back to Limited Login (no access token) when App Tracking is not authorized.
+      const result = await LoginManager.logInWithPermissions(['public_profile', 'email'], 'enabled');
+      if (result.isCancelled) {
+        throw new AuthCancelledError();
+      }
+      const tokenData = await AccessToken.getCurrentAccessToken();
+      accessToken = tokenData?.accessToken;
+    } catch (error) {
+      if (isAuthCancelled(error)) throw error;
+      console.warn('Facebook sign-in failed:', error);
+      throw new Error('Facebook ile giriş yapılamadı. Lütfen tekrar deneyin.');
+    }
+
+    if (!accessToken) {
+      throw new Error('Facebook ile giriş tamamlanamadı. Lütfen başka bir giriş yöntemi deneyin.');
+    }
+    const token = accessToken;
+    return this.completeSocialLogin(
+      () => authAPI.facebookLogin(token),
+      'Facebook ile giriş yapılamadı. Lütfen tekrar deneyin.'
+    );
+  }
+
+  async isAppleSignInAvailable(): Promise<boolean> {
+    if (Platform.OS !== 'ios') return false;
+    try {
+      return await AppleAuthentication.isAvailableAsync();
+    } catch {
+      return false;
     }
   }
 
-  async facebookSignIn() {
+  async appleSignIn(): Promise<AuthResponse> {
+    let credential: AppleAuthentication.AppleAuthenticationCredential;
     try {
-      // Expo için WebBrowser kullanarak OAuth flow
-      const redirectUrl = Linking.createURL('auth');
-      const authUrl = `${API_BASE_URL}/auth/facebook?redirect_uri=${encodeURIComponent(redirectUrl)}`;
-      
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
-      
-      if (result.type === 'success' && result.url) {
-        const url = new URL(result.url);
-        const token = url.searchParams.get('token');
-        const error = url.searchParams.get('error');
-        
-        if (error) {
-          throw new Error(error);
-        }
-        
-        if (token) {
-          // Token ile kullanıcı bilgilerini al
-          const user = await this.getUserFromToken(token);
-          await this.saveAuthData(token, user);
-          return { success: true, user, token };
-        }
-      }
-      
-      throw new Error('Facebook girişi iptal edildi');
+      credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
     } catch (error: any) {
-      throw new Error(error.message || 'Facebook girişi sırasında hata oluştu');
+      if (error?.code === 'ERR_REQUEST_CANCELED') {
+        throw new AuthCancelledError();
+      }
+      console.warn('Apple sign-in failed:', error);
+      throw new Error('Apple ile giriş yapılamadı. Lütfen tekrar deneyin.');
+    }
+
+    const { identityToken, fullName } = credential;
+    if (!identityToken) {
+      throw new Error('Apple ile giriş yapılamadı. Lütfen tekrar deneyin.');
+    }
+    // Apple shares the name only on the first authorization
+    return this.completeSocialLogin(
+      () => authAPI.appleLogin({
+        identityToken,
+        firstName: fullName?.givenName ?? undefined,
+        lastName: fullName?.familyName ?? undefined,
+      }),
+      'Apple ile giriş yapılamadı. Lütfen tekrar deneyin.'
+    );
+  }
+
+  // Exchanges the provider token with the backend and stores the session like email login
+  private async completeSocialLogin(
+    request: () => Promise<AuthResponse>,
+    fallbackMessage: string
+  ): Promise<AuthResponse> {
+    let response: AuthResponse;
+    try {
+      response = await request();
+    } catch (error: any) {
+      const serverMessage = error.response?.data?.message;
+      throw new Error(typeof serverMessage === 'string' && serverMessage ? serverMessage : fallbackMessage);
+    }
+    if (!response?.success || !response.token || !response.user) {
+      throw new Error(response?.message || fallbackMessage);
+    }
+    await this.saveAuthData(response.token, response.user, response.refreshToken);
+    return response;
+  }
+
+  // Ends the provider sessions so the next social login shows the account picker again
+  private async signOutSocialProviders() {
+    if (this.googleConfigured) {
+      try {
+        await loadGoogleSignIn()?.GoogleSignin.signOut();
+      } catch {}
+    }
+    if (this.facebookInitialized) {
+      try {
+        loadFacebook()?.LoginManager.logOut();
+      } catch {}
+    }
+  }
+
+  async forgotPassword(email: string): Promise<string> {
+    try {
+      const response = await authAPI.forgotPassword(email);
+      return response?.message || 'Bu e-posta adresi kayıtlıysa şifre sıfırlama bağlantısı gönderildi.';
+    } catch (error: any) {
+      const serverMessage = error.response?.data?.message;
+      throw new Error(
+        typeof serverMessage === 'string' && serverMessage
+          ? serverMessage
+          : 'İstek gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+      );
     }
   }
 
@@ -123,6 +281,8 @@ class AuthService {
 
   async logout() {
     try {
+      await this.signOutSocialProviders();
+
       // Clear secure storage
       await secureStorageService.clearAuthTokens();
       

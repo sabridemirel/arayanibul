@@ -24,7 +24,12 @@ import MyOffersScreen from './screens/MyOffersScreen';
 import ConversationsScreen from './screens/ConversationsScreen';
 import ChatScreen from './screens/ChatScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import PaymentScreen from './screens/PaymentScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
+import NotificationsScreen from './screens/NotificationsScreen';
+import NotificationSettingsScreen from './screens/NotificationSettingsScreen';
+import { ReviewScreen } from './screens/ReviewScreen';
+import { ReviewHistoryScreen } from './screens/ReviewHistoryScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
 
 // Keep the splash screen visible while we fetch resources
@@ -51,6 +56,7 @@ function AppNavigator() {
         <Stack.Group screenOptions={{ presentation: 'modal' }}>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </Stack.Group>
         
         {/* Protected screens - require authentication */}
@@ -61,11 +67,21 @@ function AppNavigator() {
         <Stack.Screen name="Conversations" component={ConversationsScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen
-          name="Payment"
-          component={PaymentScreen}
-          options={{ title: 'Ödeme' }}
-        />
+
+        {/* Screens without their own top bar use the stack header for the back button */}
+        <Stack.Group screenOptions={{ headerShown: true, headerBackTitle: 'Geri', headerTintColor: '#333' }}>
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Profili Düzenle' }} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Bildirimler' }} />
+          <Stack.Screen
+            name="NotificationSettings"
+            component={NotificationSettingsScreen}
+            options={{ title: 'Bildirim Ayarları' }}
+          />
+          <Stack.Screen name="Review" component={ReviewScreen} options={{ title: 'Değerlendirme' }} />
+          <Stack.Screen name="ReviewHistory" component={ReviewHistoryScreen} options={{ title: 'Değerlendirmeler' }} />
+        </Stack.Group>
+
+        {/* Payment (Payment, TransactionHistory) is not exposed in this release */}
       </Stack.Navigator>
     </NavigationContainer>
   );

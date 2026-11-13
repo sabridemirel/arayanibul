@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
-import authService from '../services/authService';
-import { User, RegisterData, LoginData, onAuthExpired } from '../services/api';
+import authService, { isAuthCancelled } from '../services/authService';
+import { User, RegisterData, LoginData, AuthResponse, onAuthExpired, userAPI } from '../services/api';
 import { notificationService } from '../services/notificationService';
 
 export interface GuestAction {
@@ -18,11 +18,14 @@ interface AuthContextType {
   isGuest: boolean;
   login: (credentials: LoginData) => Promise<void>;
   register: (userData: RegisterData) => Promise<void>;
-  googleLogin: () => Promise<void>;
-  facebookLogin: () => Promise<void>;
+  // Social logins resolve to false when the user cancels, true when signed in; throw on error
+  googleLogin: () => Promise<boolean>;
+  facebookLogin: () => Promise<boolean>;
+  appleLogin: () => Promise<boolean>;
   guestContinue: () => Promise<void>;
   convertGuestToUser: (userData: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshToken: () => Promise<void>;
   
   // Guest tracking
@@ -179,67 +182,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const googleLogin = async () => {
+  // A guest who signs in with a social account simply replaces the guest session
+  const socialLogin = async (signIn: () => Promise<AuthResponse>): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await authService.googleSignIn();
-
-      if (response.success && response.user) {
-        setUser(response.user);
-        setIsAuthenticated(true);
-        // Clear guest actions after successful login
-        setGuestActions([]);
-
-        // Register push notification token with backend
-        await registerPushToken();
-
-        // Execute intended action if any
-        if (intendedAction) {
-          intendedAction();
-          setIntendedAction(null);
-        }
-      } else {
-        throw new Error('Google girişi başarısız');
+      const response = await signIn();
+      if (!response.user) {
+        throw new Error(response.message || 'Giriş yapılamadı. Lütfen tekrar deneyin.');
       }
+
+      setUser(response.user);
+      setIsAuthenticated(true);
+      setGuestActions([]);
+
+      await registerPushToken();
+
+      if (intendedAction) {
+        intendedAction();
+        setIntendedAction(null);
+      }
+      return true;
     } catch (error: any) {
-      setIsAuthenticated(false);
-      setUser(null);
+      // Cancelling the provider sheet leaves the current (guest) session untouched
+      if (isAuthCancelled(error)) {
+        return false;
+      }
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const facebookLogin = async () => {
-    try {
-      setIsLoading(true);
-      const response = await authService.facebookSignIn();
-
-      if (response.success && response.user) {
-        setUser(response.user);
-        setIsAuthenticated(true);
-        // Clear guest actions after successful login
-        setGuestActions([]);
-
-        // Register push notification token with backend
-        await registerPushToken();
-
-        // Execute intended action if any
-        if (intendedAction) {
-          intendedAction();
-          setIntendedAction(null);
-        }
-      } else {
-        throw new Error('Facebook girişi başarısız');
-      }
-    } catch (error: any) {
-      setIsAuthenticated(false);
-      setUser(null);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const googleLogin = () => socialLogin(() => authService.googleSignIn());
+  const facebookLogin = () => socialLogin(() => authService.facebookSignIn());
+  const appleLogin = () => socialLogin(() => authService.appleSignIn());
 
   const guestContinue = async () => {
     try {
@@ -315,6 +291,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Deletes the account on the server, then clears the session exactly like logout
+  const deleteAccount = async () => {
+    await userAPI.deleteAccount();
+    await logout();
+  };
+
   const refreshToken = async () => {
     try {
       // Token refresh logic will be implemented when backend supports it
@@ -362,9 +344,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     googleLogin,
     facebookLogin,
+    appleLogin,
     guestContinue,
     convertGuestToUser,
     logout,
+    deleteAccount,
     refreshToken,
     
     // Guest tracking
