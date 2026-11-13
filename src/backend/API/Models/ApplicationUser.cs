@@ -17,6 +17,11 @@ public class ApplicationUser : IdentityUser
     public int ReviewCount { get; set; } = 0;
     public string? Provider { get; set; } = "Local";
     public bool IsGuest { get; set; } = false;
+
+    // Stable subject ids from social identity providers (unique when set)
+    public string? GoogleId { get; set; }
+    public string? FacebookId { get; set; }
+    public string? AppleId { get; set; }
     
     // Notification preferences
     public bool EnablePushNotifications { get; set; } = true;

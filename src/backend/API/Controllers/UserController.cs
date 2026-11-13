@@ -197,6 +197,28 @@ public class UserController : ControllerBase
     }
 
     /// <summary>
+    /// Deletes the authenticated user's account (guests included). The account is anonymized:
+    /// personal data is removed, open needs are cancelled, pending offers withdrawn, sessions revoked.
+    /// </summary>
+    [HttpDelete("account")]
+    public async Task<ActionResult> DeleteAccount([FromServices] IAccountDeletionService accountDeletionService)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized(new { message = "Kullanıcı kimliği bulunamadı" });
+        }
+
+        var deleted = await accountDeletionService.DeleteAccountAsync(userId);
+        if (!deleted)
+        {
+            return NotFound(new { message = "Kullanıcı bulunamadı" });
+        }
+
+        return Ok(new { message = "Hesabınız silindi." });
+    }
+
+    /// <summary>
     /// Gets authenticated user's full statistics including financial data
     /// </summary>
     /// <returns>User statistics with needs count, offers count, transactions, spending/earnings</returns>

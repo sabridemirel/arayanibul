@@ -4,6 +4,20 @@ using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fail fast on an insecure JWT secret outside Development
+if (!builder.Environment.IsDevelopment())
+{
+    const string placeholderSecret = "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
+    var jwtSecret = builder.Configuration["JwtSettings:Secret"];
+    if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32 || jwtSecret == placeholderSecret)
+    {
+        throw new InvalidOperationException(
+            $"JwtSettings:Secret is missing, shorter than 32 characters, or still the placeholder value " +
+            $"(environment: {builder.Environment.EnvironmentName}). Set a strong random secret, e.g. via the " +
+            "JwtSettings__Secret environment variable.");
+    }
+}
+
 // Add services to the container.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -56,22 +70,27 @@ if (!app.Environment.IsEnvironment("Testing"))
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<API.Data.ApplicationDbContext>();
+        // Apply pending EF Core migrations on startup (single-instance deployment); disable with Database:MigrateOnStartup=false
+        if (app.Configuration.GetValue("Database:MigrateOnStartup", true))
+        {
+            await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(context.Database);
+        }
         await API.Data.SeedData.SeedCategoriesAsync(context);
         await API.Data.SeedData.UpdateCategoryDescriptionsAsync(context);
     }
 }
 
 // Configure the HTTP request pipeline.
-// Enable Swagger in all environments for API documentation
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Swagger only in Development, or when explicitly enabled with Swagger:Enabled=true
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Arayanibul API v1");
-    if (!app.Environment.IsDevelopment())
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
     {
-        c.RoutePrefix = "swagger"; // In production, access via /swagger
-    }
-});
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Arayanibul API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
 
 // Health check endpoint
 app.MapHealthChecks("/health");

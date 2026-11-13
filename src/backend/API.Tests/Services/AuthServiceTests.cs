@@ -369,6 +369,18 @@ public class TestAuthService : IAuthService
         return new AuthResponseDto { Success = false, Message = "Not implemented in test" };
     }
 
+    public Task<AuthResponseDto> AppleLoginAsync(AppleLoginDto dto)
+    {
+        return Task.FromResult(new AuthResponseDto { Success = false, Message = "Not implemented in test" });
+    }
+
+    public Task ForgotPasswordAsync(string? email) => Task.CompletedTask;
+
+    public Task<(bool Success, string Message)> ResetPasswordAsync(string? email, string? token, string? newPassword)
+    {
+        return Task.FromResult((false, "Not implemented in test"));
+    }
+
     public async Task<AuthResponseDto> ConvertGuestToUserAsync(string guestId, RegisterDto registerDto)
     {
         // Mock implementation for testing

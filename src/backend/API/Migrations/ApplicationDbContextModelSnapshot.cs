@@ -36,6 +36,9 @@ namespace API.Migrations
                     b.Property<string>("ApnsToken")
                         .HasColumnType("text");
 
+                    b.Property<string>("AppleId")
+                        .HasColumnType("text");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
@@ -65,11 +68,17 @@ namespace API.Migrations
                     b.Property<bool>("EnableSystemNotifications")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("FacebookId")
+                        .HasColumnType("text");
+
                     b.Property<string>("FcmToken")
                         .HasColumnType("text");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GoogleId")
                         .HasColumnType("text");
 
                     b.Property<bool>("IsGuest")
@@ -140,6 +149,15 @@ namespace API.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AppleId")
+                        .IsUnique();
+
+                    b.HasIndex("FacebookId")
+                        .IsUnique();
+
+                    b.HasIndex("GoogleId")
+                        .IsUnique();
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");

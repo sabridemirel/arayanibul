@@ -91,6 +91,30 @@ public class AuthController : ControllerBase
         return result.Success ? Ok(result) : BadRequest(result);
     }
 
+    [HttpPost("apple-login")]
+    public async Task<ActionResult<AuthResponseDto>> AppleLogin([FromBody] AppleLoginDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var result = await _authService.AppleLoginAsync(dto);
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword([FromBody] ForgotPasswordDto? dto)
+    {
+        await _authService.ForgotPasswordAsync(dto?.Email);
+        return Ok(new { message = "Bu e-posta adresiyle kayıtlı bir hesap varsa şifre sıfırlama bağlantısı gönderildi." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordDto? dto)
+    {
+        var (success, message) = await _authService.ResetPasswordAsync(dto?.Email, dto?.Token, dto?.NewPassword);
+        return success ? Ok(new { message }) : BadRequest(new { message });
+    }
+
     [HttpPost("logout")]
     [Authorize]
     public async Task<ActionResult> Logout()

@@ -66,6 +66,29 @@ public class FacebookLoginDto
     public string Token { get; set; } = string.Empty;
 }
 
+public class AppleLoginDto
+{
+    [Required]
+    public string IdentityToken { get; set; } = string.Empty;
+
+    // Apple sends the name only on the very first sign-in; the client forwards it.
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+}
+
+// Fields are nullable and validated in the service so that every 400 has the { message } shape.
+public class ForgotPasswordDto
+{
+    public string? Email { get; set; }
+}
+
+public class ResetPasswordDto
+{
+    public string? Email { get; set; }
+    public string? Token { get; set; }
+    public string? NewPassword { get; set; }
+}
+
 public class ValidateTokenDto
 {
     [Required]

@@ -107,6 +107,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(r => r.OfferId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // Social provider subject ids: unique when present (PostgreSQL allows multiple NULLs)
+        builder.Entity<ApplicationUser>()
+            .HasIndex(u => u.GoogleId)
+            .IsUnique();
+
+        builder.Entity<ApplicationUser>()
+            .HasIndex(u => u.FacebookId)
+            .IsUnique();
+
+        builder.Entity<ApplicationUser>()
+            .HasIndex(u => u.AppleId)
+            .IsUnique();
+
         // Decimal precision configuration
         builder.Entity<Need>()
             .Property(n => n.MinBudget)

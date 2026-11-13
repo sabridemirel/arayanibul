@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text;
 using System.IO.Compression;
 using API.Data;
@@ -113,6 +114,33 @@ public static class ServiceExtensions
                         context.Token = accessToken;
                     }
                     return Task.CompletedTask;
+                },
+
+                // Reject tokens of deleted (anonymized + locked out) or removed users.
+                // Cached briefly so this costs at most one DB lookup per user per minute.
+                OnTokenValidated = async context =>
+                {
+                    var userId = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId))
+                    {
+                        context.Fail("Token has no user id");
+                        return;
+                    }
+
+                    var cache = context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+                    var cacheKey = AuthCacheKeys.UserActive(userId);
+                    if (!cache.TryGetValue(cacheKey, out bool isActive))
+                    {
+                        var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+                        var user = await userManager.FindByIdAsync(userId);
+                        isActive = user != null && !await userManager.IsLockedOutAsync(user);
+                        cache.Set(cacheKey, isActive, TimeSpan.FromSeconds(60));
+                    }
+
+                    if (!isActive)
+                    {
+                        context.Fail("User account is deleted or locked");
+                    }
                 }
             };
         });
@@ -162,6 +190,9 @@ public static class ServiceExtensions
         services.AddScoped<ISmsService, MockSmsService>(); // Use MockSmsService for development
         services.AddScoped<QueryOptimizationService>();
         services.AddHttpClient<FacebookService>();
+        services.AddSingleton<AppleTokenValidator>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
+        services.AddScoped<IAccountDeletionService, AccountDeletionService>();
 
         // Background services
         services.AddHostedService<GuestCleanupService>();

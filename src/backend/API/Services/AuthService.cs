@@ -20,19 +20,28 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly ApplicationDbContext _context;
     private readonly FacebookService _facebookService;
+    private readonly AppleTokenValidator _appleTokenValidator;
+    private readonly IEmailService _emailService;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IConfiguration configuration,
         ApplicationDbContext context,
-        FacebookService facebookService)
+        FacebookService facebookService,
+        AppleTokenValidator appleTokenValidator,
+        IEmailService emailService,
+        ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _context = context;
         _facebookService = facebookService;
+        _appleTokenValidator = appleTokenValidator;
+        _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
@@ -290,123 +299,443 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> GoogleLoginAsync(string googleToken)
     {
+        if (string.IsNullOrWhiteSpace(googleToken))
+        {
+            return Fail("Google token doğrulaması başarısız.");
+        }
+
+        var clientIds = GetGoogleClientIds();
+        if (clientIds.Length == 0)
+        {
+            _logger.LogWarning("Google login attempted but no OAuth:Google:ClientIds / ClientId is configured");
+            return Fail("Google ile giriş şu anda kullanılamıyor.");
+        }
+
+        GoogleJsonWebSignature.Payload payload;
         try
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(googleToken);
-            
-            var user = await _userManager.FindByEmailAsync(payload.Email);
-            if (user == null)
+            payload = await GoogleJsonWebSignature.ValidateAsync(googleToken, new GoogleJsonWebSignature.ValidationSettings
             {
-                user = new ApplicationUser
-                {
-                    UserName = payload.Email,
-                    Email = payload.Email,
-                    FirstName = payload.GivenName,
-                    LastName = payload.FamilyName,
-                    Provider = "Google",
-                    EmailConfirmed = true
-                };
-
-                var result = await _userManager.CreateAsync(user);
-                if (!result.Succeeded)
-                {
-                    return new AuthResponseDto
-                    {
-                        Success = false,
-                        Message = "Google hesabı ile giriş yapılamadı."
-                    };
-                }
-            }
-            else if (user.Provider != "Google")
-            {
-                // Update provider if user exists with different provider
-                user.Provider = "Google";
-                await _userManager.UpdateAsync(user);
-            }
-
-            var tokenResponse = await GenerateTokensAsync(user);
-            return new AuthResponseDto
-            {
-                Success = true,
-                Message = "Google ile giriş başarılı",
-                Token = tokenResponse.AccessToken,
-                RefreshToken = tokenResponse.RefreshToken,
-                User = MapToUserDto(user)
-            };
+                Audience = clientIds
+            });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return new AuthResponseDto
-            {
-                Success = false,
-                Message = "Google token doğrulaması başarısız."
-            };
+            _logger.LogWarning(ex, "Google ID token validation failed");
+            return Fail("Google token doğrulaması başarısız.");
+        }
+
+        if (string.IsNullOrEmpty(payload.Subject))
+        {
+            return Fail("Google token doğrulaması başarısız.");
+        }
+
+        if (!payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email))
+        {
+            return Fail("Google hesabınızın e-posta adresi doğrulanmamış.");
+        }
+
+        try
+        {
+            return await SocialSignInAsync(
+                SocialProvider.Google,
+                payload.Subject,
+                payload.Email,
+                emailVerified: true,
+                payload.GivenName,
+                payload.FamilyName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Google login failed");
+            return Fail("Google hesabı ile giriş yapılamadı.");
         }
     }
 
     public async Task<AuthResponseDto> FacebookLoginAsync(string facebookToken)
     {
+        if (string.IsNullOrWhiteSpace(facebookToken))
+        {
+            return Fail("Facebook token doğrulaması başarısız.");
+        }
+
         try
         {
             var facebookUser = await _facebookService.ValidateTokenAsync(facebookToken);
             if (facebookUser == null)
             {
-                return new AuthResponseDto
-                {
-                    Success = false,
-                    Message = "Facebook token doğrulaması başarısız."
-                };
+                return Fail("Facebook token doğrulaması başarısız.");
             }
 
-            var user = await _userManager.FindByEmailAsync(facebookUser.Email);
-            if (user == null)
-            {
-                user = new ApplicationUser
-                {
-                    UserName = facebookUser.Email,
-                    Email = facebookUser.Email,
-                    FirstName = facebookUser.FirstName,
-                    LastName = facebookUser.LastName,
-                    Provider = "Facebook",
-                    EmailConfirmed = true
-                };
+            // Facebook only returns confirmed email addresses, so a returned email counts as verified.
+            return await SocialSignInAsync(
+                SocialProvider.Facebook,
+                facebookUser.Id,
+                facebookUser.Email,
+                emailVerified: !string.IsNullOrWhiteSpace(facebookUser.Email),
+                facebookUser.FirstName,
+                facebookUser.LastName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Facebook login failed");
+            return Fail("Facebook girişi sırasında bir hata oluştu.");
+        }
+    }
 
-                var result = await _userManager.CreateAsync(user);
-                if (!result.Succeeded)
-                {
-                    return new AuthResponseDto
-                    {
-                        Success = false,
-                        Message = "Facebook hesabı ile giriş yapılamadı."
-                    };
-                }
-            }
-            else if (user.Provider != "Facebook")
+    public async Task<AuthResponseDto> AppleLoginAsync(AppleLoginDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.IdentityToken))
+        {
+            return Fail("Apple token doğrulaması başarısız.");
+        }
+
+        var identity = await _appleTokenValidator.ValidateAsync(dto.IdentityToken);
+        if (identity == null)
+        {
+            return Fail("Apple token doğrulaması başarısız.");
+        }
+
+        try
+        {
+            return await SocialSignInAsync(
+                SocialProvider.Apple,
+                identity.Subject,
+                identity.Email,
+                identity.EmailVerified && !string.IsNullOrWhiteSpace(identity.Email),
+                dto.FirstName,
+                dto.LastName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Apple login failed");
+            return Fail("Apple hesabı ile giriş yapılamadı.");
+        }
+    }
+
+    private enum SocialProvider
+    {
+        Google,
+        Facebook,
+        Apple
+    }
+
+    private string[] GetGoogleClientIds()
+    {
+        var ids = _configuration.GetSection("OAuth:Google:ClientIds").Get<string[]>() ?? Array.Empty<string>();
+        var legacy = _configuration["OAuth:Google:ClientId"];
+
+        return ids.Append(legacy)
+            .Where(id => !string.IsNullOrWhiteSpace(id) && !id!.StartsWith("your-", StringComparison.OrdinalIgnoreCase))
+            .Select(id => id!.Trim())
+            .Distinct()
+            .ToArray();
+    }
+
+    private static string? GetProviderId(ApplicationUser user, SocialProvider provider) => provider switch
+    {
+        SocialProvider.Google => user.GoogleId,
+        SocialProvider.Facebook => user.FacebookId,
+        SocialProvider.Apple => user.AppleId,
+        _ => null
+    };
+
+    private static void SetProviderId(ApplicationUser user, SocialProvider provider, string providerId)
+    {
+        switch (provider)
+        {
+            case SocialProvider.Google: user.GoogleId = providerId; break;
+            case SocialProvider.Facebook: user.FacebookId = providerId; break;
+            case SocialProvider.Apple: user.AppleId = providerId; break;
+        }
+    }
+
+    private Task<ApplicationUser?> FindByProviderIdAsync(SocialProvider provider, string providerId) => provider switch
+    {
+        SocialProvider.Google => _userManager.Users.FirstOrDefaultAsync(u => u.GoogleId == providerId),
+        SocialProvider.Facebook => _userManager.Users.FirstOrDefaultAsync(u => u.FacebookId == providerId),
+        SocialProvider.Apple => _userManager.Users.FirstOrDefaultAsync(u => u.AppleId == providerId),
+        _ => Task.FromResult<ApplicationUser?>(null)
+    };
+
+    private static string PlaceholderEmail(SocialProvider provider, string providerId)
+    {
+        var prefix = provider switch
+        {
+            SocialProvider.Google => "google",
+            SocialProvider.Facebook => "fb",
+            SocialProvider.Apple => "apple",
+            _ => "social"
+        };
+        return $"{prefix}-{providerId}@users.arayanibul.local".ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Shared sign-in logic for social providers.
+    /// Lookup order: provider subject id, then (only for provider-verified emails) email.
+    /// </summary>
+    private async Task<AuthResponseDto> SocialSignInAsync(
+        SocialProvider provider,
+        string providerId,
+        string? email,
+        bool emailVerified,
+        string? firstName,
+        string? lastName)
+    {
+        var providerName = provider.ToString();
+        firstName = NormalizeName(firstName);
+        lastName = NormalizeName(lastName);
+        email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+
+        // 1) Lookup by stable provider id
+        var user = await FindByProviderIdAsync(provider, providerId);
+
+        if (user != null)
+        {
+            if (await _userManager.IsLockedOutAsync(user))
             {
-                // Update provider if user exists with different provider
-                user.Provider = "Facebook";
+                return Fail("Bu hesap kullanılamıyor.");
+            }
+
+            // Apple only sends the name on the first sign-in; fill it in if we never got it.
+            var changed = false;
+            if (firstName != null && string.IsNullOrWhiteSpace(user.FirstName))
+            {
+                user.FirstName = firstName;
+                changed = true;
+            }
+            if (lastName != null && string.IsNullOrWhiteSpace(user.LastName))
+            {
+                user.LastName = lastName;
+                changed = true;
+            }
+            if (changed)
+            {
+                user.UpdatedAt = DateTime.UtcNow;
                 await _userManager.UpdateAsync(user);
             }
 
-            var tokenResponse = await GenerateTokensAsync(user);
-            return new AuthResponseDto
-            {
-                Success = true,
-                Message = "Facebook ile giriş başarılı",
-                Token = tokenResponse.AccessToken,
-                RefreshToken = tokenResponse.RefreshToken,
-                User = MapToUserDto(user)
-            };
+            return await SuccessResponseAsync(user, $"{providerName} ile giriş başarılı");
         }
-        catch (Exception)
+
+        // 2) Link to an existing account by email — only when the provider asserts a verified email
+        if (email != null && emailVerified)
         {
-            return new AuthResponseDto
+            var existing = await _userManager.FindByEmailAsync(email);
+            if (existing != null && !existing.IsGuest)
             {
-                Success = false,
-                Message = "Facebook girişi sırasında bir hata oluştu."
-            };
+                if (await _userManager.IsLockedOutAsync(existing))
+                {
+                    return Fail("Bu hesap kullanılamıyor.");
+                }
+
+                var existingProviderId = GetProviderId(existing, provider);
+                if (!string.IsNullOrEmpty(existingProviderId) && existingProviderId != providerId)
+                {
+                    // The account is already bound to a different identity at this provider.
+                    return Fail($"Bu e-posta adresi başka bir {providerName} hesabıyla ilişkilendirilmiş.");
+                }
+
+                if (!existing.EmailConfirmed)
+                {
+                    // Someone may have pre-registered this email without proving ownership.
+                    // The provider has now proven ownership: drop the unverified password and sessions.
+                    if (await _userManager.HasPasswordAsync(existing))
+                    {
+                        var removeResult = await _userManager.RemovePasswordAsync(existing);
+                        if (!removeResult.Succeeded)
+                        {
+                            return Fail($"{providerName} hesabı ile giriş yapılamadı.");
+                        }
+                    }
+
+                    await RevokeAllRefreshTokensAsync(existing.Id);
+                    existing.EmailConfirmed = true;
+                }
+
+                SetProviderId(existing, provider, providerId);
+
+                // Keep "Local" for accounts that still have a password; otherwise record the provider.
+                if (!await _userManager.HasPasswordAsync(existing) &&
+                    (string.IsNullOrEmpty(existing.Provider) || existing.Provider == "Local"))
+                {
+                    existing.Provider = providerName;
+                }
+
+                if (firstName != null && string.IsNullOrWhiteSpace(existing.FirstName)) existing.FirstName = firstName;
+                if (lastName != null && string.IsNullOrWhiteSpace(existing.LastName)) existing.LastName = lastName;
+                existing.UpdatedAt = DateTime.UtcNow;
+
+                var updateResult = await _userManager.UpdateAsync(existing);
+                if (!updateResult.Succeeded)
+                {
+                    return Fail($"{providerName} hesabı ile giriş yapılamadı.");
+                }
+
+                return await SuccessResponseAsync(existing, $"{providerName} ile giriş başarılı");
+            }
+        }
+
+        // 3) Create a new account. Use the real email only when verified and not already taken.
+        var useRealEmail = email != null && emailVerified && await _userManager.FindByEmailAsync(email) == null;
+        var accountEmail = useRealEmail ? email! : PlaceholderEmail(provider, providerId);
+
+        user = new ApplicationUser
+        {
+            UserName = accountEmail,
+            Email = accountEmail,
+            FirstName = firstName ?? string.Empty,
+            LastName = lastName ?? string.Empty,
+            Provider = providerName,
+            EmailConfirmed = useRealEmail,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        SetProviderId(user, provider, providerId);
+
+        var result = await _userManager.CreateAsync(user);
+        if (!result.Succeeded && useRealEmail)
+        {
+            // e.g. the email contains characters not allowed in a user name — fall back to a safe user name
+            user.UserName = PlaceholderEmail(provider, providerId);
+            result = await _userManager.CreateAsync(user);
+        }
+
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Creating {Provider} user failed: {Errors}", providerName,
+                string.Join(", ", result.Errors.Select(e => e.Code)));
+            return Fail($"{providerName} hesabı ile giriş yapılamadı.");
+        }
+
+        return await SuccessResponseAsync(user, $"{providerName} ile giriş başarılı");
+    }
+
+    private static string? NormalizeName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        name = name.Trim();
+        return name.Length > 50 ? name[..50] : name;
+    }
+
+    private async Task<AuthResponseDto> SuccessResponseAsync(ApplicationUser user, string message)
+    {
+        var tokenResponse = await GenerateTokensAsync(user);
+        return new AuthResponseDto
+        {
+            Success = true,
+            Message = message,
+            Token = tokenResponse.AccessToken,
+            RefreshToken = tokenResponse.RefreshToken,
+            User = MapToUserDto(user)
+        };
+    }
+
+    private static AuthResponseDto Fail(string message) => new() { Success = false, Message = message };
+
+    private async Task RevokeAllRefreshTokensAsync(string userId)
+    {
+        var activeTokens = await _context.RefreshTokens
+            .Where(rt => rt.UserId == userId && !rt.IsRevoked)
+            .ToListAsync();
+
+        foreach (var token in activeTokens)
+        {
+            token.IsRevoked = true;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    // ---------------- Password reset ----------------
+
+    public async Task ForgotPasswordAsync(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return;
+        }
+
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(email.Trim());
+            if (user == null || user.IsGuest || await _userManager.IsLockedOutAsync(user) || !await _userManager.HasPasswordAsync(user))
+            {
+                // Never reveal whether the account exists; social-only accounts have no password to reset.
+                return;
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var baseUrl = (_configuration["App:WebBaseUrl"] is { Length: > 0 } configured ? configured : "http://localhost:3000").TrimEnd('/');
+            var link = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
+
+            await _emailService.SendPasswordResetEmailAsync(user.Email!, user.FirstName, link);
+        }
+        catch (Exception ex)
+        {
+            // Swallow: the endpoint must always answer the same way
+            _logger.LogError(ex, "Forgot password processing failed");
         }
     }
+
+    public async Task<(bool Success, string Message)> ResetPasswordAsync(string? email, string? token, string? newPassword)
+    {
+        const string invalidLink = "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş. Lütfen yeni bir bağlantı isteyin.";
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(token))
+        {
+            return (false, invalidLink);
+        }
+
+        if (string.IsNullOrEmpty(newPassword))
+        {
+            return (false, "Lütfen yeni şifrenizi girin.");
+        }
+
+        if (newPassword.Length > 100)
+        {
+            return (false, "Şifre en fazla 100 karakter olabilir.");
+        }
+
+        var user = await _userManager.FindByEmailAsync(email.Trim());
+        if (user == null || user.IsGuest || await _userManager.IsLockedOutAsync(user))
+        {
+            return (false, invalidLink);
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+        if (!result.Succeeded)
+        {
+            if (result.Errors.Any(e => e.Code == "InvalidToken"))
+            {
+                return (false, invalidLink);
+            }
+
+            return (false, string.Join(" ", result.Errors.Select(TranslateIdentityError).Distinct()));
+        }
+
+        // A successful reset proves email ownership
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            await _userManager.UpdateAsync(user);
+        }
+
+        await RevokeAllRefreshTokensAsync(user.Id);
+
+        return (true, "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.");
+    }
+
+    private static string TranslateIdentityError(IdentityError error) => error.Code switch
+    {
+        "PasswordTooShort" => "Şifre en az 6 karakter olmalıdır.",
+        "PasswordRequiresDigit" => "Şifre en az bir rakam içermelidir.",
+        "PasswordRequiresLower" => "Şifre en az bir küçük harf içermelidir.",
+        "PasswordRequiresUpper" => "Şifre en az bir büyük harf içermelidir.",
+        "PasswordRequiresNonAlphanumeric" => "Şifre en az bir özel karakter içermelidir.",
+        "PasswordRequiresUniqueChars" => "Şifre daha fazla farklı karakter içermelidir.",
+        _ => error.Description
+    };
 
     public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
     {
@@ -416,6 +745,13 @@ public class AuthService : IAuthService
 
         if (storedRefreshToken == null || !storedRefreshToken.IsActive)
         {
+            return null;
+        }
+
+        if (await _userManager.IsLockedOutAsync(storedRefreshToken.User))
+        {
+            storedRefreshToken.IsRevoked = true;
+            await _context.SaveChangesAsync();
             return null;
         }
 
