@@ -102,6 +102,7 @@ Uygun görevlerde doğrudan kod yazmak yerine **önce plugin skill/agent kullan*
 | Görev | Kullan |
 |-------|--------|
 | UI tasarım / yeniden tasarım | `frontend-design` skill |
+| Kullanıcıya görünen metin (web/mobil) | `turkish-ui-copy` skill (proje skill'i) |
 | UI/UX & erişilebilirlik denetimi (web) | `chrome-devtools-mcp:a11y-debugging` skill + Lighthouse |
 | Web uygulamasını test etme | `webapp-testing` skill (Playwright) |
 | Yeni özellik (planlama + geliştirme) | `feature-dev:feature-dev` skill (code-explorer / code-architect agent'ları) |
