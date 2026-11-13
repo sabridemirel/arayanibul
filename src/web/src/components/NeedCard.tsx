@@ -40,7 +40,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
     if (minBudget) {
       return `${minBudget.toLocaleString('tr-TR')} ${currency}'den başlayan`;
     }
-    return 'Belirtilmemis';
+    return 'Belirtilmemiş';
   };
 
   // Format relative date
@@ -121,11 +121,11 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
               <span className="text-sm text-text-secondary">
                 {need.user?.firstName} {need.user?.lastName}
               </span>
-              {need.user?.rating && need.user.rating > 0 && (
+              {(need.user?.rating ?? 0) > 0 && (
                 <div className="flex items-center gap-0.5 ml-1">
                   <StarIcon className="h-3.5 w-3.5 text-secondary-orange fill-secondary-orange" />
                   <span className="text-xs text-text-secondary">
-                    {need.user.rating.toFixed(1)}
+                    {(need.user?.rating ?? 0).toFixed(1)}
                   </span>
                 </div>
               )}

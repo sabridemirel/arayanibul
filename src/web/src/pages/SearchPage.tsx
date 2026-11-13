@@ -220,9 +220,9 @@ const SearchPage: React.FC = () => {
   const sortLabel = (val: string) => {
     const map: Record<string, string> = {
       'CreatedAt_asc': 'En Eski',
-      'Budget_asc': 'Butce: Dusuk',
-      'Budget_desc': 'Butce: Yuksek',
-      'OfferCount_desc': 'En Cok Teklif',
+      'Budget_asc': 'Bütçe: Düşük',
+      'Budget_desc': 'Bütçe: Yüksek',
+      'OfferCount_desc': 'En Çok Teklif',
     };
     return map[val] || val;
   };

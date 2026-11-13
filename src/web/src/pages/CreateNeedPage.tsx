@@ -101,38 +101,38 @@ const CreateNeedPage: React.FC = () => {
     const newErrors: FormErrors = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Baslik gereklidir';
+      newErrors.title = 'Başlık gereklidir';
     } else if (formData.title.length < 10) {
-      newErrors.title = 'Baslik en az 10 karakter olmalidir';
+      newErrors.title = 'Başlık en az 10 karakter olmalıdır';
     } else if (formData.title.length > 100) {
-      newErrors.title = 'Baslik en fazla 100 karakter olabilir';
+      newErrors.title = 'Başlık en fazla 100 karakter olabilir';
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Aciklama gereklidir';
+      newErrors.description = 'Açıklama gereklidir';
     } else if (formData.description.length < 20) {
-      newErrors.description = 'Aciklama en az 20 karakter olmalidir';
+      newErrors.description = 'Açıklama en az 20 karakter olmalıdır';
     } else if (formData.description.length > 1000) {
-      newErrors.description = 'Aciklama en fazla 1000 karakter olabilir';
+      newErrors.description = 'Açıklama en fazla 1000 karakter olabilir';
     }
 
     if (!formData.categoryId) {
-      newErrors.categoryId = 'Kategori secimi gereklidir';
+      newErrors.categoryId = 'Kategori seçimi gereklidir';
     }
 
     if (formData.minBudget && isNaN(Number(formData.minBudget))) {
-      newErrors.minBudget = 'Gecerli bir sayi giriniz';
+      newErrors.minBudget = 'Geçerli bir sayı giriniz';
     }
 
     if (formData.maxBudget && isNaN(Number(formData.maxBudget))) {
-      newErrors.maxBudget = 'Gecerli bir sayi giriniz';
+      newErrors.maxBudget = 'Geçerli bir sayı giriniz';
     }
 
     if (formData.minBudget && formData.maxBudget) {
       const min = Number(formData.minBudget);
       const max = Number(formData.maxBudget);
       if (min >= max) {
-        newErrors.maxBudget = 'Maksimum butce minimum butceden buyuk olmalidir';
+        newErrors.maxBudget = 'Maksimum bütçe minimum bütçeden büyük olmalıdır';
       }
     }
 
@@ -141,7 +141,7 @@ const CreateNeedPage: React.FC = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (expiryDate < today) {
-        newErrors.expiryDate = 'Bitis tarihi gecmis bir tarih olamaz';
+        newErrors.expiryDate = 'Bitis tarihi geçmiş bir tarih olamaz';
       }
     }
 

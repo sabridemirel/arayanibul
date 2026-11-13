@@ -27,7 +27,7 @@ const LoginPage: React.FC = () => {
     if (!values.email) {
       errors.email = 'E-posta adresi gereklidir';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-      errors.email = 'Gecerli bir e-posta adresi giriniz';
+      errors.email = 'Geçerli bir e-posta adresi giriniz';
     }
 
     if (!values.password) {

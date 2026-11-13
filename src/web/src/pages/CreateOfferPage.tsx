@@ -254,7 +254,7 @@ const CreateOfferPage: React.FC = () => {
             {/* Price Input */}
             <div>
               <Input
-                label="Teklif Tutari *"
+                label="Teklif Tutarı *"
                 type="number"
                 name="price"
                 placeholder="0"
@@ -276,10 +276,10 @@ const CreateOfferPage: React.FC = () => {
             {/* Delivery Days Input */}
             <div>
               <Input
-                label="Teslimat Suresi (Gun) *"
+                label="Teslimat Süresi (Gun) *"
                 type="number"
                 name="deliveryDays"
-                placeholder="Ornegin: 7"
+                placeholder="Örneğin: 7"
                 value={values.deliveryDays}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -305,7 +305,7 @@ const CreateOfferPage: React.FC = () => {
                   id="description"
                   name="description"
                   rows={4}
-                  placeholder="Teklifinizi detayli olarak aciklayin..."
+                  placeholder="Teklifinizi detaylı olarak açıklayın..."
                   value={values.description}
                   onChange={handleChange}
                   onBlur={handleBlur}

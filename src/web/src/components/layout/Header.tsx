@@ -92,7 +92,7 @@ const Header: React.FC = () => {
                   <button
                     onClick={handleLogout}
                     className="p-2 text-white/70 hover:text-red-300 transition-colors"
-                    aria-label="Cikis Yap"
+                    aria-label="Çıkış Yap"
                   >
                     <ArrowRightOnRectangleIcon className="h-5 w-5" />
                   </button>

@@ -293,7 +293,7 @@ const MyOffersPage: React.FC = () => {
       </h3>
       <p className="text-text-secondary mb-6 max-w-md mx-auto">
         {selectedFilter === 'all'
-          ? 'Henüz hiçbir ihtiyaca teklif vermediniz. İhtiyaçlara göz atin ve teklif verin.'
+          ? 'Henüz hiçbir ihtiyaca teklif vermediniz. İhtiyaçlara göz atın ve teklif verin.'
           : 'Bu durumda teklif bulunmuyor.'
         }
       </p>
@@ -358,7 +358,7 @@ const MyOffersPage: React.FC = () => {
               {/* Stats */}
               {filteredOffers.length > 0 && (
                 <p className="text-sm text-text-secondary mb-4 text-center">
-                  {filteredOffers.length} teklif gosteriliyor
+                  {filteredOffers.length} teklif gösteriliyor
                 </p>
               )}
 

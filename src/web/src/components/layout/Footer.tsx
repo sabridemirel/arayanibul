@@ -93,7 +93,7 @@ const Footer: React.FC = () => {
         {/* Copyright */}
         <div className="border-t border-white/10 mt-8 pt-6 text-center">
           <p className="text-white/60 text-sm">
-            &copy; {currentYear} Arayanibul. Tum haklari saklidir.
+            &copy; {currentYear} Arayanibul. Tüm hakları saklıdır.
           </p>
         </div>
       </div>

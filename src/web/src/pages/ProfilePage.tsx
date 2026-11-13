@@ -171,7 +171,7 @@ const ProfilePage: React.FC = () => {
                   </span>
                   {user.reviewCount !== undefined && user.reviewCount > 0 && (
                     <span className="text-text-secondary text-sm">
-                      ({user.reviewCount} degerlendirme)
+                      ({user.reviewCount} değerlendirme)
                     </span>
                   )}
                 </button>

@@ -12,7 +12,7 @@ import {
   SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
-import { searchAPI, categoryAPI } from '../services/api';
+import { needAPI, categoryAPI } from '../services/api';
 import type { Need, Category } from '../services/api';
 import { Button, Card, Loading, Badge } from '../components/ui';
 import { Header, Footer } from '../components/layout';
@@ -29,8 +29,8 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch recent/popular needs
-        const needs = await searchAPI.getPopularNeeds();
+        // "Son İlanlar": newest active needs (popular endpoint is often empty early on)
+        const needs = await needAPI.getNeeds({ page: 1, pageSize: 6 });
         setRecentNeeds(needs.slice(0, 6));
       } catch (error) {
         console.error('Error fetching needs:', error);
@@ -351,7 +351,7 @@ const HomePage: React.FC = () => {
         <section className="py-16 bg-gradient-to-br from-primary to-primary-dark">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">
-              Aradığınızı Bulmaya Hazır misiniz?
+              Aradığınızı Bulmaya Hazır mısınız?
             </h2>
             <p className="text-white/80 mb-8 max-w-2xl mx-auto">
               Hemen ücretsiz kayıt olun ve ihtiyacınızı dünyaya duyurun.

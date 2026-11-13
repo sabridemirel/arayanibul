@@ -34,19 +34,19 @@ const RegisterPage: React.FC = () => {
     if (!values.firstName) {
       errors.firstName = 'Ad gereklidir';
     } else if (values.firstName.length < 2) {
-      errors.firstName = 'Ad en az 2 karakter olmalidir';
+      errors.firstName = 'Ad en az 2 karakter olmalıdır';
     }
 
     if (!values.lastName) {
       errors.lastName = 'Soyad gereklidir';
     } else if (values.lastName.length < 2) {
-      errors.lastName = 'Soyad en az 2 karakter olmalidir';
+      errors.lastName = 'Soyad en az 2 karakter olmalıdır';
     }
 
     if (!values.email) {
       errors.email = 'E-posta adresi gereklidir';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
-      errors.email = 'Gecerli bir e-posta adresi giriniz';
+      errors.email = 'Geçerli bir e-posta adresi giriniz';
     }
 
     if (!values.password) {
@@ -108,7 +108,7 @@ const RegisterPage: React.FC = () => {
           </Link>
           <h1 className="mt-4 text-2xl font-bold text-white">Kayıt Ol</h1>
           <p className="mt-2 text-white/70">
-            Hesap oluşturun ve ilanlara göz atin
+            Hesap oluşturun ve ilanlara göz atın
           </p>
         </div>
 
@@ -128,7 +128,7 @@ const RegisterPage: React.FC = () => {
                 label="Ad"
                 type="text"
                 name="firstName"
-                placeholder="Adiniz"
+                placeholder="Adınız"
                 value={values.firstName}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -141,7 +141,7 @@ const RegisterPage: React.FC = () => {
                 label="Soyad"
                 type="text"
                 name="lastName"
-                placeholder="Soyadiniz"
+                placeholder="Soyadınız"
                 value={values.lastName}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -224,7 +224,7 @@ const RegisterPage: React.FC = () => {
           </form>
 
           <p className="mt-6 text-center text-sm text-text-secondary">
-            Zaten hesabiniz var mi?{' '}
+            Zaten hesabınız var mi?{' '}
             <Link
               to="/login"
               className="text-primary hover:text-primary-dark font-medium transition-colors"

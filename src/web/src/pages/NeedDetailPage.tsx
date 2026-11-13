@@ -107,12 +107,12 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
             <p className="font-medium text-text">
               {offer.provider?.firstName} {offer.provider?.lastName}
             </p>
-            {offer.provider?.rating && (
+            {(offer.provider?.rating ?? 0) > 0 && (
               <div className="flex items-center gap-1 text-sm text-text-secondary">
                 <StarSolidIcon className="w-4 h-4 text-yellow-500" />
-                <span>{offer.provider.rating.toFixed(1)}</span>
-                {offer.provider.reviewCount && (
-                  <span>({offer.provider.reviewCount} degerlendirme)</span>
+                <span>{(offer.provider?.rating ?? 0).toFixed(1)}</span>
+                {(offer.provider?.reviewCount ?? 0) > 0 && (
+                  <span>({offer.provider?.reviewCount} değerlendirme)</span>
                 )}
               </div>
             )}
@@ -586,12 +586,12 @@ const NeedDetailPage: React.FC = () => {
                         <p className="font-semibold text-text">
                           {need.user?.firstName} {need.user?.lastName}
                         </p>
-                        {need.user?.rating && (
+                        {(need.user?.rating ?? 0) > 0 && (
                           <div className="flex items-center gap-1 text-sm text-text-secondary">
                             <StarSolidIcon className="w-4 h-4 text-yellow-500" />
-                            <span>{need.user.rating.toFixed(1)}</span>
-                            {need.user.reviewCount !== undefined && (
-                              <span>({need.user.reviewCount} degerlendirme)</span>
+                            <span>{(need.user?.rating ?? 0).toFixed(1)}</span>
+                            {need.user?.reviewCount !== undefined && (
+                              <span>({need.user?.reviewCount} değerlendirme)</span>
                             )}
                           </div>
                         )}

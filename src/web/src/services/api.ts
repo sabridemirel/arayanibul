@@ -232,9 +232,57 @@ export const categoryAPI = {
     api.get(`/category/${parentId}/subcategories`).then(res => res.data),
 };
 
+// The API returns flat DTOs (categoryName, userName, needTitle, providerName, ...).
+// Pages read nested objects (need.category, need.user, offer.need, offer.provider),
+// so map the flat fields into that shape in one place.
+type Raw = Record<string, unknown>;
+
+const splitName = (full: unknown) => {
+  const parts = String(full ?? '').trim().split(/\s+/);
+  return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') };
+};
+
+const normalizeNeed = (n: Raw): Need => {
+  if (!n || typeof n !== 'object') return n as unknown as Need;
+  return {
+    ...n,
+    category: n.category ?? (n.categoryName
+      ? { id: n.categoryId, name: n.categoryName, nameTr: n.categoryName }
+      : undefined),
+    user: n.user ?? (n.userName
+      ? { id: n.userId, ...splitName(n.userName), profileImageUrl: n.userProfileImageUrl }
+      : undefined),
+  } as unknown as Need;
+};
+
+const normalizeOffer = (o: Raw): Offer => {
+  if (!o || typeof o !== 'object') return o as unknown as Offer;
+  const provider = o.provider ?? (o.providerName
+    ? {
+        id: o.providerId,
+        ...splitName(o.providerName),
+        profileImageUrl: o.providerProfileImageUrl,
+        rating: o.providerRating,
+        reviewCount: o.providerReviewCount,
+      }
+    : undefined);
+  return {
+    ...o,
+    need: o.need ? normalizeNeed(o.need as Raw) : (o.needId ? { id: o.needId, title: o.needTitle } : undefined),
+    provider,
+    user: o.user ?? provider,
+    currencyCode: o.currencyCode ?? o.currency,
+  } as unknown as Offer;
+};
+
+const normalizeList = <T>(data: unknown, fn: (x: Raw) => T): T[] => {
+  const items = (data as { items?: unknown[] })?.items ?? data;
+  return Array.isArray(items) ? items.map(x => fn(x as Raw)) : [];
+};
+
 export const needAPI = {
   createNeed: (data: CreateNeedRequest): Promise<Need> =>
-    api.post('/need', data).then(res => res.data),
+    api.post('/need', data).then(res => normalizeNeed(res.data)),
 
   // Map filters to backend parameter names and unwrap paged response
   getNeeds: (filters: NeedFilters = {}): Promise<Need[]> => {
@@ -250,17 +298,17 @@ export const needAPI = {
       page: filters.page,
       pageSize: filters.pageSize,
     };
-    return api.get('/need', { params }).then(res => res.data?.items || res.data);
+    return api.get('/need', { params }).then(res => normalizeList(res.data, normalizeNeed));
   },
 
   getNeedById: (id: number): Promise<Need> =>
-    api.get(`/need/${id}`).then(res => res.data),
+    api.get(`/need/${id}`).then(res => normalizeNeed(res.data)),
 
   getUserNeeds: (status?: string): Promise<Need[]> =>
-    api.get('/need/my-needs', { params: { status } }).then(res => res.data?.items || res.data),
+    api.get('/need/my-needs', { params: { status } }).then(res => normalizeList(res.data, normalizeNeed)),
 
   updateNeed: (id: number, data: Partial<CreateNeedRequest>): Promise<Need> =>
-    api.put(`/need/${id}`, data).then(res => res.data),
+    api.put(`/need/${id}`, data).then(res => normalizeNeed(res.data)),
 
   deleteNeed: (id: number): Promise<void> =>
     api.delete(`/need/${id}`).then(res => res.data),
@@ -268,13 +316,13 @@ export const needAPI = {
 
 export const offerAPI = {
   createOffer: (data: CreateOfferRequest): Promise<Offer> =>
-    api.post('/offer', data).then(res => res.data),
+    api.post('/offer', data).then(res => normalizeOffer(res.data)),
 
   getOffersForNeed: (needId: number): Promise<Offer[]> =>
-    api.get(`/offer/need/${needId}`).then(res => res.data?.items || res.data),
+    api.get(`/offer/need/${needId}`).then(res => normalizeList(res.data, normalizeOffer)),
 
   getMyOffers: (): Promise<Offer[]> =>
-    api.get('/offer/provider').then(res => res.data?.items || res.data),
+    api.get('/offer/provider').then(res => normalizeList(res.data, normalizeOffer)),
 
   acceptOffer: (offerId: number): Promise<void> =>
     api.post(`/offer/${offerId}/accept`).then(res => res.data),
@@ -283,7 +331,7 @@ export const offerAPI = {
     api.post(`/offer/${offerId}/reject`).then(res => res.data),
 
   updateOffer: (id: number, data: Partial<CreateOfferRequest>): Promise<Offer> =>
-    api.put(`/offer/${id}`, data).then(res => res.data),
+    api.put(`/offer/${id}`, data).then(res => normalizeOffer(res.data)),
 };
 
 export const messageAPI = {
@@ -366,7 +414,7 @@ export const searchAPI = {
     };
     Object.keys(params).forEach(k => params[k] === undefined && delete params[k]);
     return api.get('/need', { params }).then(res => ({
-      items: res.data?.items || (Array.isArray(res.data) ? res.data : []),
+      items: normalizeList(res.data, normalizeNeed),
       totalCount: res.data?.totalCount ?? (Array.isArray(res.data) ? res.data.length : 0),
     }));
   },
@@ -375,15 +423,15 @@ export const searchAPI = {
     api.get('/recommendation/quick').then(res => res.data),
 
   getPopularNeeds: (): Promise<Need[]> =>
-    api.get('/recommendation/popular').then(res => res.data?.popularNeeds || res.data?.needs || []),
+    api.get('/recommendation/popular').then(res => normalizeList(res.data?.popularNeeds || res.data?.needs || [], normalizeNeed)),
 
   getTrendingNeeds: (): Promise<Need[]> =>
-    api.get('/recommendation/trending').then(res => res.data),
+    api.get('/recommendation/trending').then(res => normalizeList(res.data, normalizeNeed)),
 
   getLocationBasedRecommendations: (lat: number, lng: number, radius: number = 25): Promise<Need[]> =>
     api.get('/recommendation/location-based', {
       params: { latitude: lat, longitude: lng, radiusKm: radius }
-    }).then(res => res.data?.nearbyNeeds || []),
+    }).then(res => normalizeList(res.data?.nearbyNeeds || [], normalizeNeed)),
 
   getDiscoverRecommendations: (lat?: number, lng?: number): Promise<unknown> =>
     api.get('/recommendation/discover', {
