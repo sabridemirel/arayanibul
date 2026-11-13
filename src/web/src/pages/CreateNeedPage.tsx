@@ -79,8 +79,8 @@ const CreateNeedPage: React.FC = () => {
         const categoriesData = await categoryAPI.getCategories();
         setCategories(categoriesData.filter(cat => cat.isActive));
       } catch (err) {
-        console.error('Kategoriler yuklenirken hata:', err);
-        setSubmitError('Kategoriler yuklenirken hata olustu. Lutfen sayfayi yenileyin.');
+        console.error('Kategoriler yüklenirken hata:', err);
+        setSubmitError('Kategoriler yüklenirken hata oluştu. Lütfen sayfayı yenileyin.');
       } finally {
         setIsCategoriesLoading(false);
       }
@@ -160,7 +160,7 @@ const CreateNeedPage: React.FC = () => {
     }
 
     if (!user) {
-      setSubmitError('Giris yapmaniz gerekiyor');
+      setSubmitError('Giriş yapmanız gerekiyor');
       return;
     }
 
@@ -199,15 +199,15 @@ const CreateNeedPage: React.FC = () => {
 
       // Redirect to the created need detail page
       navigate(`/needs/${createdNeed.id}`, {
-        state: { message: 'Ihtiyaciniz basariyla olusturuldu!' }
+        state: { message: 'İhtiyacınız başarıyla oluşturuldu!' }
       });
     } catch (err: unknown) {
       console.error('Need creation error:', err);
       const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
-      let errorMessage = 'Ihtiyac olusturulurken hata olustu. Lutfen tekrar deneyin.';
+      let errorMessage = 'İhtiyaç oluşturulurken hata oluştu. Lütfen tekrar deneyin.';
 
       if (axiosError.response?.status === 401) {
-        errorMessage = 'Oturum suresi dolmus. Lutfen tekrar giris yapin.';
+        errorMessage = 'Oturum süresi dolmuş. Lütfen tekrar giriş yapın.';
       } else if (axiosError.response?.data?.message) {
         errorMessage = axiosError.response.data.message;
       }
@@ -239,11 +239,11 @@ const CreateNeedPage: React.FC = () => {
     switch (field) {
       case 'title':
         if (!formData.title.trim()) {
-          newErrors.title = 'Baslik gereklidir';
+          newErrors.title = 'Başlık gereklidir';
         } else if (formData.title.length < 10) {
-          newErrors.title = 'Baslik en az 10 karakter olmalidir';
+          newErrors.title = 'Başlık en az 10 karakter olmalıdır';
         } else if (formData.title.length > 100) {
-          newErrors.title = 'Baslik en fazla 100 karakter olabilir';
+          newErrors.title = 'Başlık en fazla 100 karakter olabilir';
         } else {
           delete newErrors.title;
         }
@@ -251,11 +251,11 @@ const CreateNeedPage: React.FC = () => {
 
       case 'description':
         if (!formData.description.trim()) {
-          newErrors.description = 'Aciklama gereklidir';
+          newErrors.description = 'Açıklama gereklidir';
         } else if (formData.description.length < 20) {
-          newErrors.description = 'Aciklama en az 20 karakter olmalidir';
+          newErrors.description = 'Açıklama en az 20 karakter olmalıdır';
         } else if (formData.description.length > 1000) {
-          newErrors.description = 'Aciklama en fazla 1000 karakter olabilir';
+          newErrors.description = 'Açıklama en fazla 1000 karakter olabilir';
         } else {
           delete newErrors.description;
         }
@@ -263,7 +263,7 @@ const CreateNeedPage: React.FC = () => {
 
       case 'minBudget':
         if (formData.minBudget && isNaN(Number(formData.minBudget))) {
-          newErrors.minBudget = 'Gecerli bir sayi giriniz';
+          newErrors.minBudget = 'Geçerli bir sayı giriniz';
         } else {
           delete newErrors.minBudget;
         }
@@ -271,12 +271,12 @@ const CreateNeedPage: React.FC = () => {
 
       case 'maxBudget':
         if (formData.maxBudget && isNaN(Number(formData.maxBudget))) {
-          newErrors.maxBudget = 'Gecerli bir sayi giriniz';
+          newErrors.maxBudget = 'Geçerli bir sayı giriniz';
         } else if (formData.minBudget && formData.maxBudget) {
           const min = Number(formData.minBudget);
           const max = Number(formData.maxBudget);
           if (min >= max) {
-            newErrors.maxBudget = 'Maksimum butce minimum butceden buyuk olmalidir';
+            newErrors.maxBudget = 'Maksimum bütçe minimum bütçeden büyük olmalıdır';
           } else {
             delete newErrors.maxBudget;
           }
@@ -291,7 +291,7 @@ const CreateNeedPage: React.FC = () => {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           if (expiryDate < today) {
-            newErrors.expiryDate = 'Bitis tarihi gecmis bir tarih olamaz';
+            newErrors.expiryDate = 'Bitiş tarihi geçmiş bir tarih olamaz';
           } else {
             delete newErrors.expiryDate;
           }
@@ -300,7 +300,7 @@ const CreateNeedPage: React.FC = () => {
 
       case 'categoryId':
         if (!formData.categoryId) {
-          newErrors.categoryId = 'Kategori secimi gereklidir';
+          newErrors.categoryId = 'Kategori seçimi gereklidir';
         } else {
           delete newErrors.categoryId;
         }
@@ -402,7 +402,7 @@ const CreateNeedPage: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <Loading size="lg" text="Kategoriler yukleniyor..." />
+          <Loading size="lg" text="Kategoriler yükleniyor..." />
         </main>
         <Footer />
       </div>
@@ -418,10 +418,10 @@ const CreateNeedPage: React.FC = () => {
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-2xl lg:text-3xl font-bold text-text">
-              Ihtiyac Olustur
+              İhtiyaç Oluştur
             </h1>
             <p className="mt-2 text-text-secondary">
-              Ne aradiginizi detayli bir sekilde aciklayin, saticilarin tekliflerini alin.
+              Ne aradığınızı detaylı bir şekilde açıklayın, satıcıların tekliflerini alın.
             </p>
           </div>
 
@@ -442,8 +442,8 @@ const CreateNeedPage: React.FC = () => {
               {/* Title */}
               <div className="mb-4">
                 <Input
-                  label="Baslik *"
-                  placeholder="Ihtiyacinizi kisaca ozetleyin"
+                  label="Başlık *"
+                  placeholder="İhtiyacınızı kısaca özetleyin"
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                   onBlur={() => validateField('title')}
@@ -458,10 +458,10 @@ const CreateNeedPage: React.FC = () => {
               {/* Description */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-text mb-1">
-                  Aciklama *
+                  Açıklama *
                 </label>
                 <textarea
-                  placeholder="Ihtiyacinizi detayli bir sekilde aciklayin"
+                  placeholder="İhtiyacınızı detaylı bir şekilde açıklayın"
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   onBlur={() => validateField('description')}
@@ -507,7 +507,7 @@ const CreateNeedPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <TagIcon className="h-5 w-5 text-text-secondary" />
                     <span className={selectedCategory ? 'text-text' : 'text-text-secondary'}>
-                      {selectedCategory ? selectedCategory.nameTr : 'Kategori secin'}
+                      {selectedCategory ? selectedCategory.nameTr : 'Kategori seçin'}
                     </span>
                   </div>
                   <ChevronDownIcon className={`h-5 w-5 text-text-secondary transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
@@ -544,9 +544,9 @@ const CreateNeedPage: React.FC = () => {
 
             {/* Image Upload */}
             <Card className="mb-6">
-              <h2 className="text-lg font-semibold text-text mb-2">Gorseller</h2>
+              <h2 className="text-lg font-semibold text-text mb-2">Görseller</h2>
               <p className="text-sm text-text-secondary mb-4">
-                Ihtiyacinizi daha iyi anlatmak icin gorsel ekleyebilirsiniz. (Maksimum 5 gorsel)
+                İhtiyacınızı daha iyi anlatmak için görsel ekleyebilirsiniz. (Maksimum 5 görsel)
               </p>
 
               {/* Drag & Drop Area */}
@@ -566,10 +566,10 @@ const CreateNeedPage: React.FC = () => {
               >
                 <PhotoIcon className="h-12 w-12 text-text-secondary mx-auto mb-3" />
                 <p className="text-text font-medium">
-                  Gorselleri surukleyip birakin
+                  Görselleri sürükleyip bırakın
                 </p>
                 <p className="text-sm text-text-secondary mt-1">
-                  veya <span className="text-primary">tiklayarak secin</span>
+                  veya <span className="text-primary">tıklayarak seçin</span>
                 </p>
                 <p className="text-xs text-text-secondary mt-2">
                   PNG, JPG, GIF (Maks. 5MB)
@@ -593,7 +593,7 @@ const CreateNeedPage: React.FC = () => {
                     <div key={index} className="relative aspect-square rounded-lg overflow-hidden group">
                       <img
                         src={preview}
-                        alt={`Gorsel ${index + 1}`}
+                        alt={`Görsel ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
                       <button
@@ -618,14 +618,14 @@ const CreateNeedPage: React.FC = () => {
 
             {/* Budget */}
             <Card className="mb-6">
-              <h2 className="text-lg font-semibold text-text mb-2">Butce</h2>
+              <h2 className="text-lg font-semibold text-text mb-2">Bütçe</h2>
               <p className="text-sm text-text-secondary mb-4">
-                Butce belirtmek istege baglidir. Belirtirseniz size daha uygun teklifler alabilirsiniz.
+                Bütçe belirtmek isteğe bağlıdır. Belirtirseniz size daha uygun teklifler alabilirsiniz.
               </p>
 
               <div className="grid grid-cols-2 gap-4">
                 <Input
-                  label="Minimum Butce (TL)"
+                  label="Minimum Bütçe (TL)"
                   placeholder="0"
                   type="text"
                   inputMode="numeric"
@@ -635,7 +635,7 @@ const CreateNeedPage: React.FC = () => {
                   error={errors.minBudget}
                 />
                 <Input
-                  label="Maksimum Butce (TL)"
+                  label="Maksimum Bütçe (TL)"
                   placeholder="0"
                   type="text"
                   inputMode="numeric"
@@ -651,12 +651,12 @@ const CreateNeedPage: React.FC = () => {
             <Card className="mb-6">
               <h2 className="text-lg font-semibold text-text mb-2">Konum</h2>
               <p className="text-sm text-text-secondary mb-4">
-                Konum belirtmek istege baglidir. Yakininizdaki saglayicilari bulmaniza yardimci olur.
+                Konum belirtmek isteğe bağlıdır. Yakınınızdaki sağlayıcıları bulmanıza yardımcı olur.
               </p>
 
               <Input
                 label="Adres"
-                placeholder="Sehir, ilce veya mahalle"
+                placeholder="Şehir, ilçe veya mahalle"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 error={errors.address}
@@ -666,13 +666,13 @@ const CreateNeedPage: React.FC = () => {
 
             {/* Expiry Date */}
             <Card className="mb-6">
-              <h2 className="text-lg font-semibold text-text mb-2">Bitis Tarihi</h2>
+              <h2 className="text-lg font-semibold text-text mb-2">Bitiş Tarihi</h2>
               <p className="text-sm text-text-secondary mb-4">
-                Ilaninizin ne zamana kadar aktif kalacagini belirleyin.
+                İlanınızın ne zamana kadar aktif kalacağını belirleyin.
               </p>
 
               <Input
-                label="Bitis Tarihi"
+                label="Bitiş Tarihi"
                 type="date"
                 value={formData.expiryDate}
                 onChange={(e) => handleInputChange('expiryDate', e.target.value)}
@@ -687,7 +687,7 @@ const CreateNeedPage: React.FC = () => {
             <Card className="mb-6">
               <h2 className="text-lg font-semibold text-text mb-2">Aciliyet Durumu</h2>
               <p className="text-sm text-text-secondary mb-4">
-                Ihtiyacinizin ne kadar acil oldugunu belirtin.
+                İhtiyacınızın ne kadar acil olduğunu belirtin.
               </p>
 
               <div className="space-y-2">
@@ -738,7 +738,7 @@ const CreateNeedPage: React.FC = () => {
                 isLoading={isLoading}
                 disabled={isLoading}
               >
-                Ihtiyaci Olustur
+                İhtiyacı Oluştur
               </Button>
             </div>
           </form>

@@ -58,7 +58,7 @@ const SearchPage: React.FC = () => {
         const cats = await categoryAPI.getCategories();
         setCategories(cats);
       } catch (err) {
-        console.error('Kategoriler yuklenirken hata:', err);
+        console.error('Kategoriler yüklenirken hata:', err);
       }
     };
     loadCategories();
@@ -67,7 +67,7 @@ const SearchPage: React.FC = () => {
   // Request geolocation
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setLocationError('Tarayiciniz konum desteklemiyor.');
+      setLocationError('Tarayıcınız konum desteklemiyor.');
       return;
     }
     setLocationLoading(true);
@@ -82,7 +82,7 @@ const SearchPage: React.FC = () => {
       () => {
         setLocationLoading(false);
         setLocationEnabled(false);
-        setLocationError('Konum alinamadi. Lutfen tarayici izinlerini kontrol edin.');
+        setLocationError('Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
       },
       { timeout: 10000, maximumAge: 300000 }
     );
@@ -141,7 +141,7 @@ const SearchPage: React.FC = () => {
       setHasMore(results.length === ITEMS_PER_PAGE);
       setCurrentPage(page);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Arama yapilirken hata olustu';
+      const errorMessage = err instanceof Error ? err.message : 'Arama yapılırken hata oluştu';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -205,7 +205,7 @@ const SearchPage: React.FC = () => {
 
   // Urgency options
   const urgencyOptions = [
-    { value: '', label: 'Tumu' },
+    { value: '', label: 'Tümü' },
     { value: 'Urgent', label: 'Acil' },
     { value: 'Normal', label: 'Normal' },
   ];
@@ -236,7 +236,7 @@ const SearchPage: React.FC = () => {
         <section className="bg-white border-b-2 border-primary/20 py-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 className="text-2xl lg:text-3xl font-bold text-text mb-4">
-              Ilanlar
+              İlanlar
             </h1>
 
             {/* Search Bar */}
@@ -245,7 +245,7 @@ const SearchPage: React.FC = () => {
                 <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
                 <input
                   type="text"
-                  placeholder="Ilan ara... (ornegin: 'ikinci el bisiklet', 'ev tasima')"
+                  placeholder="İlan ara... (örneğin: 'ikinci el bisiklet', 'ev taşıma')"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 rounded-lg border border-border bg-background text-text placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
@@ -312,7 +312,7 @@ const SearchPage: React.FC = () => {
                       onChange={(e) => setSelectedCategoryId(e.target.value ? parseInt(e.target.value) : undefined)}
                       className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-text appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                     >
-                      <option value="">Tum Kategoriler</option>
+                      <option value="">Tüm Kategoriler</option>
                       {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
                           {cat.nameTr || cat.name}
@@ -326,7 +326,7 @@ const SearchPage: React.FC = () => {
                 {/* Budget Range */}
                 <div>
                   <label className="block text-sm font-medium text-text mb-1">
-                    Butce Araligi (TRY)
+                    Bütçe Aralığı (TRY)
                   </label>
                   <div className="flex items-center gap-2">
                     <input
@@ -386,7 +386,7 @@ const SearchPage: React.FC = () => {
               {/* Location Filter */}
               <div className="mt-4 pt-4 border-t border-border">
                 <label className="block text-sm font-medium text-text mb-2">
-                  Konum Bazli Arama
+                  Konum Bazlı Arama
                 </label>
 
                 {/* Idle state */}
@@ -408,7 +408,7 @@ const SearchPage: React.FC = () => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>
-                    Konum aliniyor...
+                    Konum alınıyor...
                   </div>
                 )}
 
@@ -429,7 +429,7 @@ const SearchPage: React.FC = () => {
                       <XMarkIcon className="h-4 w-4 ml-1" />
                     </button>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-text-secondary">Yaricap:</span>
+                      <span className="text-sm text-text-secondary">Yarıçap:</span>
                       <div className="relative">
                         <select
                           value={radiusKm}
@@ -479,12 +479,12 @@ const SearchPage: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-text-secondary">
                     {needs.length === 0 ? (
-                      'Sonuc bulunamadi'
+                      'Sonuç bulunamadı'
                     ) : (
                       <>
                         <span className="font-medium text-text">{totalCount > 0 ? totalCount : needs.length}</span> ilan bulundu
                         {searchQuery && (
-                          <> - "<span className="font-medium">{searchQuery}</span>" icin</>
+                          <> - "<span className="font-medium">{searchQuery}</span>" için</>
                         )}
                       </>
                     )}
@@ -492,7 +492,7 @@ const SearchPage: React.FC = () => {
 
                   {/* Sort dropdown */}
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-secondary whitespace-nowrap">Sirala:</span>
+                    <span className="text-sm text-text-secondary whitespace-nowrap">Sırala:</span>
                     <div className="relative">
                       <select
                         value={sortBy}
@@ -501,9 +501,9 @@ const SearchPage: React.FC = () => {
                       >
                         <option value="">En Yeni</option>
                         <option value="CreatedAt_asc">En Eski</option>
-                        <option value="Budget_asc">Butce: Dusuk → Yuksek</option>
-                        <option value="Budget_desc">Butce: Yuksek → Dusuk</option>
-                        <option value="OfferCount_desc">En Cok Teklif Alan</option>
+                        <option value="Budget_asc">Bütçe: Düşük → Yüksek</option>
+                        <option value="Budget_desc">Bütçe: Yüksek → Düşük</option>
+                        <option value="OfferCount_desc">En Çok Teklif Alan</option>
                       </select>
                       <ChevronDownIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary pointer-events-none" />
                     </div>
@@ -592,7 +592,7 @@ const SearchPage: React.FC = () => {
                       onClick={clearFilters}
                       className="text-xs text-text-secondary hover:text-red-500 transition-colors underline ml-1"
                     >
-                      Tumunu Temizle
+                      Tümünü Temizle
                     </button>
                   </div>
                 )}
@@ -613,7 +613,7 @@ const SearchPage: React.FC = () => {
               <Card className="py-12 text-center">
                 <ExclamationTriangleIcon className="h-16 w-16 text-error mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-text mb-2">
-                  Bir hata olustu
+                  Bir hata oluştu
                 </h3>
                 <p className="text-text-secondary mb-6 max-w-md mx-auto">
                   {error}
@@ -632,10 +632,10 @@ const SearchPage: React.FC = () => {
               <Card className="py-12 text-center">
                 <MagnifyingGlassCircleIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-text mb-2">
-                  Sonuc bulunamadi
+                  Sonuç bulunamadı
                 </h3>
                 <p className="text-text-secondary mb-6 max-w-md mx-auto">
-                  Arama kriterlerinize uygun ilan bulunamadi. Farkli kelimeler deneyin veya filtreleri degistirin.
+                  Arama kriterlerinize uygun ilan bulunamadı. Farklı kelimeler deneyin veya filtreleri değiştirin.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
@@ -648,7 +648,7 @@ const SearchPage: React.FC = () => {
                     variant="primary"
                     onClick={() => navigate('/create-need')}
                   >
-                    Ilan Olustur
+                    İlan Oluştur
                   </Button>
                 </div>
               </Card>
@@ -675,10 +675,10 @@ const SearchPage: React.FC = () => {
                       {isLoadingMore ? (
                         <>
                           <Loading size="sm" />
-                          <span className="ml-2">Yukleniyor...</span>
+                          <span className="ml-2">Yükleniyor...</span>
                         </>
                       ) : (
-                        'Daha Fazla Goster'
+                        'Daha Fazla Göster'
                       )}
                     </Button>
                   </div>

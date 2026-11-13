@@ -84,7 +84,7 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
       case 'Rejected':
         return <Badge variant="error">Reddedildi</Badge>;
       case 'Withdrawn':
-        return <Badge variant="default">Geri Cekildi</Badge>;
+        return <Badge variant="default">Geri Çekildi</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
@@ -131,7 +131,7 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
           </div>
           <div className="flex items-center gap-1 text-text-secondary">
             <ClockIcon className="w-4 h-4" />
-            <span>{offer.deliveryDays} gun icinde</span>
+            <span>{offer.deliveryDays} gün içinde</span>
           </div>
         </div>
 
@@ -141,7 +141,7 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
               <img
                 key={index}
                 src={image}
-                alt={`Teklif gorseli ${index + 1}`}
+                alt={`Teklif görseli ${index + 1}`}
                 className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
               />
             ))}
@@ -192,7 +192,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
       <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center mb-6">
         <div className="text-center text-text-secondary">
           <TagIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>Gorsel yok</p>
+          <p>Görsel yok</p>
         </div>
       </div>
     );
@@ -204,7 +204,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
       <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
         <img
           src={images[currentIndex]}
-          alt={`Gorsel ${currentIndex + 1}`}
+          alt={`Görsel ${currentIndex + 1}`}
           className="w-full h-full object-cover"
         />
 
@@ -213,14 +213,14 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
             <button
               onClick={goToPrevious}
               className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-              aria-label="Onceki gorsel"
+              aria-label="Önceki görsel"
             >
               <ChevronLeftIcon className="w-5 h-5" />
             </button>
             <button
               onClick={goToNext}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
-              aria-label="Sonraki gorsel"
+              aria-label="Sonraki görsel"
             >
               <ChevronRightIcon className="w-5 h-5" />
             </button>
@@ -248,7 +248,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
             >
               <img
                 src={image}
-                alt={`Kucuk gorsel ${index + 1}`}
+                alt={`Küçük görsel ${index + 1}`}
                 className="w-full h-full object-cover"
               />
             </button>
@@ -278,14 +278,14 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose, onConfirm, i
           <div className="p-2 bg-red-100 rounded-full">
             <ExclamationTriangleIcon className="w-6 h-6 text-error" />
           </div>
-          <h3 className="text-lg font-semibold text-text">Ilani Sil</h3>
+          <h3 className="text-lg font-semibold text-text">İlanı Sil</h3>
         </div>
         <p className="text-text-secondary mb-6">
-          Bu ilani silmek istediginizden emin misiniz? Bu islem geri alinamaz.
+          Bu ilanı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
         </p>
         <div className="flex gap-3 justify-end">
           <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-            Vazgec
+            Vazgeç
           </Button>
           <Button variant="danger" onClick={onConfirm} isLoading={isLoading}>
             Sil
@@ -316,7 +316,7 @@ const NeedDetailPage: React.FC = () => {
 
   const loadNeedDetail = useCallback(async () => {
     if (!needId) {
-      setError('Gecersiz ilan ID');
+      setError('Geçersiz ilan ID');
       setIsLoading(false);
       return;
     }
@@ -333,7 +333,7 @@ const NeedDetailPage: React.FC = () => {
       }
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Ihtiyac detaylari yuklenirken hata olustu';
+        || 'İhtiyaç detayları yüklenirken hata oluştu';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -348,7 +348,7 @@ const NeedDetailPage: React.FC = () => {
       const offersData = await offerAPI.getOffersForNeed(needId);
       setOffers(offersData);
     } catch (err) {
-      console.error('Teklifler yuklenirken hata:', err);
+      console.error('Teklifler yüklenirken hata:', err);
     } finally {
       setIsOffersLoading(false);
     }
@@ -386,7 +386,7 @@ const NeedDetailPage: React.FC = () => {
       navigate('/my-needs');
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Ilan silinirken hata olustu';
+        || 'İlan silinirken hata oluştu';
       setError(errorMessage);
       setIsDeleteModalOpen(false);
     } finally {
@@ -400,7 +400,7 @@ const NeedDetailPage: React.FC = () => {
       loadOffers();
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Teklif kabul edilirken hata olustu';
+        || 'Teklif kabul edilirken hata oluştu';
       setError(errorMessage);
     }
   };
@@ -411,7 +411,7 @@ const NeedDetailPage: React.FC = () => {
       loadOffers();
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Teklif reddedilirken hata olustu';
+        || 'Teklif reddedilirken hata oluştu';
       setError(errorMessage);
     }
   };
@@ -434,26 +434,26 @@ const NeedDetailPage: React.FC = () => {
       case 'InProgress':
         return <Badge variant="warning">Devam Ediyor</Badge>;
       case 'Completed':
-        return <Badge variant="primary">Tamamlandi</Badge>;
+        return <Badge variant="primary">Tamamlandı</Badge>;
       case 'Cancelled':
-        return <Badge variant="error">Iptal Edildi</Badge>;
+        return <Badge variant="error">İptal Edildi</Badge>;
       case 'Expired':
-        return <Badge variant="error">Suresi Doldu</Badge>;
+        return <Badge variant="error">Süresi Doldu</Badge>;
       default:
         return <Badge variant="default">{status}</Badge>;
     }
   };
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
-    if (!minBudget && !maxBudget) return 'Butce belirtilmemis';
+    if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
     if (minBudget && maxBudget) {
       return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currency}`;
     }
     if (minBudget) {
-      return `${minBudget.toLocaleString('tr-TR')} ${currency} ve uzeri`;
+      return `${minBudget.toLocaleString('tr-TR')} ${currency} ve üzeri`;
     }
     if (maxBudget) {
-      return `${maxBudget.toLocaleString('tr-TR')} ${currency} ve alti`;
+      return `${maxBudget.toLocaleString('tr-TR')} ${currency} ve altı`;
     }
     return '';
   };
@@ -481,7 +481,7 @@ const NeedDetailPage: React.FC = () => {
             className="flex items-center gap-2 text-text-secondary hover:text-primary transition-colors mb-6"
           >
             <ArrowLeftIcon className="w-5 h-5" />
-            <span>Geri Don</span>
+            <span>Geri Dön</span>
           </button>
 
           {isLoading ? (
@@ -503,7 +503,7 @@ const NeedDetailPage: React.FC = () => {
           ) : error || !need ? (
             <Card className="max-w-xl mx-auto text-center py-12">
               <ErrorMessage
-                message={error || 'Ihtiyac bulunamadi'}
+                message={error || 'İhtiyaç bulunamadı'}
                 className="mb-4"
               />
               <Button variant="primary" onClick={loadNeedDetail}>
@@ -559,7 +559,7 @@ const NeedDetailPage: React.FC = () => {
 
                     <div className="flex items-center gap-3 text-text-secondary">
                       <ClockIcon className="w-5 h-5 flex-shrink-0" />
-                      <span>{formatDate(need.createdAt)} tarihinde olusturuldu</span>
+                      <span>{formatDate(need.createdAt)} tarihinde oluşturuldu</span>
                     </div>
 
                     {need.expiresAt && (
@@ -607,7 +607,7 @@ const NeedDetailPage: React.FC = () => {
                         leftIcon={<PencilSquareIcon className="w-4 h-4" />}
                         onClick={handleEdit}
                       >
-                        Duzenle
+                        Düzenle
                       </Button>
                       <Button
                         variant="danger"
@@ -630,13 +630,13 @@ const NeedDetailPage: React.FC = () => {
                     {isOffersLoading ? (
                       <Card>
                         <div className="flex items-center justify-center py-8">
-                          <Loading size="md" text="Teklifler yukleniyor..." />
+                          <Loading size="md" text="Teklifler yükleniyor..." />
                         </div>
                       </Card>
                     ) : offers.length === 0 ? (
                       <Card className="text-center py-8">
                         <p className="text-text-secondary">
-                          Henuz teklif yok. Saticilarin tekliflerini bekliyorsunuz.
+                          Henüz teklif yok. Satıcıların tekliflerini bekliyorsunuz.
                         </p>
                       </Card>
                     ) : (
@@ -670,13 +670,13 @@ const NeedDetailPage: React.FC = () => {
                           Teklif Ver
                         </Button>
                         <p className="text-text-secondary text-sm text-center mt-3">
-                          Bu ihtiyaca teklif vererek satici olarak basvurun
+                          Bu ihtiyaca teklif vererek satıcı olarak başvurun
                         </p>
                       </>
                     ) : isOwner ? (
                       <div className="text-center">
                         <p className="text-text-secondary text-sm">
-                          Bu sizin ilaniniz. Gelen teklifleri asagida gorebilirsiniz.
+                          Bu sizin ilanınız. Gelen teklifleri aşağıda görebilirsiniz.
                         </p>
                       </div>
                     ) : !isAuthenticated ? (
@@ -687,17 +687,17 @@ const NeedDetailPage: React.FC = () => {
                           fullWidth
                           onClick={() => navigate('/login', { state: { from: `/needs/${needId}` } })}
                         >
-                          Giris Yap ve Teklif Ver
+                          Giriş Yap ve Teklif Ver
                         </Button>
                         <p className="text-text-secondary text-sm text-center mt-3">
-                          Teklif vermek icin giris yapmalisiniz
+                          Teklif vermek için giriş yapmalısınız
                         </p>
                         <div className="border-t border-border mt-4 pt-4">
                           <Link
                             to="/register"
                             className="block text-center text-primary hover:text-primary-dark text-sm"
                           >
-                            Hesabiniz yok mu? Kayit olun
+                            Hesabınız yok mu? Kayıt olun
                           </Link>
                         </div>
                       </>
@@ -709,16 +709,16 @@ const NeedDetailPage: React.FC = () => {
                           fullWidth
                           onClick={() => navigate('/register', { state: { from: `/needs/${needId}` } })}
                         >
-                          Hesap Olustur
+                          Hesap Oluştur
                         </Button>
                         <p className="text-text-secondary text-sm text-center mt-3">
-                          Teklif vermek icin tam hesap olusturmalisiniz
+                          Teklif vermek için tam hesap oluşturmalısınız
                         </p>
                       </>
                     ) : need.status !== 'Active' ? (
                       <div className="text-center">
                         <p className="text-text-secondary text-sm">
-                          Bu ilan artik aktif degil. Teklif verilemez.
+                          Bu ilan artık aktif değil. Teklif verilemez.
                         </p>
                       </div>
                     ) : null}
@@ -729,7 +729,7 @@ const NeedDetailPage: React.FC = () => {
                     <Card padding="lg">
                       <div className="text-center">
                         <p className="text-3xl font-bold text-primary">{need.offerCount}</p>
-                        <p className="text-text-secondary text-sm">teklif alindi</p>
+                        <p className="text-text-secondary text-sm">teklif alındı</p>
                       </div>
                     </Card>
                   )}

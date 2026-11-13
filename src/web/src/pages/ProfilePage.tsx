@@ -44,7 +44,7 @@ const ProfilePage: React.FC = () => {
         err instanceof Error
           ? err.message
           : (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-            'Istatistikler yuklenirken hata olustu';
+            'İstatistikler yüklenirken hata oluştu';
       setStatsError(errorMessage);
     } finally {
       setStatsLoading(false);
@@ -100,17 +100,17 @@ const ProfilePage: React.FC = () => {
           <Card className="text-center max-w-md w-full">
             <UserCircleIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-text mb-2">
-              Giris Yapmaniz Gerekiyor
+              Giriş Yapmanız Gerekiyor
             </h2>
             <p className="text-text-secondary mb-6">
-              Profil sayfasini goruntulemek icin lutfen giris yapin.
+              Profil sayfasını görüntülemek için lütfen giriş yapın.
             </p>
             <div className="flex flex-col gap-3">
               <Button variant="primary" fullWidth onClick={() => navigate('/login')}>
-                Giris Yap
+                Giriş Yap
               </Button>
               <Button variant="outline" fullWidth onClick={() => navigate('/register')}>
-                Kayit Ol
+                Kayıt Ol
               </Button>
             </div>
           </Card>
@@ -155,7 +155,7 @@ const ProfilePage: React.FC = () => {
               {isGuest && (
                 <Badge variant="default" size="md" className="mb-3">
                   <UserCircleIcon className="h-4 w-4 mr-1" />
-                  Misafir Kullanici
+                  Misafir Kullanıcı
                 </Badge>
               )}
 
@@ -196,8 +196,8 @@ const ProfilePage: React.FC = () => {
                   <p className="font-medium text-text">Bildirimler</p>
                   <p className="text-sm text-text-secondary">
                     {unreadNotifications > 0
-                      ? `${unreadNotifications} okunmamis bildirim`
-                      : 'Tum bildirimler okundu'}
+                      ? `${unreadNotifications} okunmamış bildirim`
+                      : 'Tüm bildirimler okundu'}
                   </p>
                 </div>
               </div>
@@ -224,7 +224,7 @@ const ProfilePage: React.FC = () => {
                 leftIcon={<PencilSquareIcon className="h-5 w-5" />}
                 onClick={() => navigate('/edit-profile')}
               >
-                Profili Duzenle
+                Profili Düzenle
               </Button>
 
               <Button
@@ -242,7 +242,7 @@ const ProfilePage: React.FC = () => {
                 leftIcon={<StarIcon className="h-5 w-5" />}
                 onClick={() => navigate('/reviews')}
               >
-                Degerlendirmelerim
+                Değerlendirmelerim
               </Button>
 
               <Button
@@ -251,7 +251,7 @@ const ProfilePage: React.FC = () => {
                 leftIcon={<ArrowRightOnRectangleIcon className="h-5 w-5" />}
                 onClick={handleLogout}
               >
-                Cikis Yap
+                Çıkış Yap
               </Button>
             </div>
           </Card>
@@ -259,12 +259,12 @@ const ProfilePage: React.FC = () => {
           {/* Statistics Card */}
           <Card padding="lg">
             <h2 className="text-lg font-semibold text-text text-center mb-6">
-              Istatistikler
+              İstatistikler
             </h2>
 
             {statsLoading ? (
               <div className="flex justify-center py-8">
-                <Loading size="md" text="Istatistikler yukleniyor..." />
+                <Loading size="md" text="İstatistikler yükleniyor..." />
               </div>
             ) : statsError ? (
               <div className="space-y-4">
@@ -289,7 +289,7 @@ const ProfilePage: React.FC = () => {
                     <span className="text-2xl font-bold text-primary">
                       {stats?.needsCount ?? 0}
                     </span>
-                    <span className="text-sm text-text-secondary">Ihtiyaclar</span>
+                    <span className="text-sm text-text-secondary">İhtiyaçlar</span>
                   </button>
 
                   <button
@@ -321,7 +321,7 @@ const ProfilePage: React.FC = () => {
                   fullWidth
                   onClick={() => navigate('/transactions')}
                 >
-                  Islem Gecmisi
+                  İşlem Geçmişi
                 </Button>
               </>
             )}

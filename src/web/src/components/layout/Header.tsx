@@ -55,14 +55,14 @@ const Header: React.FC = () => {
               to="/needs"
               className="text-white/70 hover:text-white transition-colors font-medium"
             >
-              Ilanlar
+              İlanlar
             </Link>
             {isAuthenticated && !isGuest && (
               <Link
                 to="/my-needs"
                 className="text-white/70 hover:text-white transition-colors font-medium"
               >
-                Ilanlarim
+                İlanlarım
               </Link>
             )}
           </nav>
@@ -77,7 +77,7 @@ const Header: React.FC = () => {
                   leftIcon={<PlusCircleIcon className="h-4 w-4" />}
                   onClick={() => navigate('/create-need')}
                 >
-                  Ilan Ver
+                  İlan Ver
                 </Button>
                 <div className="flex items-center gap-2">
                   <Link
@@ -86,7 +86,7 @@ const Header: React.FC = () => {
                   >
                     <UserCircleIcon className="h-6 w-6" />
                     <span className="text-sm font-medium">
-                      {isGuest ? 'Misafir' : `${user?.firstName || 'Kullanici'}`}
+                      {isGuest ? 'Misafir' : `${user?.firstName || 'Kullanıcı'}`}
                     </span>
                   </Link>
                   <button
@@ -106,7 +106,7 @@ const Header: React.FC = () => {
                   onClick={() => navigate('/login')}
                   className="!text-white/80 hover:!text-white hover:!bg-white/10"
                 >
-                  Giris Yap
+                  Giriş Yap
                 </Button>
                 <Button
                   variant="primary"
@@ -114,7 +114,7 @@ const Header: React.FC = () => {
                   onClick={() => navigate('/register')}
                   className="!bg-[#F59E0B] !text-[#3c0764] hover:!bg-[#D97706] !border-0 font-bold"
                 >
-                  Kayit Ol
+                  Kayıt Ol
                 </Button>
               </>
             )}
@@ -124,7 +124,7 @@ const Header: React.FC = () => {
           <button
             className="md:hidden p-2 text-white/80 hover:text-white transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? 'Menuyu Kapat' : 'Menuyu Ac'}
+            aria-label={isMobileMenuOpen ? 'Menüyü Kapat' : 'Menüyü Ac'}
           >
             {isMobileMenuOpen ? (
               <XMarkIcon className="h-6 w-6" />
@@ -149,7 +149,7 @@ const Header: React.FC = () => {
               onClick={() => handleNavigation('/needs')}
               className="block w-full text-left px-3 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors font-medium"
             >
-              Ilanlar
+              İlanlar
             </button>
 
             {isAuthenticated ? (
@@ -159,14 +159,14 @@ const Header: React.FC = () => {
                     onClick={() => handleNavigation('/my-needs')}
                     className="block w-full text-left px-3 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors font-medium"
                   >
-                    Ilanlarim
+                    İlanlarım
                   </button>
                 )}
                 <button
                   onClick={() => handleNavigation('/create-need')}
                   className="block w-full text-left px-3 py-2 text-[#F59E0B] hover:bg-white/10 rounded-lg transition-colors font-semibold"
                 >
-                  Ilan Ver
+                  İlan Ver
                 </button>
                 <button
                   onClick={() => handleNavigation('/profile')}
@@ -179,7 +179,7 @@ const Header: React.FC = () => {
                   onClick={handleLogout}
                   className="block w-full text-left px-3 py-2 text-red-300 hover:bg-white/10 rounded-lg transition-colors font-medium"
                 >
-                  Cikis Yap
+                  Çıkış Yap
                 </button>
               </>
             ) : (
@@ -191,7 +191,7 @@ const Header: React.FC = () => {
                   onClick={() => handleNavigation('/login')}
                   className="!text-white/80 hover:!text-white hover:!bg-white/10"
                 >
-                  Giris Yap
+                  Giriş Yap
                 </Button>
                 <Button
                   variant="primary"
@@ -199,7 +199,7 @@ const Header: React.FC = () => {
                   onClick={() => handleNavigation('/register')}
                   className="!bg-[#F59E0B] !text-[#3c0764] hover:!bg-[#D97706] !border-0 font-bold"
                 >
-                  Kayit Ol
+                  Kayıt Ol
                 </Button>
               </>
             )}

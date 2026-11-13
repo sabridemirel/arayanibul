@@ -38,7 +38,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
       return `${maxBudget.toLocaleString('tr-TR')} ${currency}'ye kadar`;
     }
     if (minBudget) {
-      return `${minBudget.toLocaleString('tr-TR')} ${currency}'den baslayan`;
+      return `${minBudget.toLocaleString('tr-TR')} ${currency}'den başlayan`;
     }
     return 'Belirtilmemis';
   };
@@ -50,10 +50,10 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
 
     if (diffInHours < 1) return 'Az once';
-    if (diffInHours < 24) return `${diffInHours} saat once`;
+    if (diffInHours < 24) return `${diffInHours} saat önce`;
 
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} gun once`;
+    if (diffInDays < 7) return `${diffInDays} gün önce`;
 
     return date.toLocaleDateString('tr-TR');
   };

@@ -31,9 +31,9 @@ const LoginPage: React.FC = () => {
     }
 
     if (!values.password) {
-      errors.password = 'Sifre gereklidir';
+      errors.password = 'Şifre gereklidir';
     } else if (values.password.length < 6) {
-      errors.password = 'Sifre en az 6 karakter olmalidir';
+      errors.password = 'Şifre en az 6 karakter olmalıdır';
     }
 
     return errors;
@@ -80,9 +80,9 @@ const LoginPage: React.FC = () => {
               <span className="text-[#F59E0B]">BUL</span>
             </span>
           </Link>
-          <h1 className="mt-4 text-2xl font-bold text-white">Giris Yap</h1>
+          <h1 className="mt-4 text-2xl font-bold text-white">Giriş Yap</h1>
           <p className="mt-2 text-white/70">
-            Hesabiniza giris yaparak ilanlari inceleyin
+            Hesabınıza giriş yaparak ilanları inceleyin
           </p>
         </div>
 
@@ -111,10 +111,10 @@ const LoginPage: React.FC = () => {
             />
 
             <Input
-              label="Sifre"
+              label="Şifre"
               type="password"
               name="password"
-              placeholder="Sifrenizi giriniz"
+              placeholder="Şifrenizi giriniz"
               value={values.password}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -129,13 +129,13 @@ const LoginPage: React.FC = () => {
                   type="checkbox"
                   className="w-4 h-4 accent-[#7B2CBF] border-border rounded focus:ring-primary"
                 />
-                <span className="text-sm text-text-secondary">Beni Hatirla</span>
+                <span className="text-sm text-text-secondary">Beni Hatırla</span>
               </label>
               <Link
                 to="/forgot-password"
                 className="text-sm text-primary hover:text-primary-dark transition-colors"
               >
-                Sifremi Unuttum
+                Şifremi Unuttum
               </Link>
             </div>
 
@@ -144,7 +144,7 @@ const LoginPage: React.FC = () => {
               fullWidth
               isLoading={isSubmitting || isLoading}
             >
-              Giris Yap
+              Giriş Yap
             </Button>
           </form>
 
@@ -162,12 +162,12 @@ const LoginPage: React.FC = () => {
           </Button>
 
           <p className="mt-6 text-center text-sm text-text-secondary">
-            Hesabiniz yok mu?{' '}
+            Hesabınız yok mu?{' '}
             <Link
               to="/register"
               className="text-primary hover:text-primary-dark font-medium transition-colors"
             >
-              Kayit Olun
+              Kayıt Olun
             </Link>
           </p>
         </Card>

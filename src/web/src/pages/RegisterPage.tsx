@@ -50,17 +50,17 @@ const RegisterPage: React.FC = () => {
     }
 
     if (!values.password) {
-      errors.password = 'Sifre gereklidir';
+      errors.password = 'Şifre gereklidir';
     } else if (values.password.length < 6) {
-      errors.password = 'Sifre en az 6 karakter olmalidir';
+      errors.password = 'Şifre en az 6 karakter olmalıdır';
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(values.password)) {
-      errors.password = 'Sifre en az bir buyuk harf, bir kucuk harf ve bir rakam icermelidir';
+      errors.password = 'Şifre en az bir büyük harf, bir küçük harf ve bir rakam içermelidir';
     }
 
     if (!values.confirmPassword) {
-      errors.confirmPassword = 'Sifre tekrari gereklidir';
+      errors.confirmPassword = 'Şifre tekrarı gereklidir';
     } else if (values.password !== values.confirmPassword) {
-      errors.confirmPassword = 'Sifreler eslesmiyor';
+      errors.confirmPassword = 'Şifreler eşleşmiyor';
     }
 
     return errors;
@@ -106,9 +106,9 @@ const RegisterPage: React.FC = () => {
               <span className="text-[#F59E0B]">BUL</span>
             </span>
           </Link>
-          <h1 className="mt-4 text-2xl font-bold text-white">Kayit Ol</h1>
+          <h1 className="mt-4 text-2xl font-bold text-white">Kayıt Ol</h1>
           <p className="mt-2 text-white/70">
-            Hesap olusturun ve ilanlara goz atin
+            Hesap oluşturun ve ilanlara göz atin
           </p>
         </div>
 
@@ -164,7 +164,7 @@ const RegisterPage: React.FC = () => {
             />
 
             <Input
-              label="Sifre"
+              label="Şifre"
               type="password"
               name="password"
               placeholder="En az 6 karakter"
@@ -177,10 +177,10 @@ const RegisterPage: React.FC = () => {
             />
 
             <Input
-              label="Sifre Tekrari"
+              label="Şifre Tekrarı"
               type="password"
               name="confirmPassword"
-              placeholder="Sifrenizi tekrar giriniz"
+              placeholder="Şifrenizi tekrar giriniz"
               value={values.confirmPassword}
               onChange={handleChange}
               onBlur={handleBlur}
@@ -201,14 +201,14 @@ const RegisterPage: React.FC = () => {
                   to="/terms"
                   className="text-primary hover:text-primary-dark"
                 >
-                  Kullanim Kosullarini
+                  Kullanım Koşullarını
                 </Link>{' '}
                 ve{' '}
                 <Link
                   to="/privacy"
                   className="text-primary hover:text-primary-dark"
                 >
-                  Gizlilik Politikasini
+                  Gizlilik Politikasını
                 </Link>{' '}
                 okudum ve kabul ediyorum.
               </label>
@@ -219,7 +219,7 @@ const RegisterPage: React.FC = () => {
               fullWidth
               isLoading={isSubmitting || isLoading}
             >
-              Kayit Ol
+              Kayıt Ol
             </Button>
           </form>
 
@@ -229,7 +229,7 @@ const RegisterPage: React.FC = () => {
               to="/login"
               className="text-primary hover:text-primary-dark font-medium transition-colors"
             >
-              Giris Yapin
+              Giriş Yapın
             </Link>
           </p>
         </Card>

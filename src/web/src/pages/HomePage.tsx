@@ -90,9 +90,9 @@ const HomePage: React.FC = () => {
       return `${need.maxBudget.toLocaleString('tr-TR')} ${need.currency}'ye kadar`;
     }
     if (need.minBudget) {
-      return `${need.minBudget.toLocaleString('tr-TR')} ${need.currency}'den baslayan`;
+      return `${need.minBudget.toLocaleString('tr-TR')} ${need.currency}'den başlayan`;
     }
-    return 'Belirtilmemis';
+    return 'Belirtilmemiş';
   };
 
   return (
@@ -194,7 +194,7 @@ const HomePage: React.FC = () => {
         <section className="py-16 bg-surface">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl lg:text-3xl font-bold text-text text-center mb-12">
-              Nasil Calisir?
+              Nasıl Çalışır?
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
@@ -202,10 +202,10 @@ const HomePage: React.FC = () => {
                   <span className="text-2xl font-bold text-white">1</span>
                 </div>
                 <h3 className="text-lg font-semibold text-text mb-2">
-                  Ilaninizi Olusturun
+                  İlanınızı Oluşturun
                 </h3>
                 <p className="text-text-secondary">
-                  Ne aradiginizi detayli bir sekilde aciklayin ve butcenizi belirleyin.
+                  Ne aradığınızı detaylı bir şekilde açıklayın ve bütçenizi belirleyin.
                 </p>
               </div>
               <div className="text-center">
@@ -216,7 +216,7 @@ const HomePage: React.FC = () => {
                   Teklifleri Alin
                 </h3>
                 <p className="text-text-secondary">
-                  Saticilar ilaninizi gorup size en uygun tekliflerini sunar.
+                  Satıcılar ilanınızı görüp size en uygun tekliflerini sunar.
                 </p>
               </div>
               <div className="text-center">
@@ -224,10 +224,10 @@ const HomePage: React.FC = () => {
                   <span className="text-2xl font-bold text-white">3</span>
                 </div>
                 <h3 className="text-lg font-semibold text-text mb-2">
-                  Secin ve Anlasın
+                  Seçin ve Anlaşın
                 </h3>
                 <p className="text-text-secondary">
-                  En uygun teklifi secin, saticiyla iletisime gecin ve anlasma yapin.
+                  En uygun teklifi seçin, satıcıyla iletişime geçin ve anlaşma yapın.
                 </p>
               </div>
             </div>
@@ -245,7 +245,7 @@ const HomePage: React.FC = () => {
                 to="/categories"
                 className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
               >
-                Tumunu Gor
+                Tümünü Gör
                 <ArrowRightIcon className="h-4 w-4" />
               </Link>
             </div>
@@ -282,13 +282,13 @@ const HomePage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl lg:text-3xl font-bold text-text">
-                Son Ilanlar
+                Son İlanlar
               </h2>
               <Link
                 to="/needs"
                 className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
               >
-                Tumunu Gor
+                Tümünü Gör
                 <ArrowRightIcon className="h-4 w-4" />
               </Link>
             </div>
@@ -300,14 +300,14 @@ const HomePage: React.FC = () => {
             ) : recentNeeds.length === 0 ? (
               <Card className="text-center py-12">
                 <p className="text-text-secondary mb-4">
-                  Henuz ilan bulunmuyor. Ilk ilani siz verin!
+                  Henüz ilan bulunmuyor. İlk ilanı siz verin!
                 </p>
                 <Button
                   variant="primary"
                   leftIcon={<PlusCircleIcon className="h-5 w-5" />}
                   onClick={() => navigate(isAuthenticated ? '/create-need' : '/login')}
                 >
-                  Ilan Ver
+                  İlan Ver
                 </Button>
               </Card>
             ) : (
@@ -351,11 +351,11 @@ const HomePage: React.FC = () => {
         <section className="py-16 bg-gradient-to-br from-primary to-primary-dark">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">
-              Aradiginizi Bulmaya Hazir misiniz?
+              Aradığınızı Bulmaya Hazır misiniz?
             </h2>
             <p className="text-white/80 mb-8 max-w-2xl mx-auto">
-              Hemen ucretsiz kayit olun ve ihtiyacinizi dunyaya duyurun.
-              Binlerce satici sizin icin en iyi teklifi sunmak icin bekliyor!
+              Hemen ücretsiz kayıt olun ve ihtiyacınızı dünyaya duyurun.
+              Binlerce satıcı sizin için en iyi teklifi sunmak için bekliyor!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -363,7 +363,7 @@ const HomePage: React.FC = () => {
                 size="lg"
                 onClick={() => navigate(isAuthenticated ? '/create-need' : '/register')}
               >
-                {isAuthenticated ? 'Ilan Ver' : 'Ucretsiz Kayit Ol'}
+                {isAuthenticated ? 'İlan Ver' : 'Ücretsiz Kayıt Ol'}
               </Button>
               <Button
                 variant="outline"
@@ -371,7 +371,7 @@ const HomePage: React.FC = () => {
                 className="!border-white !text-white hover:!bg-white/10"
                 onClick={() => navigate('/needs')}
               >
-                Ilanlari Incele
+                İlanları İncele
               </Button>
             </div>
           </div>

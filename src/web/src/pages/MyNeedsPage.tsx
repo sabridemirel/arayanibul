@@ -24,12 +24,12 @@ interface StatusOption {
 }
 
 const statusOptions: StatusOption[] = [
-  { key: 'All', label: 'Tumunu' },
+  { key: 'All', label: 'Tümünü' },
   { key: 'Active', label: 'Aktif' },
   { key: 'InProgress', label: 'Devam Eden' },
-  { key: 'Completed', label: 'Tamamlanmis' },
-  { key: 'Expired', label: 'Suresi Dolmus' },
-  { key: 'Cancelled', label: 'Iptal Edilmis' },
+  { key: 'Completed', label: 'Tamamlanmış' },
+  { key: 'Expired', label: 'Süresi Dolmuş' },
+  { key: 'Cancelled', label: 'İptal Edilmiş' },
 ];
 
 const MyNeedsPage: React.FC = () => {
@@ -57,7 +57,7 @@ const MyNeedsPage: React.FC = () => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Ihtiyaclar yuklenirken hata olustu';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'İhtiyaçlar yüklenirken hata oluştu';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ const MyNeedsPage: React.FC = () => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Ihtiyac silinirken hata olustu';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'İhtiyaç silinirken hata oluştu';
       setError(errorMessage);
     } finally {
       setDeletingId(null);
@@ -120,11 +120,11 @@ const MyNeedsPage: React.FC = () => {
       case 'InProgress':
         return 'Devam Ediyor';
       case 'Completed':
-        return 'Tamamlandi';
+        return 'Tamamlandı';
       case 'Cancelled':
-        return 'Iptal Edildi';
+        return 'İptal Edildi';
       case 'Expired':
-        return 'Suresi Doldu';
+        return 'Süresi Doldu';
       default:
         return status;
     }
@@ -165,9 +165,9 @@ const MyNeedsPage: React.FC = () => {
       return `${need.maxBudget.toLocaleString('tr-TR')} ${need.currency}'ye kadar`;
     }
     if (need.minBudget) {
-      return `${need.minBudget.toLocaleString('tr-TR')} ${need.currency}'den baslayan`;
+      return `${need.minBudget.toLocaleString('tr-TR')} ${need.currency}'den başlayan`;
     }
-    return 'Belirtilmemis';
+    return 'Belirtilmemiş';
   };
 
   const formatDate = (dateString: string) => {
@@ -175,11 +175,11 @@ const MyNeedsPage: React.FC = () => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
 
-    if (diffInHours < 1) return 'Az once';
-    if (diffInHours < 24) return `${diffInHours} saat once`;
+    if (diffInHours < 1) return 'Az önce';
+    if (diffInHours < 24) return `${diffInHours} saat önce`;
 
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} gun once`;
+    if (diffInDays < 7) return `${diffInDays} gün önce`;
 
     return date.toLocaleDateString('tr-TR');
   };
@@ -205,12 +205,12 @@ const MyNeedsPage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <Card className="text-center py-12">
               <ClipboardDocumentListIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-text mb-2">Giris Yapmaniz Gerekiyor</h2>
+              <h2 className="text-xl font-semibold text-text mb-2">Giriş Yapmanız Gerekiyor</h2>
               <p className="text-text-secondary mb-6">
-                Ihtiyaclarinizi goruntulemek icin lutfen giris yapin.
+                İhtiyaçlarınızı görüntülemek için lütfen giriş yapın.
               </p>
               <Button variant="primary" onClick={() => navigate('/login')}>
-                Giris Yap
+                Giriş Yap
               </Button>
             </Card>
           </div>
@@ -229,9 +229,9 @@ const MyNeedsPage: React.FC = () => {
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-text">Ihtiyaclarim</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-text">İhtiyaçlarım</h1>
               <p className="text-text-secondary mt-1">
-                Olusturdugununuz tum ihtiyaclari buradan yonetin
+                Oluşturduğunuz tüm ihtiyaçları buradan yönetin
               </p>
             </div>
             <Button
@@ -239,7 +239,7 @@ const MyNeedsPage: React.FC = () => {
               leftIcon={<PlusCircleIcon className="h-5 w-5" />}
               onClick={handleCreateNeed}
             >
-              Yeni Ihtiyac Olustur
+              Yeni İhtiyaç Oluştur
             </Button>
           </div>
 
@@ -281,19 +281,19 @@ const MyNeedsPage: React.FC = () => {
           {/* Loading State */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loading size="lg" text="Ihtiyaclariniz yukleniyor..." />
+              <Loading size="lg" text="İhtiyaçlarınız yükleniyor..." />
             </div>
           ) : filteredNeeds.length === 0 ? (
             /* Empty State */
             <Card className="text-center py-12">
               <ClipboardDocumentListIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-text mb-2">
-                {selectedStatus === 'All' ? 'Henuz ihtiyac yok' : `${statusOptions.find(s => s.key === selectedStatus)?.label} ihtiyac yok`}
+                {selectedStatus === 'All' ? 'Henüz ihtiyaç yok' : `${statusOptions.find(s => s.key === selectedStatus)?.label} ihtiyaç yok`}
               </h2>
               <p className="text-text-secondary mb-6">
                 {selectedStatus === 'All'
-                  ? 'Ilk ihtiyacinizi olusturmak icin asagidaki butona tiklayin.'
-                  : 'Bu durumda hic ihtiyaciniz bulunmuyor.'
+                  ? 'İlk ihtiyacınızı oluşturmak için aşağıdaki butona tıklayın.'
+                  : 'Bu durumda hiç ihtiyacınız bulunmuyor.'
                 }
               </p>
               {selectedStatus === 'All' && (
@@ -302,7 +302,7 @@ const MyNeedsPage: React.FC = () => {
                   leftIcon={<PlusCircleIcon className="h-5 w-5" />}
                   onClick={handleCreateNeed}
                 >
-                  Ihtiyac Olustur
+                  İhtiyaç Oluştur
                 </Button>
               )}
             </Card>
@@ -380,7 +380,7 @@ const MyNeedsPage: React.FC = () => {
                           {need.offerCount} teklif
                         </Badge>
                       ) : (
-                        <span className="text-sm text-text-secondary">Henuz teklif yok</span>
+                        <span className="text-sm text-text-secondary">Henüz teklif yok</span>
                       )}
                     </div>
 
@@ -390,7 +390,7 @@ const MyNeedsPage: React.FC = () => {
                         <button
                           onClick={() => handleEditNeed(need.id)}
                           className="p-2 rounded-lg text-primary hover:bg-primary-light transition-colors"
-                          title="Duzenle"
+                          title="Düzenle"
                         >
                           <PencilSquareIcon className="h-5 w-5" />
                         </button>
@@ -419,7 +419,7 @@ const MyNeedsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-surface rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-text mb-2">
-              Ihtiyaci Sil
+              İhtiyacı Sil
             </h3>
             <p className="text-text-secondary mb-6">
               "<span className="font-medium text-text">{needToDelete.title}</span>" baslikli ihtiyacinizi silmek istediginizden emin misiniz? Bu islem geri alinamaz.
@@ -430,7 +430,7 @@ const MyNeedsPage: React.FC = () => {
                 onClick={handleDeleteCancel}
                 disabled={deletingId !== null}
               >
-                Iptal
+                İptal
               </Button>
               <Button
                 variant="danger"

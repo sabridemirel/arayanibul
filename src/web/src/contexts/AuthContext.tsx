@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.user);
       setError(null);
     } else {
-      throw new Error(response.message || 'Kimlik dogrulama basarisiz');
+      throw new Error(response.message || 'Kimlik doğrulama başarısız');
     }
   }, []);
 
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Giris yapilamadi. Lutfen bilgilerinizi kontrol edin.';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
       setError(errorMessage);
       throw err;
     } finally {
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Kayit yapilamadi. Lutfen bilgilerinizi kontrol edin.';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Kayıt yapılamadı. Lütfen bilgilerinizi kontrol edin.';
       setError(errorMessage);
       throw err;
     } finally {
@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Misafir girisi yapilamadi.';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Misafir girişi yapılamadı.';
       setError(errorMessage);
       throw err;
     } finally {

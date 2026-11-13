@@ -36,7 +36,7 @@ const MyOffersPage: React.FC = () => {
   const [withdrawingOfferId, setWithdrawingOfferId] = useState<number | null>(null);
 
   const filterOptions: FilterOption[] = [
-    { key: 'all', label: 'Tumu', count: offers.length },
+    { key: 'all', label: 'Tümü', count: offers.length },
     { key: 'Pending', label: 'Beklemede', count: offers.filter(o => o.status === 'Pending').length },
     { key: 'Accepted', label: 'Kabul Edildi', count: offers.filter(o => o.status === 'Accepted').length },
     { key: 'Rejected', label: 'Reddedildi', count: offers.filter(o => o.status === 'Rejected').length },
@@ -50,7 +50,7 @@ const MyOffersPage: React.FC = () => {
       setOffers(offersData);
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Teklifler yuklenirken hata olustu';
+        || 'Teklifler yüklenirken hata oluştu';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -74,7 +74,7 @@ const MyOffersPage: React.FC = () => {
   const handleWithdrawOffer = async (offerId: number, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!window.confirm('Bu teklifi geri cekmek istediginizden emin misiniz?')) {
+    if (!window.confirm('Bu teklifi geri çekmek istediğinizden emin misiniz?')) {
       return;
     }
 
@@ -82,10 +82,10 @@ const MyOffersPage: React.FC = () => {
       setWithdrawingOfferId(offerId);
       // Note: Backend may need to implement this endpoint
       // For now we show a placeholder message
-      alert('Teklif geri cekme ozelligi yakin zamanda eklenecek.');
+      alert('Teklif geri çekme özelliği yakın zamanda eklenecek.');
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Teklif geri cekilirken hata olustu';
+        || 'Teklif geri çekilirken hata oluştu';
       alert(errorMessage);
     } finally {
       setWithdrawingOfferId(null);
@@ -114,7 +114,7 @@ const MyOffersPage: React.FC = () => {
       case 'Rejected':
         return 'Reddedildi';
       case 'Withdrawn':
-        return 'Geri Cekildi';
+        return 'Geri Çekildi';
       default:
         return status;
     }
@@ -199,7 +199,7 @@ const MyOffersPage: React.FC = () => {
           {/* Header with title and status */}
           <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
             <h3 className="text-lg font-semibold text-text line-clamp-2 flex-1">
-              {offer.need?.title || 'Ihtiyac'}
+              {offer.need?.title || 'İhtiyaç'}
             </h3>
             <Badge variant={getStatusColor(offer.status)} size="md">
               <span className="flex items-center gap-1">
@@ -218,7 +218,7 @@ const MyOffersPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-4 text-sm text-text-secondary">
             <span className="flex items-center gap-1">
               <TruckIcon className="h-4 w-4" />
-              {offer.deliveryDays} gun teslimat
+              {offer.deliveryDays} gün teslimat
             </span>
             <span className="flex items-center gap-1">
               <CalendarDaysIcon className="h-4 w-4" />
@@ -250,7 +250,7 @@ const MyOffersPage: React.FC = () => {
                 onClick={(e) => handleWithdrawOffer(offer.id, e)}
                 isLoading={withdrawingOfferId === offer.id}
               >
-                Geri Cek
+                Geri Çek
               </Button>
             )}
             <Button
@@ -274,7 +274,7 @@ const MyOffersPage: React.FC = () => {
           <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
             <CheckCircleIcon className="h-5 w-5 text-green-600 flex-shrink-0" />
             <p className="text-sm text-green-700">
-              Teklifiniz kabul edildi! Alici ile iletisime gecebilirsiniz.
+              Teklifiniz kabul edildi! Alıcı ile iletişime geçebilirsiniz.
             </p>
           </div>
         </div>
@@ -287,13 +287,13 @@ const MyOffersPage: React.FC = () => {
       <TagIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
       <h3 className="text-xl font-semibold text-text mb-2">
         {selectedFilter === 'all'
-          ? 'Henuz teklif yok'
+          ? 'Henüz teklif yok'
           : `${filterOptions.find(f => f.key === selectedFilter)?.label} teklif yok`
         }
       </h3>
       <p className="text-text-secondary mb-6 max-w-md mx-auto">
         {selectedFilter === 'all'
-          ? 'Henuz hicbir ihtiyaca teklif vermediniz. Ihtiyaclara goz atin ve teklif verin.'
+          ? 'Henüz hiçbir ihtiyaca teklif vermediniz. İhtiyaçlara göz atin ve teklif verin.'
           : 'Bu durumda teklif bulunmuyor.'
         }
       </p>
@@ -302,7 +302,7 @@ const MyOffersPage: React.FC = () => {
           variant="primary"
           onClick={() => navigate('/needs')}
         >
-          Ihtiyaclara Goz At
+          İhtiyaçlara Göz At
         </Button>
       )}
     </Card>
@@ -322,7 +322,7 @@ const MyOffersPage: React.FC = () => {
                   Tekliflerim
                 </h1>
                 <p className="text-text-secondary mt-1">
-                  Verdiginiz teklifleri buradan takip edebilirsiniz
+                  Verdiğiniz teklifleri buradan takip edebilirsiniz
                 </p>
               </div>
               <Button
@@ -342,7 +342,7 @@ const MyOffersPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {loading ? (
             <div className="flex justify-center py-16">
-              <Loading size="lg" text="Teklifler yukleniyor..." />
+              <Loading size="lg" text="Teklifler yükleniyor..." />
             </div>
           ) : error ? (
             <ErrorMessage

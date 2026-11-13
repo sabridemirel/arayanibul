@@ -22,14 +22,14 @@ const Footer: React.FC = () => {
               </span>
             </Link>
             <p className="text-white/60 text-sm max-w-md leading-relaxed">
-              Arayanibul, alicilarin ne aradiklarini ilan ettigi ve saticilarin teklif verdigi
-              bir ters ilan platformudur. Ne ariyorsaniz, onu bulan size gelsin!
+              Arayanibul, alıcıların ne aradıklarını ilan ettiği ve satıcıların teklif verdiği
+              bir ters ilan platformudur. Ne arıyorsanız, onu bulan size gelsin!
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-bold text-white mb-4">Hizli Erisim</h4>
+            <h4 className="font-bold text-white mb-4">Hızlı Erişim</h4>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -44,7 +44,7 @@ const Footer: React.FC = () => {
                   to="/needs"
                   className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
                 >
-                  Ilanlar
+                  İlanlar
                 </Link>
               </li>
               <li>
@@ -52,7 +52,7 @@ const Footer: React.FC = () => {
                   to="/create-need"
                   className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
                 >
-                  Ilan Ver
+                  İlan Ver
                 </Link>
               </li>
             </ul>
@@ -67,7 +67,7 @@ const Footer: React.FC = () => {
                   to="/terms"
                   className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
                 >
-                  Kullanim Kosullari
+                  Kullanım Koşulları
                 </Link>
               </li>
               <li>
@@ -75,7 +75,7 @@ const Footer: React.FC = () => {
                   to="/privacy"
                   className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
                 >
-                  Gizlilik Politikasi
+                  Gizlilik Politikası
                 </Link>
               </li>
               <li>
@@ -83,7 +83,7 @@ const Footer: React.FC = () => {
                   to="/contact"
                   className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
                 >
-                  Iletisim
+                  İletişim
                 </Link>
               </li>
             </ul>

@@ -25,7 +25,7 @@ const CreateOfferPage: React.FC = () => {
   useEffect(() => {
     const loadNeed = async () => {
       if (!needId) {
-        setError('Ihtiyac ID bulunamadi');
+        setError('İhtiyaç ID bulunamadı');
         setLoading(false);
         return;
       }
@@ -36,7 +36,7 @@ const CreateOfferPage: React.FC = () => {
         const needData = await needAPI.getNeedById(parseInt(needId));
         setNeed(needData);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Ihtiyac detaylari yuklenirken hata olustu';
+        const errorMessage = err instanceof Error ? err.message : 'İhtiyaç detayları yüklenirken hata oluştu';
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -52,28 +52,28 @@ const CreateOfferPage: React.FC = () => {
     // Price validation
     const priceNum = parseFloat(values.price);
     if (!values.price.trim()) {
-      errors.price = 'Teklif tutari gereklidir';
+      errors.price = 'Teklif tutarı gereklidir';
     } else if (isNaN(priceNum) || priceNum <= 0) {
-      errors.price = 'Gecerli bir tutar giriniz';
+      errors.price = 'Geçerli bir tutar giriniz';
     } else if (need?.maxBudget && priceNum > need.maxBudget) {
-      errors.price = `Maksimum butce ${need.maxBudget.toLocaleString('tr-TR')} TL`;
+      errors.price = `Maksimum bütçe ${need.maxBudget.toLocaleString('tr-TR')} TL`;
     }
 
     // Description validation
     if (!values.description.trim()) {
       errors.description = 'Mesaj gereklidir';
     } else if (values.description.trim().length < 20) {
-      errors.description = 'Mesaj en az 20 karakter olmalidir';
+      errors.description = 'Mesaj en az 20 karakter olmalıdır';
     }
 
     // Delivery days validation
     const deliveryNum = parseInt(values.deliveryDays);
     if (!values.deliveryDays.trim()) {
-      errors.deliveryDays = 'Teslimat suresi gereklidir';
+      errors.deliveryDays = 'Teslimat süresi gereklidir';
     } else if (isNaN(deliveryNum) || deliveryNum <= 0) {
-      errors.deliveryDays = 'Gecerli bir teslimat suresi giriniz';
+      errors.deliveryDays = 'Geçerli bir teslimat süresi giriniz';
     } else if (deliveryNum > 365) {
-      errors.deliveryDays = 'Teslimat suresi 365 gunden fazla olamaz';
+      errors.deliveryDays = 'Teslimat süresi 365 günden fazla olamaz';
     }
 
     return errors;
@@ -106,7 +106,7 @@ const CreateOfferPage: React.FC = () => {
           navigate(`/needs/${needId}`);
         }, 2000);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Teklif gonderilirken hata olustu';
+        const errorMessage = err instanceof Error ? err.message : 'Teklif gönderilirken hata oluştu';
         setSubmitError(errorMessage);
       }
     },
@@ -114,15 +114,15 @@ const CreateOfferPage: React.FC = () => {
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
     const currencySymbol = currency === 'TRY' ? 'TL' : currency;
-    if (!minBudget && !maxBudget) return 'Butce belirtilmemis';
+    if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
     if (minBudget && maxBudget) {
       return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currencySymbol}`;
     }
     if (minBudget) {
-      return `${minBudget.toLocaleString('tr-TR')} ${currencySymbol} ve uzeri`;
+      return `${minBudget.toLocaleString('tr-TR')} ${currencySymbol} ve üzeri`;
     }
     if (maxBudget) {
-      return `${maxBudget.toLocaleString('tr-TR')} ${currencySymbol} ve alti`;
+      return `${maxBudget.toLocaleString('tr-TR')} ${currencySymbol} ve altı`;
     }
     return '';
   };
@@ -144,7 +144,7 @@ const CreateOfferPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loading size="lg" text="Ihtiyac detaylari yukleniyor..." />
+        <Loading size="lg" text="İhtiyaç detayları yükleniyor..." />
       </div>
     );
   }
@@ -159,10 +159,10 @@ const CreateOfferPage: React.FC = () => {
             className="inline-flex items-center gap-2 text-text-secondary hover:text-primary transition-colors mb-6"
           >
             <ArrowLeftIcon className="h-5 w-5" />
-            <span>Geri Don</span>
+            <span>Geri Dön</span>
           </Link>
           <Card padding="lg">
-            <ErrorMessage message={error || 'Ihtiyac bulunamadi'} />
+            <ErrorMessage message={error || 'İhtiyaç bulunamadı'} />
           </Card>
         </div>
       </div>
@@ -178,12 +178,12 @@ const CreateOfferPage: React.FC = () => {
             <div className="flex justify-center mb-4">
               <CheckCircleIcon className="h-16 w-16 text-green-500" />
             </div>
-            <h2 className="text-2xl font-bold text-text mb-2">Teklif Gonderildi!</h2>
+            <h2 className="text-2xl font-bold text-text mb-2">Teklif Gönderildi!</h2>
             <p className="text-text-secondary mb-4">
-              Teklifiniz basariyla gonderildi. Alici tarafindan incelenecektir.
+              Teklifiniz başarıyla gönderildi. Alıcı tarafından incelenecektir.
             </p>
             <p className="text-sm text-text-secondary">
-              Ihtiyac sayfasina yonlendiriliyorsunuz...
+              İhtiyaç sayfasına yönlendiriliyorsunuz...
             </p>
           </Card>
         </div>
@@ -201,11 +201,11 @@ const CreateOfferPage: React.FC = () => {
             className="inline-flex items-center gap-2 text-text-secondary hover:text-primary transition-colors mb-4"
           >
             <ArrowLeftIcon className="h-5 w-5" />
-            <span>Geri Don</span>
+            <span>Geri Dön</span>
           </Link>
           <h1 className="text-2xl font-bold text-text">Teklif Ver</h1>
           <p className="text-text-secondary mt-1">
-            Bu ihtiyac icin teklifinizi olusturun
+            Bu ihtiyaç için teklifinizi oluşturun
           </p>
         </div>
 
@@ -229,7 +229,7 @@ const CreateOfferPage: React.FC = () => {
             )}
             {(need.minBudget || need.maxBudget) && (
               <div className="flex items-center gap-1 text-text-secondary">
-                <span className="font-medium">Butce:</span>
+                <span className="font-medium">Bütçe:</span>
                 <span className="text-primary font-semibold">
                   {formatBudget(need.minBudget, need.maxBudget, need.currency)}
                 </span>
@@ -240,7 +240,7 @@ const CreateOfferPage: React.FC = () => {
 
         {/* Offer Form */}
         <Card padding="lg">
-          <h3 className="text-lg font-semibold text-text mb-6">Teklif Detaylari</h3>
+          <h3 className="text-lg font-semibold text-text mb-6">Teklif Detayları</h3>
 
           {submitError && (
             <ErrorMessage
@@ -268,7 +268,7 @@ const CreateOfferPage: React.FC = () => {
               />
               {need.maxBudget && !formErrors.price && (
                 <p className="mt-1 text-xs text-text-secondary">
-                  Maksimum butce: {need.maxBudget.toLocaleString('tr-TR')} TL
+                  Maksimum bütçe: {need.maxBudget.toLocaleString('tr-TR')} TL
                 </p>
               )}
             </div>
@@ -288,14 +288,14 @@ const CreateOfferPage: React.FC = () => {
                 max="365"
               />
               <p className="mt-1 text-xs text-text-secondary">
-                Teklif edilen urun/hizmeti kac gun icinde teslim edebilirsiniz?
+                Teklif edilen ürün/hizmeti kaç gün içinde teslim edebilirsiniz?
               </p>
             </div>
 
             {/* Description Textarea */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-text mb-1">
-                Mesajiniz *
+                Mesajınız *
               </label>
               <div className="relative">
                 <div className="absolute top-3 left-3 pointer-events-none text-text-secondary">
@@ -336,12 +336,12 @@ const CreateOfferPage: React.FC = () => {
 
             {/* Important Info */}
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-primary mb-2">Onemli Bilgiler</h4>
+              <h4 className="text-sm font-semibold text-primary mb-2">Önemli Bilgiler</h4>
               <ul className="text-xs text-text-secondary space-y-1">
-                <li>- Teklifiniz gonderildikten sonra alici tarafindan goruntulenecektir</li>
-                <li>- Teklif kabul edildiginde mesajlasma baslayacaktir</li>
-                <li>- Teklif fiyatiniz ve teslimat sureniz baglayicidir</li>
-                <li>- Uygunsuz teklifler sistem tarafindan kaldirilabiir</li>
+                <li>- Teklifiniz gönderildikten sonra alıcı tarafından görüntülenecektir</li>
+                <li>- Teklif kabul edildiğinde mesajlaşma başlayacaktır</li>
+                <li>- Teklif fiyatınız ve teslimat süreniz bağlayıcıdır</li>
+                <li>- Uygunsuz teklifler sistem tarafından kaldırılabilir</li>
               </ul>
             </div>
 

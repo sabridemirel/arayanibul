@@ -31,7 +31,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loading size="lg" text="Yukleniyor..." />
+        <Loading size="lg" text="Yükleniyor..." />
       </div>
     );
   }
@@ -131,7 +131,7 @@ const AppRoutes: React.FC = () => {
         element={
           <div className="p-8 text-center">
             <h1 className="text-2xl font-bold">Kategoriler</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakin zamanda eklenecek.</p>
+            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
           </div>
         }
       />
@@ -141,8 +141,8 @@ const AppRoutes: React.FC = () => {
         path="/terms"
         element={
           <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Kullanim Kosullari</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakin zamanda eklenecek.</p>
+            <h1 className="text-2xl font-bold">Kullanım Koşulları</h1>
+            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
           </div>
         }
       />
@@ -150,8 +150,8 @@ const AppRoutes: React.FC = () => {
         path="/privacy"
         element={
           <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Gizlilik Politikasi</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakin zamanda eklenecek.</p>
+            <h1 className="text-2xl font-bold">Gizlilik Politikası</h1>
+            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
           </div>
         }
       />
@@ -159,8 +159,8 @@ const AppRoutes: React.FC = () => {
         path="/contact"
         element={
           <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Iletisim</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakin zamanda eklenecek.</p>
+            <h1 className="text-2xl font-bold">İletişim</h1>
+            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
           </div>
         }
       />
@@ -168,8 +168,8 @@ const AppRoutes: React.FC = () => {
         path="/forgot-password"
         element={
           <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Sifremi Unuttum</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakin zamanda eklenecek.</p>
+            <h1 className="text-2xl font-bold">Şifremi Unuttum</h1>
+            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
           </div>
         }
       />
@@ -181,12 +181,12 @@ const AppRoutes: React.FC = () => {
           <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
               <h1 className="text-6xl font-bold text-primary">404</h1>
-              <p className="text-xl text-gray-600 mt-4">Sayfa bulunamadi</p>
+              <p className="text-xl text-gray-600 mt-4">Sayfa bulunamadı</p>
               <a
                 href="/"
                 className="mt-4 inline-block text-primary hover:text-primary-dark"
               >
-                Ana sayfaya don
+                Ana sayfaya dön
               </a>
             </div>
           </div>
