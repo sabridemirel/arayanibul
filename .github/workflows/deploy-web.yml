@@ -1,11 +1,8 @@
 name: Deploy Web to S3 + CloudFront
 
+# Legacy S3/CloudFront deploy. The web app is now served by Cloudflare Pages (see deploy/README.md),
+# so this no longer runs on push; it builds without VITE_API_URL and would publish a broken site.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/web/**'
   workflow_dispatch: # Manuel tetikleme için
 
 env:
