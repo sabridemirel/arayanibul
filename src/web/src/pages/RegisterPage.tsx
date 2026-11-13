@@ -197,20 +197,18 @@ const RegisterPage: React.FC = () => {
                 required
               />
               <label htmlFor="terms" className="text-sm text-text-secondary">
-                <Link
-                  to="/terms"
-                  className="text-primary hover:text-primary-dark"
-                >
-                  Kullanım Koşullarını
-                </Link>{' '}
-                ve{' '}
-                <Link
-                  to="/privacy"
-                  className="text-primary hover:text-primary-dark"
-                >
-                  Gizlilik Politikasını
-                </Link>{' '}
-                okudum ve kabul ediyorum.
+                <Link to="/terms" target="_blank" className="text-primary hover:text-primary-dark">
+                  Kullanım Koşulları
+                </Link>
+                'nı ve{' '}
+                <Link to="/privacy" target="_blank" className="text-primary hover:text-primary-dark">
+                  Gizlilik Politikası
+                </Link>
+                'nı okudum, kabul ediyorum.{' '}
+                <Link to="/kvkk" target="_blank" className="text-primary hover:text-primary-dark">
+                  KVKK Aydınlatma Metni
+                </Link>
+                'ni okudum.
               </label>
             </div>
 
@@ -224,7 +222,7 @@ const RegisterPage: React.FC = () => {
           </form>
 
           <p className="mt-6 text-center text-sm text-text-secondary">
-            Zaten hesabınız var mi?{' '}
+            Zaten hesabınız var mı?{' '}
             <Link
               to="/login"
               className="text-primary hover:text-primary-dark font-medium transition-colors"

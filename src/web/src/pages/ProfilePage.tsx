@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   UserCircleIcon,
-  PencilSquareIcon,
   TagIcon,
   StarIcon,
   ArrowRightOnRectangleIcon,
-  BellIcon,
   DocumentTextIcon,
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
+  ExclamationTriangleIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
 import { userAPI } from '../services/api';
 import type { UserStats } from '../services/api';
-import { Button, Card, Loading, ErrorMessage, Badge } from '../components/ui';
+import { Button, Card, Loading, ErrorMessage, Badge, Input } from '../components/ui';
 import { Header, Footer } from '../components/layout';
 
 const ProfilePage: React.FC = () => {
@@ -24,14 +24,25 @@ const ProfilePage: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       loadUserStats();
-      loadUnreadCount();
     }
   }, [user]);
+
+  const logoutOnUnmountRef = useRef(false);
+  useEffect(() => {
+    return () => {
+      if (logoutOnUnmountRef.current) {
+        logout();
+      }
+    };
+  }, [logout]);
 
   const loadUserStats = async () => {
     try {
@@ -51,19 +62,43 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const loadUnreadCount = async () => {
-    try {
-      const { notificationAPI } = await import('../services/api');
-      const result = await notificationAPI.getUnreadCount();
-      setUnreadNotifications(result.count);
-    } catch {
-      // Silently fail - notifications badge is optional
-    }
-  };
-
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  // Accept "SİL" in any case; also "SIL" for keyboards without Turkish letters
+  const normalizedConfirm = deleteConfirmText.trim().toLocaleUpperCase('tr-TR');
+  const canConfirmDelete = normalizedConfirm === 'SİL' || normalizedConfirm === 'SIL';
+
+  const openDeleteDialog = () => {
+    setDeleteConfirmText('');
+    setDeleteError(null);
+    setShowDeleteDialog(true);
+  };
+
+  const closeDeleteDialog = () => {
+    if (isDeleting) return;
+    setShowDeleteDialog(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!canConfirmDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await userAPI.deleteAccount();
+      // Log out once this page unmounts: logging out first would let the protected
+      // /profile route redirect to /login before the navigation to / is applied.
+      logoutOnUnmountRef.current = true;
+      navigate('/', {
+        replace: true,
+        state: { flash: 'Hesabınız silindi. Arayanibul\'u kullandığınız için teşekkür ederiz.' },
+      });
+    } catch {
+      setDeleteError('Hesabınız silinemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+      setIsDeleting(false);
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -161,10 +196,7 @@ const ProfilePage: React.FC = () => {
 
               {/* Rating Display */}
               {user.rating !== undefined && (
-                <button
-                  onClick={() => navigate('/reviews')}
-                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                >
+                <div className="flex items-center gap-2">
                   <div className="flex">{renderStars(user.rating)}</div>
                   <span className="text-text font-medium">
                     {user.rating.toFixed(1)}
@@ -174,59 +206,12 @@ const ProfilePage: React.FC = () => {
                       ({user.reviewCount} değerlendirme)
                     </span>
                   )}
-                </button>
+                </div>
               )}
             </div>
 
-            {/* Notifications Button */}
-            <button
-              onClick={() => navigate('/notifications')}
-              className="w-full flex items-center justify-between p-4 bg-purple-50 rounded-lg mb-4 hover:bg-purple-100 border border-purple-100 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <BellIcon className="h-6 w-6 text-primary" />
-                  {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-error text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
-                    </span>
-                  )}
-                </div>
-                <div className="text-left">
-                  <p className="font-medium text-text">Bildirimler</p>
-                  <p className="text-sm text-text-secondary">
-                    {unreadNotifications > 0
-                      ? `${unreadNotifications} okunmamış bildirim`
-                      : 'Tüm bildirimler okundu'}
-                  </p>
-                </div>
-              </div>
-              <svg
-                className="h-5 w-5 text-text-secondary"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-
             {/* Action Buttons */}
             <div className="space-y-3">
-              <Button
-                variant="primary"
-                fullWidth
-                leftIcon={<PencilSquareIcon className="h-5 w-5" />}
-                onClick={() => navigate('/edit-profile')}
-              >
-                Profili Düzenle
-              </Button>
-
               <Button
                 variant="outline"
                 fullWidth
@@ -239,10 +224,10 @@ const ProfilePage: React.FC = () => {
               <Button
                 variant="outline"
                 fullWidth
-                leftIcon={<StarIcon className="h-5 w-5" />}
-                onClick={() => navigate('/reviews')}
+                leftIcon={<DocumentTextIcon className="h-5 w-5" />}
+                onClick={() => navigate('/my-needs')}
               >
-                Değerlendirmelerim
+                İlanlarım
               </Button>
 
               <Button
@@ -257,7 +242,7 @@ const ProfilePage: React.FC = () => {
           </Card>
 
           {/* Statistics Card */}
-          <Card padding="lg">
+          <Card padding="lg" className="mb-6">
             <h2 className="text-lg font-semibold text-text text-center mb-6">
               İstatistikler
             </h2>
@@ -280,7 +265,7 @@ const ProfilePage: React.FC = () => {
             ) : (
               <>
                 {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-3 gap-4">
                   <button
                     onClick={() => navigate('/my-needs')}
                     className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors"
@@ -303,31 +288,130 @@ const ProfilePage: React.FC = () => {
                     <span className="text-sm text-text-secondary">Teklifler</span>
                   </button>
 
-                  <button
-                    onClick={() => navigate('/transactions')}
-                    className="flex flex-col items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 border border-purple-100 transition-colors"
-                  >
+                  <div className="flex flex-col items-center p-4 bg-purple-50 rounded-lg border border-purple-100">
                     <CheckCircleIcon className="h-8 w-8 text-primary mb-2" />
                     <span className="text-2xl font-bold text-primary">
                       {stats?.completedTransactionsCount ?? 0}
                     </span>
                     <span className="text-sm text-text-secondary">Tamamlanan</span>
-                  </button>
+                  </div>
                 </div>
 
-                {/* Transactions Button */}
-                <Button
-                  variant="outline"
-                  fullWidth
-                  onClick={() => navigate('/transactions')}
-                >
-                  İşlem Geçmişi
-                </Button>
               </>
             )}
           </Card>
+
+          {/* Danger Zone: account deletion (registered users only) */}
+          {!isGuest && (
+            <Card padding="lg" className="!border-red-200">
+              <h2 className="text-lg font-semibold text-error mb-2">Hesabımı Sil</h2>
+              <p className="text-sm text-text-secondary mb-3">
+                Hesabınızı sildiğinizde:
+              </p>
+              <ul className="list-disc pl-5 text-sm text-text-secondary space-y-1 mb-4">
+                <li>İlanlarınız kapatılır.</li>
+                <li>Bekleyen teklifleriniz geri çekilir.</li>
+                <li>Mesaj geçmişiniz karşı taraf için "Silinmiş Kullanıcı" olarak kalır.</li>
+                <li>Profil bilgileriniz silinir.</li>
+                <li><strong className="text-text">Bu işlem geri alınamaz.</strong></li>
+              </ul>
+              <p className="text-xs text-text-secondary mb-4">
+                Ayrıntılar için{' '}
+                <Link to="/account-deletion" className="text-primary hover:text-primary-dark underline">
+                  Hesap Silme
+                </Link>{' '}
+                sayfasına bakabilirsiniz.
+              </p>
+              <Button
+                variant="outline"
+                fullWidth
+                leftIcon={<TrashIcon className="h-5 w-5" />}
+                onClick={openDeleteDialog}
+                className="!border-error !text-error hover:!bg-red-50"
+              >
+                Hesabımı Sil
+              </Button>
+            </Card>
+          )}
         </div>
       </main>
+
+      {showDeleteDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={closeDeleteDialog}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-account-title"
+            className="bg-surface rounded-lg shadow-xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex-shrink-0 rounded-full bg-red-100 p-2">
+                <ExclamationTriangleIcon className="h-6 w-6 text-error" />
+              </div>
+              <div>
+                <h3 id="delete-account-title" className="text-lg font-semibold text-text">
+                  Hesabınız kalıcı olarak silinecek
+                </h3>
+                <p className="text-sm text-text-secondary mt-1">
+                  İlanlarınız kapatılacak, bekleyen teklifleriniz geri çekilecek. Bu işlem geri
+                  alınamaz. Onaylamak için aşağıya <strong className="text-text">SİL</strong> yazın.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <ErrorMessage
+                message={deleteError}
+                onDismiss={() => setDeleteError(null)}
+                className="mb-4"
+              />
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDeleteAccount();
+              }}
+            >
+              <Input
+                label="Onay"
+                name="deleteConfirm"
+                placeholder="SİL"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                autoComplete="off"
+                autoFocus
+                disabled={isDeleting}
+              />
+
+              <div className="flex flex-col-reverse sm:flex-row gap-3 mt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  fullWidth
+                  onClick={closeDeleteDialog}
+                  disabled={isDeleting}
+                >
+                  Vazgeç
+                </Button>
+                <Button
+                  type="submit"
+                  variant="danger"
+                  fullWidth
+                  isLoading={isDeleting}
+                  disabled={!canConfirmDelete || isDeleting}
+                >
+                  Hesabımı Kalıcı Olarak Sil
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

@@ -1,6 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+const LEGAL_LINKS = [
+  { to: '/privacy', label: 'Gizlilik Politikası' },
+  { to: '/terms', label: 'Kullanım Koşulları' },
+  { to: '/kvkk', label: 'KVKK Aydınlatma Metni' },
+  { to: '/account-deletion', label: 'Hesap Silme' },
+  { to: '/contact', label: 'İletişim' },
+];
+
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
@@ -62,30 +70,16 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="font-bold text-white mb-4">Yasal</h4>
             <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/terms"
-                  className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
-                >
-                  Kullanım Koşulları
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/privacy"
-                  className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
-                >
-                  Gizlilik Politikası
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/contact"
-                  className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
-                >
-                  İletişim
-                </Link>
-              </li>
+              {LEGAL_LINKS.map((link) => (
+                <li key={link.to}>
+                  <Link
+                    to={link.to}
+                    className="text-white/60 hover:text-[#F59E0B] text-sm transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

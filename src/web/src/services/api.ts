@@ -51,7 +51,7 @@ export const emitAuthExpired = () => {
 };
 
 // 401 from these means wrong credentials, not an expired session
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/guest-login'];
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/guest-login', '/auth/forgot-password', '/auth/reset-password'];
 const isAuthEndpoint = (url?: string) => !!url && AUTH_ENDPOINTS.some((path) => url.includes(path));
 
 // Response interceptor - Token suresi dolmussa temizle
@@ -263,6 +263,13 @@ export const authAPI = {
   // Backend exposes current user under /api/User/profile
   getCurrentUser: (): Promise<User> =>
     api.get('/user/profile').then(res => res.data),
+
+  // Always resolves with a generic message (does not reveal whether the email exists)
+  forgotPassword: (email: string): Promise<{ message: string }> =>
+    api.post('/auth/forgot-password', { email }).then(res => res.data),
+
+  resetPassword: (data: { email: string; token: string; newPassword: string }): Promise<{ message: string }> =>
+    api.post('/auth/reset-password', data).then(res => res.data),
 };
 
 export const categoryAPI = {
@@ -377,6 +384,9 @@ export const offerAPI = {
 
   getOfferById: (id: number): Promise<Offer> =>
     api.get(`/offer/${id}`).then(res => normalizeOffer(res.data)),
+
+  withdrawOffer: (offerId: number): Promise<{ message: string }> =>
+    api.post(`/offer/${offerId}/withdraw`).then(res => res.data),
 };
 
 export const messageAPI = {
@@ -448,6 +458,9 @@ export const userAPI = {
 
   getTransactionHistory: (filters: TransactionFilters = {}): Promise<Transaction[]> =>
     api.get('/user/transactions', { params: filters }).then(res => res.data?.items || res.data),
+
+  deleteAccount: (): Promise<{ message: string }> =>
+    api.delete('/user/account').then(res => res.data),
 };
 
 export const searchAPI = {

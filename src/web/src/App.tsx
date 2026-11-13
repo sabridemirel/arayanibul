@@ -13,6 +13,13 @@ import {
   MyOffersPage,
   ProfilePage,
   MessagesPage,
+  TermsPage,
+  PrivacyPage,
+  KvkkPage,
+  ContactPage,
+  AccountDeletionPage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
 } from './pages';
 import { Loading } from './components/ui';
 
@@ -151,53 +158,17 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/categories"
-        element={
-          <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Kategoriler</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
-          </div>
-        }
-      />
 
       {/* Legal Pages */}
-      <Route
-        path="/terms"
-        element={
-          <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Kullanım Koşulları</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
-          </div>
-        }
-      />
-      <Route
-        path="/privacy"
-        element={
-          <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Gizlilik Politikası</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
-          </div>
-        }
-      />
-      <Route
-        path="/contact"
-        element={
-          <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">İletişim</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
-          </div>
-        }
-      />
-      <Route
-        path="/forgot-password"
-        element={
-          <div className="p-8 text-center">
-            <h1 className="text-2xl font-bold">Şifremi Unuttum</h1>
-            <p className="text-gray-500 mt-2">Bu sayfa yakın zamanda eklenecek.</p>
-          </div>
-        }
-      />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/kvkk" element={<KvkkPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/account-deletion" element={<AccountDeletionPage />} />
+
+      {/* Password Recovery */}
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* 404 Route */}
       <Route

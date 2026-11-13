@@ -81,13 +81,11 @@ const MyOffersPage: React.FC = () => {
 
     try {
       setWithdrawingOfferId(offerId);
-      // Note: Backend may need to implement this endpoint
-      // For now we show a placeholder message
-      alert('Teklif geri çekme özelliği yakın zamanda eklenecek.');
-    } catch (err: unknown) {
-      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        || 'Teklif geri çekilirken hata oluştu';
-      alert(errorMessage);
+      setError(null);
+      await offerAPI.withdrawOffer(offerId);
+      setOffers(prev => prev.map(o => (o.id === offerId ? { ...o, status: 'Withdrawn' } : o)));
+    } catch {
+      setError('Teklif geri çekilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
     } finally {
       setWithdrawingOfferId(null);
     }

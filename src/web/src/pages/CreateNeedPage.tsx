@@ -712,19 +712,26 @@ const CreateNeedPage: React.FC = () => {
                   )}
                 </button>
 
-                {/* Acil - devre dışı, yakında gelecek */}
-                <div
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-border opacity-50 cursor-not-allowed"
+                {/* Acil */}
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, urgency: 'Urgent' }))}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors
+                    ${formData.urgency === 'Urgent'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                    }
+                  `}
                 >
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <span className="font-medium text-text">Acil</span>
-                  <span
-                    className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B' }}
-                  >
-                    Yakında
+                  <div className={`w-3 h-3 rounded-full ${getUrgencyColor('Urgent')}`} />
+                  <span className={`font-medium ${formData.urgency === 'Urgent' ? 'text-primary' : 'text-text'}`}>
+                    {getUrgencyText('Urgent')}
                   </span>
-                </div>
+                  {formData.urgency === 'Urgent' && (
+                    <CheckIcon className="h-5 w-5 text-primary ml-auto" />
+                  )}
+                </button>
               </div>
             </Card>
 

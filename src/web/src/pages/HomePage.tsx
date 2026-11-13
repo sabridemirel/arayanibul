@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   MagnifyingGlassIcon,
   PlusCircleIcon,
@@ -10,6 +10,8 @@ import {
   WrenchScrewdriverIcon,
   TruckIcon,
   SparklesIcon,
+  CheckCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI, categoryAPI } from '../services/api';
@@ -19,12 +21,24 @@ import { Header, Footer } from '../components/layout';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
+  // One-off confirmation passed via navigation state (e.g. after account deletion)
+  const [flashMessage, setFlashMessage] = useState<string | null>(
+    () => (location.state as { flash?: string } | null)?.flash ?? null
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [recentNeeds, setRecentNeeds] = useState<Need[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingNeeds, setIsLoadingNeeds] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+  // Drop the flash state so it does not reappear on refresh / back navigation
+  useEffect(() => {
+    if ((location.state as { flash?: string } | null)?.flash) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,6 +114,23 @@ const HomePage: React.FC = () => {
       <Header />
 
       <main className="flex-1">
+        {flashMessage && (
+          <div className="bg-green-50 border-b border-green-200" role="status">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+              <CheckCircleIcon className="h-5 w-5 text-success flex-shrink-0" />
+              <p className="flex-1 text-sm text-green-900">{flashMessage}</p>
+              <button
+                type="button"
+                onClick={() => setFlashMessage(null)}
+                className="text-green-900/70 hover:text-green-900"
+                aria-label="Kapat"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary to-primary-dark py-16 lg:py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -242,7 +273,7 @@ const HomePage: React.FC = () => {
                 Kategoriler
               </h2>
               <Link
-                to="/categories"
+                to="/search"
                 className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
               >
                 Tümünü Gör
