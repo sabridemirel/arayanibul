@@ -8,3 +8,4 @@ export { default as MyOffersPage } from './MyOffersPage';
 export { default as MyNeedsPage } from './MyNeedsPage';
 export { default as NeedDetailPage } from './NeedDetailPage';
 export { default as ProfilePage } from './ProfilePage';
+export { default as MessagesPage } from './MessagesPage';

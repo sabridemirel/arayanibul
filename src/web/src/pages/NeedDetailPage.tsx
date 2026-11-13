@@ -13,6 +13,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ExclamationTriangleIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
@@ -72,9 +73,10 @@ interface OfferCardProps {
   isOwner: boolean;
   onAccept?: (offerId: number) => void;
   onReject?: (offerId: number) => void;
+  canMessage?: boolean;
 }
 
-const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onReject }) => {
+const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onReject, canMessage = false }) => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -149,22 +151,43 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
         )}
       </div>
 
-      {isOwner && offer.status === 'Pending' && (
-        <div className="flex gap-3 mt-4 pt-4 border-t border-border">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => onAccept?.(offer.id)}
-          >
-            Kabul Et
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onReject?.(offer.id)}
-          >
-            Reddet
-          </Button>
+      {isOwner && (offer.status === 'Pending' || canMessage) && (
+        <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
+          {offer.status === 'Pending' && (
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => onAccept?.(offer.id)}
+              >
+                Kabul Et
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onReject?.(offer.id)}
+              >
+                Reddet
+              </Button>
+            </>
+          )}
+          {!canMessage ? null : (offer.status === 'Pending' || offer.status === 'Accepted') ? (
+            <Link
+              to={`/messages/${offer.id}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg text-primary hover:bg-primary-light transition-colors"
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4" />
+              Mesajlaş
+            </Link>
+          ) : (
+            <Link
+              to={`/messages/${offer.id}`}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg text-text-secondary hover:bg-gray-100 transition-colors"
+            >
+              <ChatBubbleLeftRightIcon className="h-4 w-4" />
+              Mesajları Gör
+            </Link>
+          )}
         </div>
       )}
     </Card>
@@ -645,6 +668,7 @@ const NeedDetailPage: React.FC = () => {
                           key={offer.id}
                           offer={offer}
                           isOwner={true}
+                          canMessage={!isGuest}
                           onAccept={handleAcceptOffer}
                           onReject={handleRejectOffer}
                         />

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
 import {
   HomePage,
   LoginPage,
@@ -11,6 +12,7 @@ import {
   NeedDetailPage,
   MyOffersPage,
   ProfilePage,
+  MessagesPage,
 } from './pages';
 import { Loading } from './components/ui';
 
@@ -19,14 +21,17 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
   requireGuest?: boolean;
+  /** Registered users only: guest accounts are redirected to the home page */
+  requireMember?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireAuth = false,
   requireGuest = false,
+  requireMember = false,
 }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isGuest, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -38,6 +43,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireAuth && !isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requireMember && isGuest) {
+    return <Navigate to="/" replace />;
   }
 
   if (requireGuest && isAuthenticated) {
@@ -94,6 +103,22 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requireAuth>
             <MyOffersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute requireAuth requireMember>
+            <MessagesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages/:offerId"
+        element={
+          <ProtectedRoute requireAuth requireMember>
+            <MessagesPage />
           </ProtectedRoute>
         }
       />
@@ -201,7 +226,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes />
+        <ChatProvider>
+          <AppRoutes />
+        </ChatProvider>
       </AuthProvider>
     </Router>
   );

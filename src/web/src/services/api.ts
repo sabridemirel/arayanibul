@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // API Base URL - Production veya development
 // Production için: VITE_API_URL environment variable kullanılır
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+export const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -165,31 +165,44 @@ export interface CreateOfferRequest {
   images?: string[];
 }
 
+export type MessageType = 'Text' | 'Image' | 'Location';
+
+// Mirrors backend MessageDto. isSentByCurrentUser is false in SignalR broadcasts,
+// so compare senderId with the current user's id instead.
 export interface Message {
   id: number;
   offerId: number;
   senderId: string;
+  senderName: string;
+  senderProfileImage?: string;
   content: string;
-  type: 'Text' | 'Image' | 'Location';
+  type: MessageType;
   attachmentUrl?: string;
   isRead: boolean;
   createdAt: string;
-  sender?: User;
+  isSentByCurrentUser: boolean;
 }
 
 export interface SendMessageRequest {
   offerId: number;
   content: string;
-  type: 'Text' | 'Image' | 'Location';
+  type?: MessageType;
   attachmentUrl?: string;
 }
 
+// Mirrors backend ConversationDto
 export interface Conversation {
   offerId: number;
-  offer?: Offer;
+  needId: number;
+  needTitle: string;
+  otherUserId: string;
+  otherUserName: string;
+  otherUserProfileImage?: string;
   lastMessage?: Message;
   unreadCount: number;
-  otherUser?: User;
+  lastActivity: string;
+  offerPrice?: number;
+  offerStatus: Offer['status'];
 }
 
 // API Services
@@ -332,17 +345,30 @@ export const offerAPI = {
 
   updateOffer: (id: number, data: Partial<CreateOfferRequest>): Promise<Offer> =>
     api.put(`/offer/${id}`, data).then(res => normalizeOffer(res.data)),
+
+  getOfferById: (id: number): Promise<Offer> =>
+    api.get(`/offer/${id}`).then(res => normalizeOffer(res.data)),
 };
 
 export const messageAPI = {
   sendMessage: (data: SendMessageRequest): Promise<Message> =>
-    api.post('/message/send', data).then(res => res.data),
+    api.post('/message/send', { type: 'Text', ...data }).then(res => res.data),
 
   getConversation: (offerId: number): Promise<Message[]> =>
-    api.get(`/message/conversation/${offerId}`).then(res => res.data),
+    api.get(`/message/conversation/${offerId}`).then(res => (Array.isArray(res.data) ? res.data : [])),
 
   getConversations: (): Promise<Conversation[]> =>
-    api.get('/message/conversations').then(res => res.data),
+    api.get('/message/conversations').then(res => (Array.isArray(res.data) ? res.data : [])),
+
+  markConversationRead: (offerId: number): Promise<void> =>
+    api.post('/message/mark-conversation-read', { offerId }).then(() => undefined),
+
+  getUnreadCount: (): Promise<number> =>
+    api.get('/message/unread-count').then(res => {
+      const val = res.data;
+      if (typeof val === 'number') return val;
+      return Number(val?.count ?? val?.unreadCount ?? 0) || 0;
+    }),
 
   markAsRead: (messageId: number): Promise<void> =>
     api.post('/message/mark-read', { messageId }).then(res => res.data),

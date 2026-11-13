@@ -10,6 +10,7 @@ import {
   TruckIcon,
   FolderOpenIcon,
   ArrowTopRightOnSquareIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { offerAPI } from '../services/api';
@@ -27,7 +28,7 @@ interface FilterOption {
 
 const MyOffersPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isGuest } = useAuth();
 
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,7 +243,20 @@ const MyOffersPage: React.FC = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            {!isGuest && (offer.status === 'Pending' || offer.status === 'Accepted') && (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<ChatBubbleLeftRightIcon className="h-4 w-4" />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/messages/${offer.id}`);
+                }}
+              >
+                Mesajlaş
+              </Button>
+            )}
             {offer.status === 'Pending' && (
               <Button
                 variant="outline"
@@ -274,7 +288,9 @@ const MyOffersPage: React.FC = () => {
           <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
             <CheckCircleIcon className="h-5 w-5 text-green-600 flex-shrink-0" />
             <p className="text-sm text-green-700">
-              Teklifiniz kabul edildi! Alıcı ile iletişime geçebilirsiniz.
+              {isGuest
+                ? 'Teklifiniz kabul edildi!'
+                : 'Teklifiniz kabul edildi! Ayrıntılar için "Mesajlaş" butonuyla arayanla iletişime geçebilirsiniz.'}
             </p>
           </div>
         </div>

@@ -6,14 +6,27 @@ import {
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
   PlusCircleIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChat } from '../../hooks/useChat';
 import Button from '../ui/Button';
 
 const Header: React.FC = () => {
   const { isAuthenticated, isGuest, user, logout } = useAuth();
   const navigate = useNavigate();
+  const { unreadCount } = useChat();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const canMessage = isAuthenticated && !isGuest;
+  const unreadLabel = unreadCount > 9 ? '9+' : String(unreadCount);
+  const unreadBadge = unreadCount > 0 && (
+    <span
+      className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#F59E0B] text-[#3c0764] text-xs font-bold"
+      aria-label={`${unreadCount} okunmamış mesaj`}
+    >
+      {unreadLabel}
+    </span>
+  );
 
   const handleLogout = () => {
     logout();
@@ -63,6 +76,16 @@ const Header: React.FC = () => {
                 className="text-white/70 hover:text-white transition-colors font-medium"
               >
                 İlanlarım
+              </Link>
+            )}
+            {canMessage && (
+              <Link
+                to="/messages"
+                className="inline-flex items-center gap-1.5 text-white/70 hover:text-white transition-colors font-medium"
+              >
+                <ChatBubbleLeftRightIcon className="h-5 w-5" />
+                Mesajlar
+                {unreadBadge}
               </Link>
             )}
           </nav>
@@ -122,14 +145,17 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-white/80 hover:text-white transition-colors"
+            className="md:hidden relative p-2 text-white/80 hover:text-white transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? 'Menüyü Kapat' : 'Menüyü Ac'}
+            aria-label={isMobileMenuOpen ? 'Menüyü Kapat' : 'Menüyü Aç'}
           >
             {isMobileMenuOpen ? (
               <XMarkIcon className="h-6 w-6" />
             ) : (
               <Bars3Icon className="h-6 w-6" />
+            )}
+            {canMessage && unreadCount > 0 && !isMobileMenuOpen && (
+              <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-[#F59E0B] ring-2 ring-[#5A189A]" aria-hidden="true" />
             )}
           </button>
         </div>
@@ -160,6 +186,15 @@ const Header: React.FC = () => {
                     className="block w-full text-left px-3 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors font-medium"
                   >
                     İlanlarım
+                  </button>
+                )}
+                {canMessage && (
+                  <button
+                    onClick={() => handleNavigation('/messages')}
+                    className="flex w-full items-center justify-between px-3 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors font-medium"
+                  >
+                    <span>Mesajlar</span>
+                    {unreadBadge}
                   </button>
                 )}
                 <button
