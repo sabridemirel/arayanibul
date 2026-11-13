@@ -12,9 +12,8 @@ public class SafeStringAttribute : ValidationAttribute
         @"<script|</script|javascript:|vbscript:|onload=|onerror=|onclick=|<iframe|<object|<embed|<link|<meta|<style|eval\(|expression\(",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static readonly Regex SqlInjectionPatterns = new(
-        @"(\b(ALTER|CREATE|DELETE|DROP|EXEC(UTE)?|INSERT( +INTO)?|MERGE|SELECT|UPDATE|UNION( +ALL)?)\b)|('|('')|;|--|\*|\|)",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    // No SQL-pattern check here: all data access goes through EF Core (parameterized),
+    // and such a check rejected ordinary Turkish text (apostrophes as in "Kadıköy'de", ";", "*").
 
     public override bool IsValid(object? value)
     {
@@ -23,13 +22,6 @@ public class SafeStringAttribute : ValidationAttribute
 
         // Check for XSS patterns
         if (UnsafePatterns.IsMatch(stringValue))
-        {
-            ErrorMessage = "Güvenlik nedeniyle bu karakterler kullanılamaz.";
-            return false;
-        }
-
-        // Check for SQL injection patterns
-        if (SqlInjectionPatterns.IsMatch(stringValue))
         {
             ErrorMessage = "Güvenlik nedeniyle bu karakterler kullanılamaz.";
             return false;
