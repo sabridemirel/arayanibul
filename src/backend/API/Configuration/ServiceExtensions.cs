@@ -99,6 +99,22 @@ public static class ServiceExtensions
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
+
+            // Browsers cannot set an Authorization header on WebSocket/SSE requests, so the
+            // SignalR client sends the JWT as ?access_token=... — accept it for the hub only.
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(accessToken) &&
+                        context.HttpContext.Request.Path.StartsWithSegments("/chathub"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
 
         // Add Google OAuth if configured
@@ -187,6 +203,8 @@ public static class ServiceExtensions
                 var signalROrigins = allowedOrigins.Length > 0
                     ? allowedOrigins
                     : new[] {
+                        "http://localhost:3000", // web (Docker)
+                        "http://localhost:5173", // web (Vite dev)
                         "http://localhost:8081",
                         "exp://192.168.1.7:8081",
                         "exp://192.168.1.100:8081",

@@ -38,6 +38,12 @@ public class MessageService : IMessageService
             throw new UnauthorizedAccessException("Bu konuşmaya mesaj gönderme yetkiniz yok.");
         }
 
+        // Pending and accepted offers can be discussed; closed ones stay readable but read-only.
+        if (offer.Status == OfferStatus.Rejected || offer.Status == OfferStatus.Withdrawn)
+        {
+            throw new ArgumentException("Bu teklif kapandığı için yeni mesaj gönderilemez.");
+        }
+
         var message = new Message
         {
             OfferId = request.OfferId,

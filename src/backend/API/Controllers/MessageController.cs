@@ -57,7 +57,7 @@ public class MessageController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, ex.Message);
         }
         catch (Exception ex)
         {
@@ -104,7 +104,7 @@ public class MessageController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(403, ex.Message);
         }
         catch (Exception ex)
         {
