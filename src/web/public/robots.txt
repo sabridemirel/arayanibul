@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /profile
+Disallow: /messages
+Disallow: /my-needs
+Disallow: /my-offers
+Disallow: /reset-password

@@ -1,0 +1,85 @@
+# Production stack: PostgreSQL + API + Caddy (HTTPS reverse proxy).
+# Web is served separately by Cloudflare Pages. See deploy/README.md.
+# Usage (from this folder): docker compose -f docker-compose.prod.yml up -d --build
+name: arayanibul
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-arayanibul}
+      POSTGRES_USER: ${POSTGRES_USER:-arayanibul}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # No published ports: only reachable from the api container.
+
+  api:
+    build:
+      context: ../src/backend/API
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Host=postgres;Database=${POSTGRES_DB:-arayanibul};Username=${POSTGRES_USER:-arayanibul};Password=${POSTGRES_PASSWORD}"
+      JwtSettings__Secret: ${JWT_SECRET:?JWT_SECRET is required}
+      ReverseProxy__Enabled: "true"
+      BaseUrl: https://${API_DOMAIN:?API_DOMAIN is required}
+      App__WebBaseUrl: https://${WEB_DOMAIN:?WEB_DOMAIN is required}
+      Cors__AllowedOrigins__0: https://${WEB_DOMAIN}
+      Cors__AllowedOrigins__1: https://www.${WEB_DOMAIN}
+      Admin__Emails: ${ADMIN_EMAILS:-}
+      OAuth__Google__ClientIds__0: ${GOOGLE_WEB_CLIENT_ID:-}
+      OAuth__Google__ClientIds__1: ${GOOGLE_IOS_CLIENT_ID:-}
+      OAuth__Google__ClientIds__2: ${GOOGLE_ANDROID_CLIENT_ID:-}
+      OAuth__Facebook__AppId: ${FACEBOOK_APP_ID:-}
+      OAuth__Facebook__AppSecret: ${FACEBOOK_APP_SECRET:-}
+      OAuth__Apple__ClientIds__0: ${APPLE_BUNDLE_ID:-com.arayanibul.app}
+      Email__Host: ${SMTP_HOST:-}
+      Email__Port: ${SMTP_PORT:-587}
+      Email__Username: ${SMTP_USERNAME:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__FromAddress: ${EMAIL_FROM:-}
+      Email__FromName: ${EMAIL_FROM_NAME:-Arayanibul}
+      Email__EnableSsl: "true"
+    volumes:
+      - uploads:/app/wwwroot/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

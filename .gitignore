@@ -260,3 +260,5 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+# Vite static files for the web app (served as-is; not a build output)
+!src/web/public/
