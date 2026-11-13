@@ -10,9 +10,15 @@ Usage:
     python3 scripts/seed_demo.py                       # http://localhost:5001/api
     python3 scripts/seed_demo.py https://api.example.com/api
 
+New needs start in review (moderation). To publish the demo needs automatically,
+set the credentials of an admin account (confirmed e-mail listed in Admin:Emails):
+    SEED_ADMIN_EMAIL=... SEED_ADMIN_PASSWORD=... python3 scripts/seed_demo.py
+Otherwise approve them in the web admin panel (/admin).
+
 All demo accounts use the password below.
 """
 import json
+import os
 import sys
 import urllib.error
 import urllib.request
@@ -139,6 +145,19 @@ def main():
         })
         need_ids.append(need["id"])
     print(f"{len(need_ids)} ilan oluşturuldu")
+
+    # Publish through moderation so offers can be made (offers need Active needs).
+    admin_email, admin_password = os.environ.get("SEED_ADMIN_EMAIL"), os.environ.get("SEED_ADMIN_PASSWORD")
+    if any(call("GET", f"/need/{nid}", buyers[NEEDS[i][0]]).get("status") == "PendingReview"
+           for i, nid in enumerate(need_ids)):
+        if not (admin_email and admin_password):
+            print("İlanlar onay bekliyor. SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD verin ya da /admin panelinden "
+                  "onaylayıp betiği tekrar çalıştırmadan önce demo hesaplarını temizleyin. Teklif adımı atlandı.")
+            return
+        admin = call("POST", "/auth/login", body={"email": admin_email, "password": admin_password})["token"]
+        for nid in need_ids:
+            call("POST", f"/admin/needs/{nid}/approve", admin, {})
+        print(f"{len(need_ids)} ilan onaylandı")
 
     offers = []  # (offer id, buyer token, seller token)
     for n, s, price, delivery, desc in OFFERS:
