@@ -1,9 +1,11 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 // Token lives in secure storage (written by authService.saveAuthData). Do not import
 // authService here: it imports this module.
 import secureStorageService from './secureStorageService';
+import biometricAuthService from './biometricAuthService';
 
 // API URL: set EXPO_PUBLIC_API_URL (e.g. https://api.example.com/api) for any deployed build.
 // Without it, fall back to the local Docker API (Android emulator reaches the host via 10.0.2.2).
@@ -61,7 +63,7 @@ export const emitAuthExpired = () => {
   });
 };
 
-// 401 from these means wrong credentials, not an expired session
+// 401 from these means wrong credentials (or a dead refresh token), not an expired access token
 const AUTH_ENDPOINTS = [
   '/auth/login',
   '/auth/register',
@@ -69,21 +71,108 @@ const AUTH_ENDPOINTS = [
   '/auth/google-login',
   '/auth/facebook-login',
   '/auth/apple-login',
+  '/auth/refresh-token',
   '/auth/forgot-password',
+  '/auth/reset-password',
 ];
 const isAuthEndpoint = (url?: string) => !!url && AUTH_ENDPOINTS.some(path => url.includes(path));
 
-// Response interceptor - Token süresi dolmuşsa temizle
+const clearStoredSession = async () => {
+  await secureStorageService.clearAuthTokens();
+  await AsyncStorage.removeItem('user');
+};
+
+// Refresh endpoint returns { accessToken, refreshToken, expiresAt }; also accept the AuthResponse shape
+interface RefreshResponse {
+  success?: boolean;
+  accessToken?: string;
+  token?: string;
+  refreshToken?: string;
+  user?: unknown;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+const performRefresh = async (): Promise<boolean> => {
+  const { refreshToken } = await secureStorageService.getAuthTokens();
+  if (!refreshToken) return false;
+  try {
+    // Plain axios (not `api`) so this request never goes through the 401 interceptor
+    const { data } = await axios.post<RefreshResponse>(
+      `${API_BASE_URL}/auth/refresh-token`,
+      { refreshToken },
+      { timeout: 10000, headers: { 'Content-Type': 'application/json' } }
+    );
+    const newToken = data?.accessToken ?? data?.token;
+    if (data?.success === false || !newToken || !data.refreshToken) return false;
+    // Rotation revokes the old refresh token, so always persist the new pair
+    await secureStorageService.storeAuthTokens(newToken, data.refreshToken);
+    if (data.user) await AsyncStorage.setItem('user', JSON.stringify(data.user));
+    try {
+      await biometricAuthService.updateBiometricToken(newToken);
+    } catch {}
+    return true;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) return false;
+    // Network error / timeout: session state unknown, let the caller retry later
+    throw error;
+  }
+};
+
+/**
+ * Exchanges the stored refresh token for a new token pair (single-flight: concurrent callers share one request).
+ * Resolves true when a new session was stored, false when the session is no longer valid.
+ * Rejects on network errors (the session may still be valid).
+ */
+export const refreshSession = (): Promise<boolean> => {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+};
+
+type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+// Response interceptor - 401: refresh the session once and retry, otherwise sign out
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      await secureStorageService.clearAuthTokens();
-      await AsyncStorage.removeItem('user');
-      // Only a rejected token means the session expired
-      if (error.config?.headers?.Authorization && !isAuthEndpoint(error.config?.url)) {
-        emitAuthExpired();
+    const config = error.config as RetriableConfig | undefined;
+    if (error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+
+    const sentAuth = config?.headers?.Authorization;
+    const canRefresh = !!config && !!sentAuth && !config._retry && !isAuthEndpoint(config.url);
+
+    if (canRefresh) {
+      config._retry = true;
+      // Token already rotated by a concurrent refresh: just retry with the current one
+      const { accessToken: currentToken } = await secureStorageService.getAuthTokens();
+      let refreshed = !!currentToken && `Bearer ${currentToken}` !== sentAuth;
+      if (!refreshed) {
+        try {
+          refreshed = await refreshSession();
+        } catch {
+          // Network failure while refreshing: keep the session, just fail this request
+          return Promise.reject(error);
+        }
       }
+      if (refreshed) {
+        const { accessToken } = await secureStorageService.getAuthTokens();
+        if (accessToken) {
+          config.headers.Authorization = `Bearer ${accessToken}`;
+          return api(config);
+        }
+      }
+    }
+
+    await clearStoredSession();
+    // Only a rejected token means the session expired
+    if (sentAuth && !isAuthEndpoint(config?.url)) {
+      emitAuthExpired();
     }
     return Promise.reject(error);
   }

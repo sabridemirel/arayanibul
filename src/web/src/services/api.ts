@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 
 // API Base URL - Production veya development
 // Production için: VITE_API_URL environment variable kullanılır
@@ -50,21 +51,128 @@ export const emitAuthExpired = () => {
   });
 };
 
-// 401 from these means wrong credentials, not an expired session
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/guest-login', '/auth/forgot-password', '/auth/reset-password'];
+// 401 from these means wrong credentials (or a dead refresh token), not an expired access token
+const AUTH_ENDPOINTS = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/guest-login',
+  '/auth/google-login',
+  '/auth/facebook-login',
+  '/auth/apple-login',
+  '/auth/refresh-token',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+];
 const isAuthEndpoint = (url?: string) => !!url && AUTH_ENDPOINTS.some((path) => url.includes(path));
 
-// Response interceptor - Token suresi dolmussa temizle
+const clearStoredSession = () => {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
+};
+
+// Stores a session returned by login/register/guest/social/convert-guest (or a refresh)
+export const storeSession = (token: string, refreshToken?: string | null, user?: unknown) => {
+  localStorage.setItem('authToken', token);
+  if (refreshToken) {
+    localStorage.setItem('refreshToken', refreshToken);
+  } else {
+    // A stale refresh token from an earlier session must not be used for this one
+    localStorage.removeItem('refreshToken');
+  }
+  if (user) localStorage.setItem('user', JSON.stringify(user));
+};
+
+// Refresh endpoint returns { accessToken, refreshToken, expiresAt }; also accept the AuthResponse shape
+interface RefreshResponse {
+  success?: boolean;
+  accessToken?: string;
+  token?: string;
+  refreshToken?: string;
+  user?: unknown;
+}
+
+let refreshPromise: Promise<boolean> | null = null;
+
+const performRefresh = async (): Promise<boolean> => {
+  const refreshToken = localStorage.getItem('refreshToken');
+  if (!refreshToken) return false;
+  try {
+    // Plain axios (not `api`) so this request never goes through the 401 interceptor
+    const { data } = await axios.post<RefreshResponse>(
+      `${API_BASE_URL}/auth/refresh-token`,
+      { refreshToken },
+      { timeout: 10000, headers: { 'Content-Type': 'application/json' } }
+    );
+    const newToken = data?.accessToken ?? data?.token;
+    if (data?.success === false || !newToken) return false;
+    storeSession(newToken, data.refreshToken, data.user);
+    return true;
+  } catch (err) {
+    if (axios.isAxiosError(err) && err.response) {
+      // Another tab may have rotated the token meanwhile (rotation revokes ours): use its session
+      const current = localStorage.getItem('refreshToken');
+      return !!current && current !== refreshToken && !!localStorage.getItem('authToken');
+    }
+    // Network error / timeout: session state unknown, let the caller retry later
+    throw err;
+  }
+};
+
+/**
+ * Exchanges the stored refresh token for a new token pair (single-flight: concurrent callers share one request).
+ * Resolves true when a new session was stored, false when the session is no longer valid.
+ * Rejects on network errors (the session may still be valid).
+ */
+export const refreshSession = (): Promise<boolean> => {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+};
+
+type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
+// Response interceptor - 401: refresh the session once and retry, otherwise sign out
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      // Only a rejected token means the session expired
-      if (error.config?.headers?.Authorization && !isAuthEndpoint(error.config?.url)) {
-        emitAuthExpired();
+  async (error) => {
+    const config = error.config as RetriableConfig | undefined;
+    if (error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+
+    const sentAuth = config?.headers?.Authorization;
+    const canRefresh = !!config && !!sentAuth && !config._retry && !isAuthEndpoint(config.url);
+
+    if (canRefresh) {
+      config._retry = true;
+      // Token already rotated by a concurrent refresh: just retry with the current one
+      const currentToken = localStorage.getItem('authToken');
+      let refreshed = !!currentToken && `Bearer ${currentToken}` !== sentAuth;
+      if (!refreshed) {
+        try {
+          refreshed = await refreshSession();
+        } catch {
+          // Network failure while refreshing: keep the session, just fail this request
+          return Promise.reject(error);
+        }
       }
+      if (refreshed) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+          return api(config);
+        }
+      }
+    }
+
+    clearStoredSession();
+    // Only a rejected token means the session expired
+    if (sentAuth && !isAuthEndpoint(config?.url)) {
+      emitAuthExpired();
     }
     return Promise.reject(error);
   }
@@ -92,6 +200,7 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   token?: string;
+  refreshToken?: string;
   user?: User;
 }
 

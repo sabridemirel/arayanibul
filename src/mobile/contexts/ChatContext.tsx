@@ -17,7 +17,7 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 import { useAuth } from './AuthContext';
-import { API_BASE_URL, Message, emitAuthExpired, messageAPI } from '../services/api';
+import { API_BASE_URL, Message, emitAuthExpired, messageAPI, refreshSession } from '../services/api';
 import secureStorageService from '../services/secureStorageService';
 
 export type MessageHandler = (message: Message) => void;
@@ -164,6 +164,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let needsResync = false;
     // Token rejected: stop until the auth state changes (this effect re-runs then)
     let authFailed = false;
+    // One token refresh per 401 streak; reset after a successful start
+    let refreshTried = false;
 
     const connection = new HubConnectionBuilder()
       .withUrl(HUB_URL, {
@@ -203,6 +205,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         await connection.start();
         if (disposed) return;
+        refreshTried = false;
         setIsConnected(true);
         rejoinAll();
         if (needsResync) {
@@ -213,6 +216,25 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (error) {
         if (disposed) return;
         if (isUnauthorized(error)) {
+          if (!refreshTried) {
+            refreshTried = true;
+            let refreshed = false;
+            try {
+              refreshed = await refreshSession();
+            } catch {
+              // Network failure while refreshing: retry later like any other failed start
+              if (disposed) return;
+              refreshTried = false;
+              needsResync = true;
+              scheduleRestart();
+              return;
+            }
+            if (disposed) return;
+            if (refreshed) {
+              start();
+              return;
+            }
+          }
           console.warn('Chat hub rejected the token (401), session expired:', error);
           authFailed = true;
           emitAuthExpired();

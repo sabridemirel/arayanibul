@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI, onAuthExpired } from '../services/api';
+import { authAPI, onAuthExpired, storeSession } from '../services/api';
 import type { User, LoginData, RegisterData, AuthResponse } from '../services/api';
 
 interface AuthContextType {
@@ -44,16 +44,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const currentUser = await authAPI.getCurrentUser();
             setUser(currentUser);
             localStorage.setItem('user', JSON.stringify(currentUser));
-          } catch {
-            // Token invalid, clear storage
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('user');
-            setUser(null);
+          } catch (err) {
+            // Session rejected even after a refresh attempt: clear it. Network errors keep the stored session.
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 401) {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('refreshToken');
+              localStorage.removeItem('user');
+              setUser(null);
+            }
           }
         }
       } catch {
         // Error reading from storage
         localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
       } finally {
         setIsLoading(false);
@@ -65,8 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const handleAuthResponse = useCallback((response: AuthResponse) => {
     if (response.success && response.token && response.user) {
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      storeSession(response.token, response.refreshToken, response.user);
       setUser(response.user);
       setError(null);
     } else {
@@ -110,6 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     setUser(null);
     setError(null);

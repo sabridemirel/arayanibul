@@ -9,7 +9,7 @@ import type { HubConnection } from '@microsoft/signalr';
 import { useAuth } from './AuthContext';
 import { ChatContext } from '../hooks/useChat';
 import type { ChatContextType, MessageHandler } from '../hooks/useChat';
-import { API_BASE_URL, emitAuthExpired, messageAPI } from '../services/api';
+import { API_BASE_URL, emitAuthExpired, messageAPI, refreshSession } from '../services/api';
 import type { Message } from '../services/api';
 
 // Hub lives at the API origin, not under /api
@@ -113,6 +113,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let attempt = 0;
     // Set when the connection was down; the next successful start must trigger a resync
     let needsResync = false;
+    // One token refresh per 401 streak; reset after a successful start
+    let refreshTried = false;
     const dispatchedIds = dispatchedIdsRef.current;
     const countedIds = countedIdsRef.current;
     const joined = joinedRef.current;
@@ -176,6 +178,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await connection.start();
         if (disposed) return;
         attempt = 0;
+        refreshTried = false;
         setConnected(true);
         rejoinAll();
         if (needsResync) {
@@ -186,6 +189,24 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (err) {
         if (disposed) return;
         if (isUnauthorized(err)) {
+          if (!refreshTried) {
+            refreshTried = true;
+            let refreshed = false;
+            try {
+              refreshed = await refreshSession();
+            } catch {
+              // Network failure while refreshing: retry later like any other failed start
+              if (disposed) return;
+              refreshTried = false;
+              retryTimer = setTimeout(start, START_RETRY_DELAYS_MS[0]);
+              return;
+            }
+            if (disposed) return;
+            if (refreshed) {
+              void start();
+              return;
+            }
+          }
           console.warn('[chat] real-time connection rejected (401), session expired', err);
           emitAuthExpired();
           return;

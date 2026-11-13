@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import authService, { isAuthCancelled } from '../services/authService';
-import { User, RegisterData, LoginData, AuthResponse, onAuthExpired, userAPI } from '../services/api';
+import { User, RegisterData, LoginData, AuthResponse, onAuthExpired, refreshSession, userAPI } from '../services/api';
 import { notificationService } from '../services/notificationService';
 
 export interface GuestAction {
@@ -298,14 +298,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const refreshToken = async () => {
+    let refreshed: boolean;
     try {
-      // Token refresh logic will be implemented when backend supports it
-      const token = await authService.getAuthToken();
-      if (!token) {
-        await logout();
-      }
+      refreshed = await refreshSession();
     } catch (error) {
-      console.error('Token refresh error:', error);
+      // Network error: the session may still be valid, keep it
+      console.warn('Token refresh failed:', error);
+      return;
+    }
+    if (!refreshed) {
       await logout();
     }
   };

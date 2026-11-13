@@ -70,7 +70,7 @@ class AuthService {
     try {
       const response = await authAPI.register(data);
       if (response.success && response.token && response.user) {
-        await this.saveAuthData(response.token, response.user);
+        await this.saveAuthData(response.token, response.user, response.refreshToken);
       }
       return response;
     } catch (error: any) {
@@ -82,7 +82,7 @@ class AuthService {
     try {
       const response = await authAPI.login(data);
       if (response.success && response.token && response.user) {
-        await this.saveAuthData(response.token, response.user);
+        await this.saveAuthData(response.token, response.user, response.refreshToken);
       }
       return response;
     } catch (error: any) {
@@ -267,7 +267,7 @@ class AuthService {
     try {
       const response = await authAPI.guestLogin();
       if (response.success && response.token && response.user) {
-        await this.saveAuthData(response.token, response.user);
+        await this.saveAuthData(response.token, response.user, response.refreshToken);
       }
       return response;
     } catch (error: any) {
@@ -279,7 +279,7 @@ class AuthService {
     try {
       const response = await authAPI.convertGuestToUser(data);
       if (response.success && response.token && response.user) {
-        await this.saveAuthData(response.token, response.user);
+        await this.saveAuthData(response.token, response.user, response.refreshToken);
       }
       return response;
     } catch (error: any) {
@@ -345,7 +345,11 @@ class AuthService {
   private async saveAuthData(token: string, user: User, refreshToken?: string) {
     // Store tokens securely
     await secureStorageService.storeAuthTokens(token, refreshToken);
-    
+    if (!refreshToken) {
+      // A stale refresh token from an earlier session must not be used for this one
+      await secureStorageService.removeSecureItem('refreshToken');
+    }
+
     // Store user data in regular storage (non-sensitive)
     await AsyncStorage.setItem('user', JSON.stringify(user));
     
