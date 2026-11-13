@@ -8,11 +8,13 @@ public class SmtpEmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<SmtpEmailService> _logger;
+    private readonly IWebHostEnvironment _environment;
 
-    public SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailService> logger)
+    public SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailService> logger, IWebHostEnvironment environment)
     {
         _configuration = configuration;
         _logger = logger;
+        _environment = environment;
     }
 
     public async Task<bool> SendEmailAsync(string toAddress, string subject, string htmlBody, string textBody)
@@ -22,11 +24,19 @@ public class SmtpEmailService : IEmailService
 
         if (string.IsNullOrWhiteSpace(host))
         {
-            // Development fallback: no SMTP configured, log the email instead of sending it.
-            _logger.LogInformation(
-                "Email:Host is not configured; email not sent. To: {To} | Subject: {Subject}\n{Body}",
-                toAddress, subject, textBody);
-            return true;
+            // Bodies can carry one-time secrets (password reset links), so they are only
+            // logged in Development. Elsewhere a missing SMTP host is an error.
+            if (_environment.IsDevelopment())
+            {
+                _logger.LogInformation(
+                    "Email:Host is not configured (Development); email not sent. To: {To} | Subject: {Subject}\n{Body}",
+                    toAddress, subject, textBody);
+                return true;
+            }
+
+            _logger.LogError("Email:Host is not configured; email to {To} with subject {Subject} was not sent.",
+                toAddress, subject);
+            return false;
         }
 
         try
