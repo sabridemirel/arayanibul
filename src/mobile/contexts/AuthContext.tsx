@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import authService from '../services/authService';
-import { User, RegisterData, LoginData } from '../services/api';
+import { User, RegisterData, LoginData, onAuthExpired } from '../services/api';
 import { notificationService } from '../services/notificationService';
 
 export interface GuestAction {
@@ -48,9 +48,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [guestActions, setGuestActions] = useState<GuestAction[]>([]);
   const [intendedAction, setIntendedAction] = useState<(() => void) | null>(null);
+  const handlingExpiryRef = useRef(false);
 
   useEffect(() => {
     initializeAuth();
+  }, []);
+
+  // Token rejected by the API (interceptor already cleared storage): reset local state
+  // and continue as guest like logout does. No API logout call, so this cannot loop.
+  useEffect(() => {
+    return onAuthExpired(async () => {
+      if (handlingExpiryRef.current) return;
+      handlingExpiryRef.current = true;
+      try {
+        setUser(null);
+        setIsAuthenticated(false);
+        setGuestActions([]);
+        setIntendedAction(null);
+        await guestContinue();
+      } finally {
+        handlingExpiryRef.current = false;
+      }
+    });
   }, []);
 
   const initializeAuth = async () => {

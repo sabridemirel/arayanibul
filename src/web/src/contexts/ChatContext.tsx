@@ -9,7 +9,7 @@ import type { HubConnection } from '@microsoft/signalr';
 import { useAuth } from './AuthContext';
 import { ChatContext } from '../hooks/useChat';
 import type { ChatContextType, MessageHandler } from '../hooks/useChat';
-import { API_BASE_URL, messageAPI } from '../services/api';
+import { API_BASE_URL, emitAuthExpired, messageAPI } from '../services/api';
 import type { Message } from '../services/api';
 
 // Hub lives at the API origin, not under /api
@@ -18,6 +18,12 @@ const HUB_URL = `${API_BASE_URL.replace(/\/+$/, '').replace(/\/api$/i, '')}/chat
 // Retry delays for the initial connection (withAutomaticReconnect only covers drops after a successful start)
 const START_RETRY_DELAYS_MS = [2000, 5000, 10000, 30000, 60000];
 const MAX_TRACKED_IDS = 500;
+
+const isUnauthorized = (err: unknown) => {
+  const statusCode = (err as { statusCode?: number } | null)?.statusCode;
+  if (statusCode === 401) return true;
+  return err instanceof Error && err.message.includes('401');
+};
 
 const rememberId = (set: Set<number>, id: number) => {
   set.add(id);
@@ -34,6 +40,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [unreadCountState, setUnreadCount] = useState(0);
   const [connected, setConnected] = useState(false);
+  const [reconnectCount, setReconnectCount] = useState(0);
 
   const connectionRef = useRef<HubConnection | null>(null);
   const handlersRef = useRef(new Set<MessageHandler>());
@@ -42,19 +49,30 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const joinedRef = useRef(new Set<number>());
   const activeConversationRef = useRef<number | null>(null);
   const userIdRef = useRef<string | null>(userId);
+  // Local badge increments; a refresh that raced with one must not overwrite it
+  const localIncrementsRef = useRef(0);
 
   useEffect(() => {
     userIdRef.current = userId;
   }, [userId]);
 
   const refreshUnread = useCallback(async () => {
-    if (!userIdRef.current) return;
-    try {
-      const count = await messageAPI.getUnreadCount();
-      setUnreadCount(count);
-    } catch (err) {
-      console.warn('[chat] unread count could not be loaded', err);
+    // Re-fetch once if a NewMessage bumped the badge while the request was in flight
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      if (!userIdRef.current) return;
+      const incrementsAtStart = localIncrementsRef.current;
+      try {
+        const count = await messageAPI.getUnreadCount();
+        if (localIncrementsRef.current === incrementsAtStart) {
+          setUnreadCount(count);
+          return;
+        }
+      } catch (err) {
+        console.warn('[chat] unread count could not be loaded', err);
+        return;
+      }
     }
+    // Still racing: keep the locally counted value
   }, []);
 
   const invokeGroup = useCallback((method: 'JoinOfferConversation' | 'LeaveOfferConversation', offerId: number) => {
@@ -93,6 +111,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     let disposed = false;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    // Set when the connection was down; the next successful start must trigger a resync
+    let needsResync = false;
     const dispatchedIds = dispatchedIdsRef.current;
     const countedIds = countedIdsRef.current;
     const joined = joinedRef.current;
@@ -125,6 +145,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         rememberId(countedIds, message.id);
         const isMine = message.senderId === userIdRef.current;
         if (!isMine && message.offerId !== activeConversationRef.current) {
+          localIncrementsRef.current += 1;
           setUnreadCount((count) => count + 1);
         }
       }
@@ -144,18 +165,32 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setConnected(true);
       rejoinAll();
       void refreshUnread();
+      setReconnectCount((count) => count + 1);
     });
 
     const start = async () => {
       if (disposed) return;
+      // Signed out / token cleared: no point connecting or retrying
+      if (!localStorage.getItem('authToken')) return;
       try {
         await connection.start();
         if (disposed) return;
         attempt = 0;
         setConnected(true);
         rejoinAll();
+        if (needsResync) {
+          needsResync = false;
+          void refreshUnread();
+          setReconnectCount((count) => count + 1);
+        }
       } catch (err) {
         if (disposed) return;
+        if (isUnauthorized(err)) {
+          console.warn('[chat] real-time connection rejected (401), session expired', err);
+          emitAuthExpired();
+          return;
+        }
+        needsResync = true;
         const delay = START_RETRY_DELAYS_MS[Math.min(attempt, START_RETRY_DELAYS_MS.length - 1)];
         attempt += 1;
         console.warn(`[chat] real-time connection failed, retrying in ${delay / 1000}s`, err);
@@ -167,12 +202,16 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     connection.onclose(() => {
       setConnected(false);
       if (disposed) return;
+      needsResync = true;
       retryTimer = setTimeout(start, START_RETRY_DELAYS_MS[START_RETRY_DELAYS_MS.length - 1]);
     });
 
+    const incrementsAtStart = localIncrementsRef.current;
     messageAPI.getUnreadCount()
       .then((count) => {
-        if (!disposed) setUnreadCount(count);
+        if (disposed) return;
+        if (localIncrementsRef.current === incrementsAtStart) setUnreadCount(count);
+        else void refreshUnread();
       })
       .catch((err) => console.warn('[chat] unread count could not be loaded', err));
     void start();
@@ -200,7 +239,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     leaveConversation,
     setActiveConversation,
     isConnected,
-  }), [unreadCount, refreshUnread, subscribe, joinConversation, leaveConversation, setActiveConversation, isConnected]);
+    reconnectCount,
+  }), [unreadCount, refreshUnread, subscribe, joinConversation, leaveConversation, setActiveConversation, isConnected, reconnectCount]);
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 };

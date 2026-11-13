@@ -2,7 +2,6 @@ using API.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
 using System.Security.Claims;
 
 namespace API.Hubs;
@@ -10,7 +9,6 @@ namespace API.Hubs;
 [Authorize]
 public class ChatHub : Hub
 {
-    private static readonly ConcurrentDictionary<string, string> UserConnections = new();
     private readonly ApplicationDbContext _context;
 
     public ChatHub(ApplicationDbContext context)
@@ -23,7 +21,6 @@ public class ChatHub : Hub
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!string.IsNullOrEmpty(userId))
         {
-            UserConnections[userId] = Context.ConnectionId;
             await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId}");
         }
         await base.OnConnectedAsync();
@@ -34,7 +31,6 @@ public class ChatHub : Hub
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!string.IsNullOrEmpty(userId))
         {
-            UserConnections.TryRemove(userId, out _);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"User_{userId}");
         }
         await base.OnDisconnectedAsync(exception);
@@ -60,14 +56,4 @@ public class ChatHub : Hub
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"Offer_{offerId}");
     }
 
-    public static string? GetConnectionId(string userId)
-    {
-        UserConnections.TryGetValue(userId, out var connectionId);
-        return connectionId;
-    }
-
-    public static bool IsUserOnline(string userId)
-    {
-        return UserConnections.ContainsKey(userId);
-    }
 }

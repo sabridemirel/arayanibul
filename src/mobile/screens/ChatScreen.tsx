@@ -44,6 +44,14 @@ const isClosedStatus = (status?: string) => status === 'Rejected' || status === 
 const sortByDate = (list: Message[]) =>
   [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
+// Union by id (incoming wins), ascending by date: keeps hub messages that arrived during a fetch
+const mergeMessages = (current: Message[], incoming: Message[]) => {
+  const byId = new Map<number, Message>();
+  current.forEach(m => byId.set(m.id, m));
+  incoming.forEach(m => byId.set(m.id, { ...byId.get(m.id), ...m }));
+  return sortByDate([...byId.values()]);
+};
+
 interface MessageBubbleProps {
   message: Message;
   isOwnMessage: boolean;
@@ -73,6 +81,7 @@ const ChatScreen: React.FC = () => {
     leaveConversation,
     setActiveConversation,
     refreshUnread,
+    reconnectCount,
   } = useChat();
   const offerId = Number(route.params.offerId);
 
@@ -112,7 +121,7 @@ const ChatScreen: React.FC = () => {
       setLoading(true);
       setError(null);
       const conversationMessages = await messageAPI.getConversation(offerId);
-      setMessages(sortByDate(conversationMessages));
+      setMessages(prev => mergeMessages(prev, conversationMessages));
       markRead();
     } catch (err) {
       setError('Mesajlar yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
@@ -126,6 +135,25 @@ const ChatScreen: React.FC = () => {
     loadConversation();
     loadOffer();
   }, [loadConversation, loadOffer]);
+
+  // Hub reconnected / app returned to foreground: merge a fresh snapshot (messages may have been missed).
+  const lastReconnectRef = useRef(reconnectCount);
+  useEffect(() => {
+    if (reconnectCount === lastReconnectRef.current) return;
+    lastReconnectRef.current = reconnectCount;
+    let cancelled = false;
+    messageAPI
+      .getConversation(offerId)
+      .then(conversationMessages => {
+        if (cancelled) return;
+        setMessages(prev => mergeMessages(prev, conversationMessages));
+        markRead();
+      })
+      .catch(err => console.warn('Conversation resync failed:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [reconnectCount, offerId, markRead]);
 
   // Real-time: join the offer group and append incoming messages.
   useEffect(() => {

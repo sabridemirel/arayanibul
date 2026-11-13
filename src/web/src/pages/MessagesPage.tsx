@@ -237,7 +237,8 @@ const ChatPane: React.FC<ChatPaneProps> = ({
   onRead,
 }) => {
   const { user } = useAuth();
-  const { subscribe, joinConversation, leaveConversation, setActiveConversation, refreshUnread } = useChat();
+  const { subscribe, joinConversation, leaveConversation, setActiveConversation, refreshUnread, reconnectCount } =
+    useChat();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -303,6 +304,25 @@ const ChatPane: React.FC<ChatPaneProps> = ({
       cancelled = true;
     };
   }, [offerId, markRead, reloadKey]);
+
+  // Hub came back: messages may have been missed while it was down, merge a fresh snapshot
+  const lastReconnectRef = useRef(reconnectCount);
+  useEffect(() => {
+    if (reconnectCount === lastReconnectRef.current) return;
+    lastReconnectRef.current = reconnectCount;
+    let cancelled = false;
+    messageAPI
+      .getConversation(offerId)
+      .then((data) => {
+        if (cancelled) return;
+        setMessages((current) => data.reduce(mergeMessage, current));
+        void markRead();
+      })
+      .catch((err) => console.warn('[chat] conversation resync failed', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [reconnectCount, offerId, markRead]);
 
   // New thread (not in the list yet): fetch the offer for title/status
   const needOffer = conversationsLoaded && !conversation;
@@ -572,7 +592,7 @@ const MessagesPage: React.FC = () => {
   const { offerId: offerIdParam } = useParams<{ offerId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { subscribe } = useChat();
+  const { subscribe, reconnectCount } = useChat();
 
   const parsedId = offerIdParam ? Number(offerIdParam) : NaN;
   const activeOfferId = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
@@ -601,6 +621,14 @@ const MessagesPage: React.FC = () => {
   useEffect(() => {
     void fetchConversations();
   }, [fetchConversations]);
+
+  // Hub came back: refresh previews / unread counts that may have changed meanwhile
+  const lastReconnectRef = useRef(reconnectCount);
+  useEffect(() => {
+    if (reconnectCount === lastReconnectRef.current) return;
+    lastReconnectRef.current = reconnectCount;
+    void fetchConversations();
+  }, [reconnectCount, fetchConversations]);
 
   // Invalid id in the URL: back to the list
   useEffect(() => {

@@ -40,6 +40,31 @@ api.interceptors.request.use(
   }
 );
 
+// Auth-expired notifier: lets AuthContext reset its state when the token is rejected
+type AuthExpiredListener = () => void;
+const authExpiredListeners = new Set<AuthExpiredListener>();
+
+export const onAuthExpired = (listener: AuthExpiredListener) => {
+  authExpiredListeners.add(listener);
+  return () => {
+    authExpiredListeners.delete(listener);
+  };
+};
+
+export const emitAuthExpired = () => {
+  authExpiredListeners.forEach(listener => {
+    try {
+      listener();
+    } catch (error) {
+      console.warn('Auth-expired listener failed:', error);
+    }
+  });
+};
+
+// 401 from these means wrong credentials, not an expired session
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/guest-login'];
+const isAuthEndpoint = (url?: string) => !!url && AUTH_ENDPOINTS.some(path => url.includes(path));
+
 // Response interceptor - Token süresi dolmuşsa temizle
 api.interceptors.response.use(
   (response) => response,
@@ -47,6 +72,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       await secureStorageService.clearAuthTokens();
       await AsyncStorage.removeItem('user');
+      // Only a rejected token means the session expired
+      if (error.config?.headers?.Authorization && !isAuthEndpoint(error.config?.url)) {
+        emitAuthExpired();
+      }
     }
     return Promise.reject(error);
   }

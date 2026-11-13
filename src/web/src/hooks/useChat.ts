@@ -17,6 +17,8 @@ export interface ChatContextType {
   setActiveConversation: (offerId: number | null) => void;
   /** True while the real-time connection is up. When false the app works via REST only. */
   isConnected: boolean;
+  /** Increments after every reconnect / recovered start; open views should refetch when it changes (messages may have been missed). */
+  reconnectCount: number;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);

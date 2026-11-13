@@ -17,7 +17,7 @@ import {
   LogLevel,
 } from '@microsoft/signalr';
 import { useAuth } from './AuthContext';
-import { API_BASE_URL, Message, messageAPI } from '../services/api';
+import { API_BASE_URL, Message, emitAuthExpired, messageAPI } from '../services/api';
 import secureStorageService from '../services/secureStorageService';
 
 export type MessageHandler = (message: Message) => void;
@@ -36,6 +36,8 @@ interface ChatContextType {
   setActiveConversation: (offerId: number | null) => void;
   /** True when the hub is connected; REST keeps working when it is not. */
   isConnected: boolean;
+  /** Increments after a reconnect, a recovered start or returning to the foreground; open chats refetch when it changes. */
+  reconnectCount: number;
 }
 
 const noop = () => {};
@@ -48,11 +50,18 @@ const ChatContext = createContext<ChatContextType>({
   leaveConversation: noop,
   setActiveConversation: noop,
   isConnected: false,
+  reconnectCount: 0,
 });
 
 const HUB_URL = API_BASE_URL.replace(/\/api\/?$/, '') + '/chathub';
 const MAX_SEEN_IDS = 500;
 const RESTART_DELAY_MS = 15000;
+
+const isUnauthorized = (error: unknown) => {
+  const statusCode = (error as { statusCode?: number } | null)?.statusCode;
+  if (statusCode === 401) return true;
+  return error instanceof Error && error.message.includes('401');
+};
 
 export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, isGuest } = useAuth();
@@ -61,6 +70,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
+  const [reconnectCount, setReconnectCount] = useState(0);
 
   const connectionRef = useRef<HubConnection | null>(null);
   const handlersRef = useRef(new Set<MessageHandler>());
@@ -69,6 +79,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const activeOfferIdRef = useRef<number | null>(null);
   const userIdRef = useRef<string | undefined>(userId);
   const enabledRef = useRef(enabled);
+  // Local badge increments; a refresh that raced with one must not overwrite it
+  const localIncrementsRef = useRef(0);
 
   userIdRef.current = userId;
   enabledRef.current = enabled;
@@ -78,12 +90,22 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUnreadCount(0);
       return;
     }
-    try {
-      const count = await messageAPI.getUnreadCount();
-      if (enabledRef.current) setUnreadCount(count);
-    } catch (error) {
-      console.warn('Unread count could not be loaded:', error);
+    // Re-fetch once if a hub message bumped the badge while the request was in flight
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const incrementsAtStart = localIncrementsRef.current;
+      try {
+        const count = await messageAPI.getUnreadCount();
+        if (!enabledRef.current) return;
+        if (localIncrementsRef.current === incrementsAtStart) {
+          setUnreadCount(count);
+          return;
+        }
+      } catch (error) {
+        console.warn('Unread count could not be loaded:', error);
+        return;
+      }
     }
+    // Still racing: keep the locally counted value
   }, []);
 
   const dispatch = useCallback((message: Message) => {
@@ -99,6 +121,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const isMine = message.senderId === userIdRef.current;
     if (!isMine && message.offerId !== activeOfferIdRef.current) {
+      localIncrementsRef.current += 1;
       setUnreadCount(c => c + 1);
     }
 
@@ -137,6 +160,10 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const seenIds = seenIdsRef.current;
     let disposed = false;
     let restartTimer: ReturnType<typeof setTimeout> | null = null;
+    // Set when the connection was down; the next successful start must trigger a resync
+    let needsResync = false;
+    // Token rejected: stop until the auth state changes (this effect re-runs then)
+    let authFailed = false;
 
     const connection = new HubConnectionBuilder()
       .withUrl(HUB_URL, {
@@ -165,24 +192,40 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsConnected(true);
       rejoinAll();
       refreshUnread();
+      setReconnectCount(c => c + 1);
     });
 
     const start = async () => {
-      if (disposed || connection.state !== HubConnectionState.Disconnected) return;
+      if (disposed || authFailed || connection.state !== HubConnectionState.Disconnected) return;
+      // Signed out / token cleared: no point connecting or retrying
+      const { accessToken } = await secureStorageService.getAuthTokens();
+      if (!accessToken || disposed || connection.state !== HubConnectionState.Disconnected) return;
       try {
         await connection.start();
         if (disposed) return;
         setIsConnected(true);
         rejoinAll();
+        if (needsResync) {
+          needsResync = false;
+          refreshUnread();
+          setReconnectCount(c => c + 1);
+        }
       } catch (error) {
         if (disposed) return;
+        if (isUnauthorized(error)) {
+          console.warn('Chat hub rejected the token (401), session expired:', error);
+          authFailed = true;
+          emitAuthExpired();
+          return;
+        }
+        needsResync = true;
         console.warn('Chat hub connection failed, using REST only:', error);
         scheduleRestart();
       }
     };
 
     const scheduleRestart = () => {
-      if (disposed || restartTimer) return;
+      if (disposed || authFailed || restartTimer) return;
       restartTimer = setTimeout(() => {
         restartTimer = null;
         start();
@@ -192,6 +235,8 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Automatic reconnect gives up after a few attempts; keep trying in the background.
     connection.onclose(() => {
       setIsConnected(false);
+      if (disposed) return;
+      needsResync = true;
       scheduleRestart();
     });
 
@@ -202,7 +247,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (state !== 'active') return;
       // No push notifications: catch up when the app comes back to the foreground.
       refreshUnread();
+      // The bump below already covers a resync; avoid a second one when start() recovers
+      needsResync = false;
       start();
+      // Messages may have been missed while backgrounded (socket can die silently)
+      setReconnectCount(c => c + 1);
     });
 
     return () => {
@@ -252,8 +301,18 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       leaveConversation,
       setActiveConversation,
       isConnected,
+      reconnectCount,
     }),
-    [unreadCount, refreshUnread, subscribe, joinConversation, leaveConversation, setActiveConversation, isConnected]
+    [
+      unreadCount,
+      refreshUnread,
+      subscribe,
+      joinConversation,
+      leaveConversation,
+      setActiveConversation,
+      isConnected,
+      reconnectCount,
+    ]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

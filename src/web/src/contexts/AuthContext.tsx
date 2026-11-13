@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, onAuthExpired } from '../services/api';
 import type { User, LoginData, RegisterData, AuthResponse } from '../services/api';
 
 interface AuthContextType {
@@ -114,6 +114,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
     setError(null);
   }, []);
+
+  // Token rejected by the API (interceptor already cleared storage): reset local state only
+  useEffect(() => onAuthExpired(logout), [logout]);
 
   const guestContinue = useCallback(async () => {
     setIsLoading(true);
