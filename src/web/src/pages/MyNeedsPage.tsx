@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   PlusCircleIcon,
   PencilSquareIcon,
@@ -9,14 +9,18 @@ import {
   CalendarDaysIcon,
   MapPinIcon,
   CurrencyDollarIcon,
+  CheckCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI } from '../services/api';
 import type { Need } from '../services/api';
 import { Button, Card, Loading, Badge, ErrorMessage } from '../components/ui';
 import { Header, Footer } from '../components/layout';
+import NeedModerationNotice from '../components/NeedModerationNotice';
+import { NEED_STATUS_LABELS, NEED_STATUS_TONES } from '../services/moderation';
 
-type NeedStatus = 'All' | 'Active' | 'InProgress' | 'Completed' | 'Cancelled' | 'Expired';
+type NeedStatus = 'All' | Need['status'];
 
 interface StatusOption {
   key: NeedStatus;
@@ -24,17 +28,31 @@ interface StatusOption {
 }
 
 const statusOptions: StatusOption[] = [
-  { key: 'All', label: 'Tümünü' },
+  { key: 'All', label: 'Tümü' },
+  { key: 'PendingReview', label: 'İncelemede' },
   { key: 'Active', label: 'Aktif' },
   { key: 'InProgress', label: 'Devam Eden' },
   { key: 'Completed', label: 'Tamamlanmış' },
   { key: 'Expired', label: 'Süresi Dolmuş' },
   { key: 'Cancelled', label: 'İptal Edilmiş' },
+  { key: 'Rejected', label: 'Yayınlanmadı' },
 ];
 
 const MyNeedsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, isGuest } = useAuth();
+  // One-off confirmation passed via navigation state (e.g. right after creating a need)
+  const [flashMessage, setFlashMessage] = useState<string | null>(
+    () => (location.state as { flash?: string } | null)?.flash ?? null
+  );
+
+  // Drop the flash state so it does not reappear on refresh / back navigation
+  useEffect(() => {
+    if ((location.state as { flash?: string } | null)?.flash) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const [needs, setNeeds] = useState<Need[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +75,7 @@ const MyNeedsPage: React.FC = () => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'İhtiyaçlar yüklenirken hata oluştu';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'İlanlarınız yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -101,7 +119,7 @@ const MyNeedsPage: React.FC = () => {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error
         ? err.message
-        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'İhtiyaç silinirken hata oluştu';
+        : (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'İlan silinemedi. Tekrar deneyin.';
       setError(errorMessage);
     } finally {
       setDeletingId(null);
@@ -113,38 +131,9 @@ const MyNeedsPage: React.FC = () => {
     setNeedToDelete(null);
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'Aktif';
-      case 'InProgress':
-        return 'Devam Ediyor';
-      case 'Completed':
-        return 'Tamamlandı';
-      case 'Cancelled':
-        return 'İptal Edildi';
-      case 'Expired':
-        return 'Süresi Doldu';
-      default:
-        return status;
-    }
-  };
+  const getStatusText = (status: string) => NEED_STATUS_LABELS[status] ?? status;
 
-  const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'primary' | 'error' | 'default' => {
-    switch (status) {
-      case 'Active':
-        return 'success';
-      case 'InProgress':
-        return 'warning';
-      case 'Completed':
-        return 'primary';
-      case 'Cancelled':
-      case 'Expired':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  const getStatusBadgeVariant = (status: string) => NEED_STATUS_TONES[status] ?? 'default';
 
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {
@@ -207,7 +196,7 @@ const MyNeedsPage: React.FC = () => {
               <ClipboardDocumentListIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-text mb-2">Giriş Yapmanız Gerekiyor</h2>
               <p className="text-text-secondary mb-6">
-                İhtiyaçlarınızı görüntülemek için lütfen giriş yapın.
+                İlanlarınızı görüntülemek için lütfen giriş yapın.
               </p>
               <Button variant="primary" onClick={() => navigate('/login')}>
                 Giriş Yap
@@ -229,9 +218,9 @@ const MyNeedsPage: React.FC = () => {
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-text">İhtiyaçlarım</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-text">İlanlarım</h1>
               <p className="text-text-secondary mt-1">
-                Oluşturduğunuz tüm ihtiyaçları buradan yönetin
+                Verdiğiniz tüm ilanları buradan yönetin
               </p>
             </div>
             <Button
@@ -239,9 +228,24 @@ const MyNeedsPage: React.FC = () => {
               leftIcon={<PlusCircleIcon className="h-5 w-5" />}
               onClick={handleCreateNeed}
             >
-              Yeni İhtiyaç Oluştur
+              Yeni İlan Ver
             </Button>
           </div>
+
+          {flashMessage && (
+            <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 mb-6" role="status">
+              <CheckCircleIcon className="h-5 w-5 text-success flex-shrink-0" />
+              <p className="flex-1 text-sm text-green-900">{flashMessage}</p>
+              <button
+                type="button"
+                onClick={() => setFlashMessage(null)}
+                className="text-green-900/70 hover:text-green-900"
+                aria-label="Kapat"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -281,19 +285,19 @@ const MyNeedsPage: React.FC = () => {
           {/* Loading State */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loading size="lg" text="İhtiyaçlarınız yükleniyor..." />
+              <Loading size="lg" text="İlanlarınız yükleniyor..." />
             </div>
           ) : filteredNeeds.length === 0 ? (
             /* Empty State */
             <Card className="text-center py-12">
               <ClipboardDocumentListIcon className="h-16 w-16 text-text-secondary mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-text mb-2">
-                {selectedStatus === 'All' ? 'Henüz ihtiyaç yok' : `${statusOptions.find(s => s.key === selectedStatus)?.label} ihtiyaç yok`}
+                {selectedStatus === 'All' ? 'Henüz ilanınız yok' : `"${statusOptions.find(s => s.key === selectedStatus)?.label}" durumunda ilanınız yok`}
               </h2>
               <p className="text-text-secondary mb-6">
                 {selectedStatus === 'All'
-                  ? 'İlk ihtiyacınızı oluşturmak için aşağıdaki butona tıklayın.'
-                  : 'Bu durumda hiç ihtiyacınız bulunmuyor.'
+                  ? 'Aradığınızı yazın, satıcılar size teklif versin.'
+                  : 'Diğer durumlara göz atabilir ya da yeni bir ilan verebilirsiniz.'
                 }
               </p>
               {selectedStatus === 'All' && (
@@ -302,7 +306,7 @@ const MyNeedsPage: React.FC = () => {
                   leftIcon={<PlusCircleIcon className="h-5 w-5" />}
                   onClick={handleCreateNeed}
                 >
-                  İhtiyaç Oluştur
+                  İlan Ver
                 </Button>
               )}
             </Card>
@@ -332,6 +336,10 @@ const MyNeedsPage: React.FC = () => {
                       {getStatusText(need.status)}
                     </Badge>
                   </div>
+
+                  {(need.status === 'PendingReview' || need.status === 'Rejected') && (
+                    <NeedModerationNotice need={need} compact className="mb-3" />
+                  )}
 
                   {/* Description */}
                   <Link to={`/needs/${need.id}`}>
@@ -419,10 +427,10 @@ const MyNeedsPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-surface rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-text mb-2">
-              İhtiyacı Sil
+              İlanı Sil
             </h3>
             <p className="text-text-secondary mb-6">
-              "<span className="font-medium text-text">{needToDelete.title}</span>" baslikli ihtiyacinizi silmek istediginizden emin misiniz? Bu islem geri alinamaz.
+              "<span className="font-medium text-text">{needToDelete.title}</span>" başlıklı ilanınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
             </p>
             <div className="flex gap-3 justify-end">
               <Button
@@ -430,7 +438,7 @@ const MyNeedsPage: React.FC = () => {
                 onClick={handleDeleteCancel}
                 disabled={deletingId !== null}
               >
-                İptal
+                Vazgeç
               </Button>
               <Button
                 variant="danger"

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon, CurrencyDollarIcon, ChatBubbleLeftRightIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
-import { needAPI, offerAPI, type Need, type CreateOfferRequest } from '../services/api';
+import { needAPI, offerAPI, getApiErrorMessage, type Need, type CreateOfferRequest } from '../services/api';
 import { useForm } from '../hooks/useForm';
 import { Button, Input, Card, Loading, ErrorMessage, Badge } from '../components/ui';
 
@@ -106,7 +106,7 @@ const CreateOfferPage: React.FC = () => {
           navigate(`/needs/${needId}`);
         }, 2000);
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Teklif gönderilirken hata oluştu';
+        const errorMessage = getApiErrorMessage(err) || 'Teklifiniz gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.';
         setSubmitError(errorMessage);
       }
     },

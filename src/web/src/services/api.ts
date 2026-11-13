@@ -105,6 +105,8 @@ export interface User {
   profileImageUrl?: string;
   rating?: number;
   reviewCount?: number;
+  roles?: string[];
+  isAdmin?: boolean;
 }
 
 export interface Category {
@@ -119,6 +121,15 @@ export interface Category {
   subCategories?: Category[];
 }
 
+export type NeedStatus =
+  | 'PendingReview'
+  | 'Active'
+  | 'InProgress'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Expired'
+  | 'Rejected';
+
 export interface Need {
   id: number;
   title: string;
@@ -131,10 +142,15 @@ export interface Need {
   longitude?: number;
   address?: string;
   urgency: 'Flexible' | 'Normal' | 'Urgent';
-  status: 'Active' | 'InProgress' | 'Completed' | 'Cancelled' | 'Expired';
+  status: NeedStatus;
   createdAt: string;
   updatedAt: string;
   expiresAt?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+  /** Turkish label for rejectionReason */
+  rejectionReasonText?: string;
+  rejectionNote?: string;
   userId: string;
   user?: User;
   category?: Category;
@@ -234,6 +250,27 @@ export interface Conversation {
   offerStatus: Offer['status'];
 }
 
+/** Server-provided error text ({ message } or a plain string body), if any */
+export const getApiErrorMessage = (err: unknown): string | undefined => {
+  const data = (err as { response?: { data?: unknown } })?.response?.data;
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data && typeof data === 'object' && typeof (data as { message?: unknown }).message === 'string') {
+    return (data as { message: string }).message;
+  }
+  return undefined;
+};
+
+export const getApiErrorStatus = (err: unknown): number | undefined =>
+  (err as { response?: { status?: number } })?.response?.status;
+
+/** Turns relative upload paths (/uploads/...) into absolute URLs on the API host */
+export const resolveMediaUrl = (url?: string | null): string => {
+  if (!url) return '';
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  const origin = API_BASE_URL.replace(/\/api\/?$/, '');
+  return `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+};
+
 // API Services
 export const authAPI = {
   register: (data: RegisterData): Promise<AuthResponse> =>
@@ -291,7 +328,7 @@ const splitName = (full: unknown) => {
   return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') };
 };
 
-const normalizeNeed = (n: Raw): Need => {
+export const normalizeNeed = (n: Raw): Need => {
   if (!n || typeof n !== 'object') return n as unknown as Need;
   return {
     ...n,

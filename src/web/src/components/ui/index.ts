@@ -5,3 +5,6 @@ export { default as Loading } from './Loading';
 export { default as Badge } from './Badge';
 export { default as Divider } from './Divider';
 export { default as ErrorMessage } from './ErrorMessage';
+export { default as Modal } from './Modal';
+export { default as Toast } from './Toast';
+export type { ToastData } from './Toast';

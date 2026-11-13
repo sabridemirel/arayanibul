@@ -14,13 +14,18 @@ import {
   ChevronRightIcon,
   ExclamationTriangleIcon,
   ChatBubbleLeftRightIcon,
+  FlagIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI, offerAPI } from '../services/api';
 import type { Need, Offer } from '../services/api';
-import { Button, Card, Loading, Badge, ErrorMessage } from '../components/ui';
+import { Button, Card, Loading, Badge, ErrorMessage, Toast } from '../components/ui';
 import { Header, Footer } from '../components/layout';
+import ReportModal from '../components/ReportModal';
+import NeedModerationNotice from '../components/NeedModerationNotice';
+import { NEED_STATUS_LABELS, NEED_STATUS_TONES } from '../services/moderation';
+import { useToast } from '../hooks/useToast';
 
 // Loading Skeleton Component
 const NeedDetailSkeleton: React.FC = () => (
@@ -332,9 +337,13 @@ const NeedDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
 
   const needId = id ? parseInt(id, 10) : null;
   const isOwner = user && need && user.id === need.userId;
+  const isUnderModeration = need?.status === 'PendingReview' || need?.status === 'Rejected';
+  const canReport = isAuthenticated && !isGuest && !!need && !isOwner;
   const canCreateOffer = isAuthenticated && !isGuest && user && need && user.id !== need.userId && need.status === 'Active';
 
   const loadNeedDetail = useCallback(async () => {
@@ -450,22 +459,9 @@ const NeedDetailPage: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return <Badge variant="success">Aktif</Badge>;
-      case 'InProgress':
-        return <Badge variant="warning">Devam Ediyor</Badge>;
-      case 'Completed':
-        return <Badge variant="primary">Tamamlandı</Badge>;
-      case 'Cancelled':
-        return <Badge variant="error">İptal Edildi</Badge>;
-      case 'Expired':
-        return <Badge variant="error">Süresi Doldu</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
-  };
+  const getStatusBadge = (status: string) => (
+    <Badge variant={NEED_STATUS_TONES[status] ?? 'default'}>{NEED_STATUS_LABELS[status] ?? status}</Badge>
+  );
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
     if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
@@ -538,6 +534,8 @@ const NeedDetailPage: React.FC = () => {
               {/* Main Content */}
               <div className="lg:col-span-2">
                 <Card padding="lg">
+                  {isOwner && isUnderModeration && <NeedModerationNotice need={need} className="mb-6" />}
+
                   {/* Image Gallery */}
                   <ImageGallery images={need.images || []} />
 
@@ -625,13 +623,15 @@ const NeedDetailPage: React.FC = () => {
                   {/* Owner Actions */}
                   {isOwner && (
                     <div className="border-t border-border pt-6 mt-6 flex gap-3">
-                      <Button
-                        variant="outline"
-                        leftIcon={<PencilSquareIcon className="w-4 h-4" />}
-                        onClick={handleEdit}
-                      >
-                        Düzenle
-                      </Button>
+                      {!isUnderModeration && (
+                        <Button
+                          variant="outline"
+                          leftIcon={<PencilSquareIcon className="w-4 h-4" />}
+                          onClick={handleEdit}
+                        >
+                          Düzenle
+                        </Button>
+                      )}
                       <Button
                         variant="danger"
                         leftIcon={<TrashIcon className="w-4 h-4" />}
@@ -700,7 +700,11 @@ const NeedDetailPage: React.FC = () => {
                     ) : isOwner ? (
                       <div className="text-center">
                         <p className="text-text-secondary text-sm">
-                          Bu sizin ilanınız. Gelen teklifleri aşağıda görebilirsiniz.
+                          {need.status === 'PendingReview'
+                            ? 'Bu sizin ilanınız. İncelendikten sonra yayınlanacak.'
+                            : need.status === 'Rejected'
+                              ? 'Bu sizin ilanınız. İlan yayınlanmadı; nedenini ilanın üstündeki bilgilendirmede görebilirsiniz.'
+                              : 'Bu sizin ilanınız. Gelen teklifleri aşağıda görebilirsiniz.'}
                         </p>
                       </div>
                     ) : !isAuthenticated ? (
@@ -746,6 +750,18 @@ const NeedDetailPage: React.FC = () => {
                         </p>
                       </div>
                     ) : null}
+                    {canReport && (
+                      <div className="border-t border-border mt-4 pt-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setIsReportOpen(true)}
+                          className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-error transition-colors"
+                        >
+                          <FlagIcon className="w-4 h-4" />
+                          Şikayet Et
+                        </button>
+                      </div>
+                    )}
                   </Card>
 
                   {/* Stats Card */}
@@ -765,6 +781,17 @@ const NeedDetailPage: React.FC = () => {
       </main>
 
       <Footer />
+
+      {need && canReport && (
+        <ReportModal
+          isOpen={isReportOpen}
+          onClose={() => setIsReportOpen(false)}
+          targetType="Need"
+          targetId={need.id}
+          onReported={(message) => showToast(message)}
+        />
+      )}
+      <Toast toast={toast} onClose={hideToast} />
 
       {/* Delete Modal */}
       <DeleteModal

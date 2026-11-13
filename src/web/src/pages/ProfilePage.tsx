@@ -17,6 +17,7 @@ import { userAPI } from '../services/api';
 import type { UserStats } from '../services/api';
 import { Button, Card, Loading, ErrorMessage, Badge, Input } from '../components/ui';
 import { Header, Footer } from '../components/layout';
+import BlockedUsersCard from '../components/BlockedUsersCard';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -300,6 +301,8 @@ const ProfilePage: React.FC = () => {
               </>
             )}
           </Card>
+
+          {!isGuest && <BlockedUsersCard className="mb-6" />}
 
           {/* Danger Zone: account deletion (registered users only) */}
           {!isGuest && (

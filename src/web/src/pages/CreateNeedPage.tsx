@@ -8,6 +8,7 @@ import {
   TagIcon,
   ChevronDownIcon,
   CheckIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI, categoryAPI } from '../services/api';
@@ -141,7 +142,7 @@ const CreateNeedPage: React.FC = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       if (expiryDate < today) {
-        newErrors.expiryDate = 'Bitis tarihi geçmiş bir tarih olamaz';
+        newErrors.expiryDate = 'Bitiş tarihi geçmiş bir tarih olamaz';
       }
     }
 
@@ -195,11 +196,11 @@ const CreateNeedPage: React.FC = () => {
       // TODO: Handle image upload when API supports it
       // For now, images would be uploaded separately
 
-      const createdNeed = await needAPI.createNeed(requestData);
+      await needAPI.createNeed(requestData);
 
-      // Redirect to the created need detail page
-      navigate(`/needs/${createdNeed.id}`, {
-        state: { message: 'İhtiyacınız başarıyla oluşturuldu!' }
+      // New needs start in review and are not public yet: show them in the owner's list
+      navigate('/my-needs', {
+        state: { flash: 'İlanınız alındı. İncelendikten sonra yayınlanacak.' }
       });
     } catch (err: unknown) {
       console.error('Need creation error:', err);
@@ -737,6 +738,10 @@ const CreateNeedPage: React.FC = () => {
 
             {/* Submit Button */}
             <div className="mt-8">
+              <p className="flex items-center justify-center gap-2 text-sm text-text-secondary mb-3">
+                <InformationCircleIcon className="h-4 w-4 flex-shrink-0" />
+                İlanlar yayınlanmadan önce incelenir.
+              </p>
               <Button
                 type="submit"
                 variant="primary"
@@ -745,7 +750,7 @@ const CreateNeedPage: React.FC = () => {
                 isLoading={isLoading}
                 disabled={isLoading}
               >
-                İhtiyacı Oluştur
+                İlan Ver
               </Button>
             </div>
           </form>

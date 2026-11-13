@@ -4,15 +4,22 @@ import {
   ArrowLeftIcon,
   ArrowTopRightOnSquareIcon,
   ChatBubbleLeftRightIcon,
+  EllipsisVerticalIcon,
+  FlagIcon,
   LockClosedIcon,
+  NoSymbolIcon,
   PaperAirplaneIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../hooks/useChat';
 import { messageAPI, offerAPI } from '../services/api';
 import type { Conversation, Message, Offer } from '../services/api';
-import { Badge, Button, ErrorMessage, Loading } from '../components/ui';
+import { Badge, Button, ErrorMessage, Loading, Modal, Toast } from '../components/ui';
 import { Header, Footer } from '../components/layout';
+import ReportModal from '../components/ReportModal';
+import { blockAPI } from '../services/moderation';
+import type { ReportTargetType } from '../services/moderation';
+import { useToast } from '../hooks/useToast';
 
 const MAX_MESSAGE_LENGTH = 1000;
 const CLOSED_OFFER_TEXT = 'Bu teklif kapandığı için yeni mesaj gönderilemez.';
@@ -250,6 +257,16 @@ const ChatPane: React.FC<ChatPaneProps> = ({
   const [sendError, setSendError] = useState<string | null>(null);
   const [closedByServer, setClosedByServer] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // Moderation: block state, server-side refusal (e.g. the other party blocked us), report target
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [forbiddenText, setForbiddenText] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string | number } | null>(null);
+  const { toast, showToast, hideToast } = useToast();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -377,8 +394,73 @@ const ChatPane: React.FC<ChatPaneProps> = ({
     }
     return '';
   }, [conversation, messages, offer, user?.id]);
+  const otherUserId = useMemo(() => {
+    if (conversation?.otherUserId) return conversation.otherUserId;
+    const fromMessages = messages.find((m) => m.senderId !== user?.id)?.senderId;
+    if (fromMessages) return fromMessages;
+    if (offer) return offer.providerId !== user?.id ? offer.providerId : offer.need?.userId;
+    return undefined;
+  }, [conversation, messages, offer, user?.id]);
   const status: OfferStatus | undefined = conversation?.offerStatus || offer?.status;
   const isClosed = closedByServer || isClosedStatus(status);
+
+  // Is the other party on my block list?
+  useEffect(() => {
+    if (!otherUserId) return;
+    let cancelled = false;
+    blockAPI
+      .list()
+      .then((list) => {
+        if (!cancelled) setIsBlocked(list.some((b) => b.userId === otherUserId));
+      })
+      .catch((err) => console.warn('[chat] blocked list failed', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [otherUserId]);
+
+  // Close the header menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const handleToggleBlock = async () => {
+    if (!otherUserId) return;
+    setBlockBusy(true);
+    setBlockError(null);
+    try {
+      if (isBlocked) {
+        await blockAPI.unblock(otherUserId);
+        setIsBlocked(false);
+        setForbiddenText(null);
+        showToast('Engel kaldırıldı.');
+      } else {
+        await blockAPI.block(otherUserId);
+        setIsBlocked(true);
+        showToast('Kullanıcı engellendi.');
+      }
+      setBlockDialogOpen(false);
+    } catch (err) {
+      setBlockError(
+        getErrorText(err) ||
+          (isBlocked
+            ? 'Engel kaldırılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+            : 'Kullanıcı engellenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.'),
+      );
+    } finally {
+      setBlockBusy(false);
+    }
+  };
 
   const trimmed = draft.trim();
   const canSend = !isClosed && !sending && trimmed.length > 0 && trimmed.length <= MAX_MESSAGE_LENGTH;
@@ -394,8 +476,12 @@ const ChatPane: React.FC<ChatPaneProps> = ({
       onMessageSent(sent);
     } catch (err) {
       const serverText = getErrorText(err);
-      if (getErrorStatus(err) === 400 && serverText === CLOSED_OFFER_TEXT) {
+      const errorStatus = getErrorStatus(err);
+      if (errorStatus === 400 && serverText === CLOSED_OFFER_TEXT) {
         setClosedByServer(true);
+      } else if (errorStatus === 403) {
+        // Blocked (by either side) or not allowed to message: lock the composer with the server's reason
+        setForbiddenText(serverText || 'Bu kullanıcıya mesaj gönderemezsiniz.');
       } else {
         setSendError('Mesajınız gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
       }
@@ -466,7 +552,7 @@ const ChatPane: React.FC<ChatPaneProps> = ({
                   </span>
                 </div>
               )}
-              <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+              <div className={`group flex items-center gap-1 ${mine ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2 shadow-sm ${
                     mine
@@ -479,6 +565,17 @@ const ChatPane: React.FC<ChatPaneProps> = ({
                     {formatTime(message.createdAt)}
                   </p>
                 </div>
+                {!mine && (
+                  <button
+                    type="button"
+                    onClick={() => setReportTarget({ type: 'Message', id: message.id })}
+                    className="p-1.5 rounded-full text-text-secondary opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-error hover:bg-surface transition-opacity"
+                    aria-label="Mesajı Şikayet Et"
+                    title="Mesajı Şikayet Et"
+                  >
+                    <FlagIcon className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </React.Fragment>
           );
@@ -516,6 +613,52 @@ const ChatPane: React.FC<ChatPaneProps> = ({
               <ArrowTopRightOnSquareIcon className="h-4 w-4" />
             </Link>
           ) : null}
+          {otherUserId && (
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
+                className="p-1.5 rounded-lg text-text-secondary hover:text-text hover:bg-background"
+                aria-label="Diğer işlemler"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+              >
+                <EllipsisVerticalIcon className="h-5 w-5" />
+              </button>
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full mt-1 w-52 rounded-lg border border-border bg-surface shadow-lg py-1 z-20"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setReportTarget({ type: 'User', id: otherUserId });
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text hover:bg-background"
+                  >
+                    <FlagIcon className="h-4 w-4" />
+                    Şikayet Et
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setBlockError(null);
+                      setBlockDialogOpen(true);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-error hover:bg-red-50"
+                  >
+                    <NoSymbolIcon className="h-4 w-4" />
+                    {isBlocked ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -531,7 +674,27 @@ const ChatPane: React.FC<ChatPaneProps> = ({
       </div>
 
       {/* Composer */}
-      {isClosed ? (
+      {isBlocked ? (
+        <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-t border-border bg-surface text-sm text-text-secondary">
+          <NoSymbolIcon className="h-5 w-5 flex-shrink-0" />
+          <span className="flex-1">Bu kullanıcıyı engellediniz.</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setBlockError(null);
+              setBlockDialogOpen(true);
+            }}
+          >
+            Engeli Kaldır
+          </Button>
+        </div>
+      ) : forbiddenText ? (
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-surface text-sm text-text-secondary">
+          <LockClosedIcon className="h-5 w-5 flex-shrink-0" />
+          <span>{forbiddenText}</span>
+        </div>
+      ) : isClosed ? (
         <div className="flex items-center gap-2 px-4 py-3 border-t border-border bg-surface text-sm text-text-secondary">
           <LockClosedIcon className="h-5 w-5 flex-shrink-0" />
           <span>{CLOSED_OFFER_TEXT}</span>
@@ -582,6 +745,41 @@ const ChatPane: React.FC<ChatPaneProps> = ({
           </form>
         </div>
       )}
+
+      <Modal
+        isOpen={blockDialogOpen}
+        onClose={() => setBlockDialogOpen(false)}
+        locked={blockBusy}
+        title={isBlocked ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle'}
+        description={
+          isBlocked
+            ? `${otherName || 'Bu kullanıcı'} size yeniden mesaj gönderebilecek ve teklif verebilecek.`
+            : `${otherName || 'Bu kullanıcı'} size mesaj gönderemeyecek ve ilanlarınıza teklif veremeyecek. Engeli istediğiniz zaman kaldırabilirsiniz.`
+        }
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setBlockDialogOpen(false)} disabled={blockBusy}>
+              Vazgeç
+            </Button>
+            <Button variant={isBlocked ? 'primary' : 'danger'} onClick={handleToggleBlock} isLoading={blockBusy}>
+              {isBlocked ? 'Engeli Kaldır' : 'Engelle'}
+            </Button>
+          </>
+        }
+      >
+        {blockError ? <ErrorMessage message={blockError} onDismiss={() => setBlockError(null)} /> : null}
+      </Modal>
+
+      {reportTarget && (
+        <ReportModal
+          isOpen
+          onClose={() => setReportTarget(null)}
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          onReported={(message) => showToast(message)}
+        />
+      )}
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   );
 };

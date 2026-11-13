@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
@@ -22,6 +23,15 @@ import {
   ResetPasswordPage,
 } from './pages';
 import { Loading } from './components/ui';
+
+// Admin panel ships as its own chunk; regular users never download it
+const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
+
+const FullPageLoading: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loading size="lg" text="Yükleniyor..." />
+  </div>
+);
 
 // Protected Route Component
 interface ProtectedRouteProps {
@@ -59,6 +69,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requireGuest && isAuthenticated) {
     return <Navigate to="/" replace />;
   }
+
+  return <>{children}</>;
+};
+
+// Admin-only: everyone else is sent to the home page
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user, isLoading } = useAuth();
+
+  if (isLoading) return <FullPageLoading />;
+  if (!isAuthenticated || !user?.isAdmin) return <Navigate to="/" replace />;
 
   return <>{children}</>;
 };
@@ -169,6 +189,18 @@ const AppRoutes: React.FC = () => {
       {/* Password Recovery */}
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* Admin Panel */}
+      <Route
+        path="/admin/*"
+        element={
+          <AdminRoute>
+            <Suspense fallback={<FullPageLoading />}>
+              <AdminApp />
+            </Suspense>
+          </AdminRoute>
+        }
+      />
 
       {/* 404 Route */}
       <Route

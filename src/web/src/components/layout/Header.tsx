@@ -7,6 +7,7 @@ import {
   ArrowRightOnRectangleIcon,
   PlusCircleIcon,
   ChatBubbleLeftRightIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../hooks/useChat';
@@ -18,6 +19,7 @@ const Header: React.FC = () => {
   const { unreadCount } = useChat();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const canMessage = isAuthenticated && !isGuest;
+  const isAdmin = isAuthenticated && !!user?.isAdmin;
   const unreadLabel = unreadCount > 9 ? '9+' : String(unreadCount);
   const unreadBadge = unreadCount > 0 && (
     <span
@@ -86,6 +88,15 @@ const Header: React.FC = () => {
                 <ChatBubbleLeftRightIcon className="h-5 w-5" />
                 Mesajlar
                 {unreadBadge}
+              </Link>
+            )}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="inline-flex items-center gap-1.5 text-[#F59E0B] hover:text-amber-300 transition-colors font-semibold"
+              >
+                <ShieldCheckIcon className="h-5 w-5" />
+                Yönetim
               </Link>
             )}
           </nav>
@@ -195,6 +206,15 @@ const Header: React.FC = () => {
                   >
                     <span>Mesajlar</span>
                     {unreadBadge}
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={() => handleNavigation('/admin')}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-[#F59E0B] hover:bg-white/10 rounded-lg transition-colors font-semibold"
+                  >
+                    <ShieldCheckIcon className="h-5 w-5" />
+                    Yönetim
                   </button>
                 )}
                 <button
