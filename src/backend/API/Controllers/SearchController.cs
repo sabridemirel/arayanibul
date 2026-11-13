@@ -14,11 +14,14 @@ public class SearchController : ControllerBase
     private readonly IRecommendationService _recommendationService;
     private readonly ILogger<SearchController> _logger;
 
-    public SearchController(ISearchService searchService, IRecommendationService recommendationService, ILogger<SearchController> logger)
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    public SearchController(ISearchService searchService, IRecommendationService recommendationService, ILogger<SearchController> logger, IServiceScopeFactory scopeFactory)
     {
         _searchService = searchService;
         _recommendationService = recommendationService;
         _logger = logger;
+        _scopeFactory = scopeFactory;
     }
 
     /// <summary>
@@ -42,7 +45,8 @@ public class SearchController : ControllerBase
                 {
                     try
                     {
-                        await _recommendationService.TrackUserBehaviorAsync(
+                        using var trackingScope = _scopeFactory.CreateScope();
+                        await trackingScope.ServiceProvider.GetRequiredService<IRecommendationService>().TrackUserBehaviorAsync(
                             userId, UserActionType.Search, null, "search", 
                             new { searchText = request.SearchText, resultCount = result.TotalCount }, 
                             ipAddress, userAgent);

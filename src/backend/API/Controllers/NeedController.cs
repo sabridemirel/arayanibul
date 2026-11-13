@@ -16,11 +16,14 @@ public class NeedController : ControllerBase
     private readonly IFileStorageService _fileStorageService;
     private readonly IRecommendationService _recommendationService;
 
-    public NeedController(INeedService needService, IFileStorageService fileStorageService, IRecommendationService recommendationService)
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    public NeedController(INeedService needService, IFileStorageService fileStorageService, IRecommendationService recommendationService, IServiceScopeFactory scopeFactory)
     {
         _needService = needService;
         _fileStorageService = fileStorageService;
         _recommendationService = recommendationService;
+        _scopeFactory = scopeFactory;
     }
 
     /// <summary>
@@ -48,7 +51,8 @@ public class NeedController : ControllerBase
             {
                 try
                 {
-                    await _recommendationService.TrackUserBehaviorAsync(
+                    using var trackingScope = _scopeFactory.CreateScope();
+                    await trackingScope.ServiceProvider.GetRequiredService<IRecommendationService>().TrackUserBehaviorAsync(
                         userId, UserActionType.CreateNeed, need.Id.ToString(), "need", 
                         new { categoryId = need.CategoryId }, ipAddress, userAgent);
                 }
@@ -115,7 +119,8 @@ public class NeedController : ControllerBase
             {
                 try
                 {
-                    await _recommendationService.TrackUserBehaviorAsync(
+                    using var trackingScope = _scopeFactory.CreateScope();
+                    await trackingScope.ServiceProvider.GetRequiredService<IRecommendationService>().TrackUserBehaviorAsync(
                         userId, UserActionType.ViewNeed, id.ToString(), "need", 
                         new { categoryId = need.CategoryId }, ipAddress, userAgent);
                 }

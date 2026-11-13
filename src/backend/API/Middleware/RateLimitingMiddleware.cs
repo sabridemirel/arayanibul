@@ -131,10 +131,18 @@ public class RateLimitingMiddleware
 
     private RateLimitRule GetRateLimitForEndpoint(string endpoint)
     {
-        // Authentication endpoints - stricter limits
+        // Session refresh happens automatically in every open client (every ~15 min and on 401),
+        // and many users can share one public IP (mobile carrier CGNAT, offices) — keep it generous.
+        if (endpoint.Contains("/auth/refresh-token") || endpoint.Contains("/auth/validate-token"))
+        {
+            return new RateLimitRule { RequestLimit = 60, TimeWindow = TimeSpan.FromMinutes(1) };
+        }
+
+        // Credential endpoints (login, register, password reset, social sign-in): limits brute force
+        // per IP while still allowing several people behind a shared IP to sign in.
         if (endpoint.Contains("/auth/") || endpoint.Contains("/login") || endpoint.Contains("/register"))
         {
-            return new RateLimitRule { RequestLimit = 5, TimeWindow = TimeSpan.FromMinutes(1) };
+            return new RateLimitRule { RequestLimit = 20, TimeWindow = TimeSpan.FromMinutes(1) };
         }
 
         // File upload endpoints - very strict limits
@@ -165,14 +173,16 @@ public class RateLimitingMiddleware
     {
         var suspiciousActivity = _suspiciousClients.GetOrAdd(clientId, new SuspiciousActivity());
 
-        // Check for rapid sequential requests
+        // Check for rapid sequential requests. A single page load already fires several requests in
+        // parallel (profile, chat hub, unread count, lists), and IPs can be shared, so only sustained
+        // hammering (well beyond normal bursts) leads to a short block.
         if (suspiciousActivity.LastRequestTime.HasValue && 
             (now - suspiciousActivity.LastRequestTime.Value).TotalMilliseconds < 100)
         {
             suspiciousActivity.RapidRequestCount++;
-            if (suspiciousActivity.RapidRequestCount > 10)
+            if (suspiciousActivity.RapidRequestCount > 100)
             {
-                BlockClient(clientId, TimeSpan.FromMinutes(5), "Rapid sequential requests detected");
+                BlockClient(clientId, TimeSpan.FromMinutes(1), "Rapid sequential requests detected");
             }
         }
         else

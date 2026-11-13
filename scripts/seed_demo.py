@@ -99,6 +99,8 @@ def call(method, path, token=None, body=None):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(API + path, data=data, method=method)
     req.add_header("Content-Type", "application/json")
+    # The API rate limiter blocks generic script user agents (python, curl, ...).
+    req.add_header("User-Agent", "ArayanibulDemoSeeder/1.0")
     if token:
         req.add_header("Authorization", f"Bearer {token}")
     try:

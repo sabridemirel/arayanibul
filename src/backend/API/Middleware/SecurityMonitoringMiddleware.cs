@@ -174,11 +174,16 @@ public class SecurityMonitoringMiddleware
         {
             var clientIp = GetClientIpAddress(context);
             var userAgent = request.Headers["User-Agent"].ToString();
-            
+
             _logger.LogWarning("Security threats detected from {ClientIp}: {Threats}. Path: {Path}, UserAgent: {UserAgent}",
                 clientIp, string.Join(", ", threats), request.Path.Value, userAgent);
-            
-            return true;
+
+            // Only block on unambiguous attack signatures. SQL-keyword matches are logged but not
+            // blocked: all data access is parameterized (EF Core), and these patterns match ordinary
+            // Turkish text such as "Select ettiğiniz renk ... drop box'a". Suspicious user agents
+            // and header anomalies are also log-only (the rate limiter throttles abusive clients).
+            return threats.Any(t => t.StartsWith("XSS", StringComparison.Ordinal)
+                                 || t.StartsWith("Path traversal", StringComparison.Ordinal));
         }
 
         return false;
