@@ -97,17 +97,17 @@ npm run lint
 
 ## Çalışma Kuralları
 
-Uygun görevlerde doğrudan kod yazmak yerine **önce agent veya skill kullan**:
+Uygun görevlerde doğrudan kod yazmak yerine **önce plugin skill/agent kullan** (projeye özel `.claude/agents/` yok):
 
 | Görev | Kullan |
 |-------|--------|
-| Frontend tasarım (web) | `frontend-design` skill |
-| Web özellik geliştirme | `web-feature-developer` agent |
-| Mobil özellik/değişiklik | `mobile-feature-developer` agent |
-| Backend API/veritabanı | `dotnet-backend-developer` agent |
-| Yeni özellik planlama | `arayanibul-product-manager` agent |
-| Bug araştırma/fix | `bug` skill veya `feature-dev:code-reviewer` agent |
-| Kod inceleme | `feature-dev:code-reviewer` agent |
+| UI tasarım / yeniden tasarım | `frontend-design` skill |
+| UI/UX & erişilebilirlik denetimi (web) | `chrome-devtools-mcp:a11y-debugging` skill + Lighthouse |
+| Web uygulamasını test etme | `webapp-testing` skill (Playwright) |
+| Yeni özellik (planlama + geliştirme) | `feature-dev:feature-dev` skill (code-explorer / code-architect agent'ları) |
+| Bug araştırma/fix | `superpowers:systematic-debugging` skill |
+| Kod inceleme | `feature-dev:code-reviewer` agent veya `code-review` skill |
+| .NET / EF Core dokümantasyonu | `microsoft-docs` plugin |
 
 Tek satırlık basit düzeltmeler (typo, bir elementi kaldırma vb.) için agent şart değil.
 

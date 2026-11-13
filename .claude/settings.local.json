@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s http://localhost:5000/api/categories)",
+      "Bash(curl -s http://localhost:5001/api/categories)",
       "Bash(npm install:*)",
       "Bash(ls:*)",
       "Bash(npm create:*)",
@@ -10,5 +10,20 @@
     ],
     "deny": [],
     "ask": []
+  },
+  "skillOverrides": {},
+  "enabledPlugins": {
+    "supabase@claude-plugins-official": false,
+    "redis-development@anthropic-plugin-directory": false,
+    "swift-lsp@claude-plugins-official": false,
+    "kotlin-lsp@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": false,
+    "agent-sdk-dev@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": false,
+    "playground@anthropic-plugin-directory": false,
+    "browser-use@anthropic-plugin-directory": false,
+    "superdesign@anthropic-plugin-directory": false,
+    "ui-theme-designer@anthropic-plugin-directory": false,
+    "playwright@anthropic-plugin-directory": false
   }
 }
