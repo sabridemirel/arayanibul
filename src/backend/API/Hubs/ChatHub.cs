@@ -1,5 +1,8 @@
+using API.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 using System.Security.Claims;
 
 namespace API.Hubs;
@@ -7,7 +10,13 @@ namespace API.Hubs;
 [Authorize]
 public class ChatHub : Hub
 {
-    private static readonly Dictionary<string, string> UserConnections = new();
+    private static readonly ConcurrentDictionary<string, string> UserConnections = new();
+    private readonly ApplicationDbContext _context;
+
+    public ChatHub(ApplicationDbContext context)
+    {
+        _context = context;
+    }
 
     public override async Task OnConnectedAsync()
     {
@@ -25,7 +34,7 @@ public class ChatHub : Hub
         var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!string.IsNullOrEmpty(userId))
         {
-            UserConnections.Remove(userId);
+            UserConnections.TryRemove(userId, out _);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"User_{userId}");
         }
         await base.OnDisconnectedAsync(exception);
@@ -33,6 +42,16 @@ public class ChatHub : Hub
 
     public async Task JoinOfferConversation(string offerId)
     {
+        // Only the buyer (need owner) and the provider of the offer may listen to its messages.
+        var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId) || !int.TryParse(offerId, out var id))
+            throw new HubException("Geçersiz istek.");
+
+        var isParty = await _context.Offers
+            .AnyAsync(o => o.Id == id && (o.ProviderId == userId || o.Need.UserId == userId));
+        if (!isParty)
+            throw new HubException("Bu konuşmaya erişim yetkiniz yok.");
+
         await Groups.AddToGroupAsync(Context.ConnectionId, $"Offer_{offerId}");
     }
 
