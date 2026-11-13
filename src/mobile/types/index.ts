@@ -41,6 +41,7 @@ export type RootStackParamList = {
   
   // Protected screens (require authentication)
   CreateNeed: undefined;
+  EditNeed: { needId: number };
   CreateOffer: { needId: number };
   MyNeeds: undefined;
   MyOffers: undefined;

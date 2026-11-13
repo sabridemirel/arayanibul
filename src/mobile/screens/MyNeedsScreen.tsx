@@ -22,7 +22,7 @@ import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import NeedModerationNotice from '../components/NeedModerationNotice';
-import { getNeedStatusColor, getNeedStatusText } from '../utils/needStatus';
+import { getNeedStatusColor, getNeedStatusText, isNeedEditable } from '../utils/needStatus';
 
 type MyNeedsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -319,6 +319,19 @@ const MyNeedsScreen: React.FC = () => {
           </View>
 
           <View style={styles.actionButtons}>
+            {isNeedEditable(item.status) && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.editActionButton]}
+                onPress={() => navigation.navigate('EditNeed', { needId: item.id })}
+                accessibilityRole="button"
+                accessibilityLabel="Düzenle"
+                accessibilityHint="İlanı düzenlemek için dokunun"
+              >
+                <MaterialIcons name="edit" size={16} color={colors.primary} />
+                <Text style={styles.editActionText}>Düzenle</Text>
+              </TouchableOpacity>
+            )}
+
             {item.status === 'Completed' && (
               <TouchableOpacity
                 style={styles.actionButton}
@@ -596,6 +609,16 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: 6,
     backgroundColor: colors.background,
+  },
+  editActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editActionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.primary,
+    marginLeft: 4,
   },
   emptyState: {
     flex: 1,

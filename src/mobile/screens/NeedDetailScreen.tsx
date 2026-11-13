@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI, offerAPI } from '../services/api';
@@ -25,7 +25,7 @@ import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import ReportSheet from '../components/ReportSheet';
-import { getNeedStatusColor, getNeedStatusText } from '../utils/needStatus';
+import { getNeedStatusColor, getNeedStatusText, isNeedEditable } from '../utils/needStatus';
 
 type NeedDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'NeedDetail'>;
 type NeedDetailScreenRouteProp = RouteProp<RootStackParamList, 'NeedDetail'>;
@@ -48,6 +48,21 @@ const NeedDetailScreen: React.FC = () => {
   useEffect(() => {
     loadNeedDetail();
   }, [needId]);
+
+  // Refresh silently when coming back (e.g. after editing the need)
+  const hasFocusedOnce = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasFocusedOnce.current) {
+        hasFocusedOnce.current = true;
+        return;
+      }
+      needAPI
+        .getNeedById(needId)
+        .then(setNeed)
+        .catch(err => console.error('İlan yenilenirken hata:', err));
+    }, [needId])
+  );
 
   const loadNeedDetail = async () => {
     try {
@@ -226,6 +241,9 @@ const NeedDetailScreen: React.FC = () => {
   const canCreateOffer = user && !user.isGuest && user.id !== need.userId && need.status === 'Active';
   // Reporting needs a full account and is not offered on your own need
   const canReport = !!user && !user.isGuest && user.id !== need.userId;
+  // Rejected needs get their edit button inside the moderation notice
+  const canEdit = !!isOwner && isNeedEditable(need.status);
+  const handleEditNeed = () => navigation.navigate('EditNeed', { needId: need.id });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -275,7 +293,7 @@ const NeedDetailScreen: React.FC = () => {
           {isOwner && (
             <NeedModerationNotice
               need={need}
-              onCreateNew={() => navigation.navigate('CreateNeed')}
+              onEdit={canEdit ? handleEditNeed : undefined}
             />
           )}
 
@@ -362,6 +380,18 @@ const NeedDetailScreen: React.FC = () => {
             title="Teklif Ver"
             onPress={handleCreateOffer}
             icon="local-offer"
+            fullWidth
+          />
+        </View>
+      )}
+
+      {canEdit && need.status !== 'Rejected' && (
+        <View style={styles.actionContainer}>
+          <Button
+            title="İlanı Düzenle"
+            onPress={handleEditNeed}
+            icon="edit"
+            variant="outline"
             fullWidth
           />
         </View>

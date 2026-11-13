@@ -71,6 +71,7 @@ function AppNavigator() {
 
         {/* Screens without their own top bar use the stack header for the back button */}
         <Stack.Group screenOptions={{ headerShown: true, headerBackTitle: 'Geri', headerTintColor: '#333' }}>
+          <Stack.Screen name="EditNeed" component={CreateNeedScreen} options={{ title: 'İlanı Düzenle' }} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Profili Düzenle' }} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Bildirimler' }} />
           <Stack.Screen

@@ -8,13 +8,13 @@ import { PENDING_REVIEW_HELP } from '../utils/needStatus';
 
 interface NeedModerationNoticeProps {
   need: Pick<Need, 'status' | 'rejectionReasonText' | 'rejectionNote'>;
-  // Shown for rejected needs; there is no edit flow for needs, so the owner posts a new one
-  onCreateNew?: () => void;
+  // Shown for rejected needs: opens the edit screen so the owner can fix and resubmit
+  onEdit?: () => void;
   compact?: boolean;
 }
 
 // Owner-only notice for needs that are in review or were not published
-const NeedModerationNotice: React.FC<NeedModerationNoticeProps> = ({ need, onCreateNew, compact }) => {
+const NeedModerationNotice: React.FC<NeedModerationNoticeProps> = ({ need, onEdit, compact }) => {
   if (need.status === 'PendingReview') {
     return (
       <View style={[styles.box, styles.pendingBox]} accessibilityRole="text">
@@ -36,13 +36,13 @@ const NeedModerationNotice: React.FC<NeedModerationNoticeProps> = ({ need, onCre
         ) : null}
         {need.rejectionNote ? <Text style={styles.text}>Not: {need.rejectionNote}</Text> : null}
         <Text style={styles.text}>
-          İlanınızı kurallara uygun şekilde düzenleyip yeni bir ilan olarak paylaşabilirsiniz.
+          İlanınızı kurallara uygun şekilde düzenleyip tekrar incelemeye gönderebilirsiniz.
         </Text>
-        {onCreateNew && !compact ? (
+        {onEdit && !compact ? (
           <Button
-            title="Yeni İlan Ver"
-            onPress={onCreateNew}
-            icon="add"
+            title="Düzenle ve Tekrar Gönder"
+            onPress={onEdit}
+            icon="edit"
             size="small"
             style={styles.button}
           />

@@ -11,21 +11,43 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
 import { needAPI, categoryAPI } from '../services/api';
-import { Category, CreateNeedRequest } from '../types';
+import { Category, CreateNeedRequest, Need } from '../types';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Loading from '../components/ui/Loading';
-import ErrorMessage from '../components/ui/ErrorMessage';
+import NeedModerationNotice from '../components/NeedModerationNotice';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import { withCreateNeedAuth } from '../hoc/withAuthPrompt';
+import { isNeedEditable } from '../utils/needStatus';
 
 type CreateNeedScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateNeed'>;
+// The same screen is registered as EditNeed ({ needId }) for editing an existing need
+type CreateNeedScreenRouteProp = RouteProp<RootStackParamList, 'CreateNeed' | 'EditNeed'>;
+
+type UrgencyValue = 'Flexible' | 'Normal' | 'Urgent';
+
+// Backend enum values (UrgencyLevel)
+const URGENCY_TO_API: Record<UrgencyValue, number> = {
+  Flexible: 1,
+  Normal: 2,
+  Urgent: 3,
+};
+
+// Responses usually carry the enum name, but accept the numeric value as well
+const parseUrgency = (value: unknown): UrgencyValue => {
+  if (value === 'Urgent' || value === 3) return 'Urgent';
+  if (value === 'Flexible' || value === 1) return 'Flexible';
+  return 'Normal';
+};
+
+const budgetToForm = (value?: number | null) =>
+  value === undefined || value === null ? '' : String(Math.round(value));
 
 interface FormData {
   title: string;
@@ -34,7 +56,7 @@ interface FormData {
   minBudget: string;
   maxBudget: string;
   address: string;
-  urgency: 'Normal' | 'Urgent';
+  urgency: UrgencyValue;
 }
 
 interface FormErrors {
@@ -48,7 +70,12 @@ interface FormErrors {
 
 const CreateNeedScreen: React.FC = () => {
   const navigation = useNavigation<CreateNeedScreenNavigationProp>();
+  const route = useRoute<CreateNeedScreenRouteProp>();
   const { user } = useAuth();
+
+  const editNeedId =
+    route.name === 'EditNeed' ? (route.params as { needId: number } | undefined)?.needId : undefined;
+  const isEdit = editNeedId !== undefined;
 
   const [formData, setFormData] = useState<FormData>({
     title: '',
@@ -66,10 +93,78 @@ const CreateNeedScreen: React.FC = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  // Edit mode: the need being edited and the values it was loaded with
+  const [existingNeed, setExistingNeed] = useState<Need | null>(null);
+  const [initialFormData, setInitialFormData] = useState<FormData | null>(null);
+  const [needLoading, setNeedLoading] = useState(isEdit);
 
   useEffect(() => {
     loadCategories();
   }, []);
+
+  useEffect(() => {
+    if (isEdit && user) {
+      loadNeedForEdit(editNeedId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editNeedId, user?.id]);
+
+  const loadNeedForEdit = async (needId: number) => {
+    try {
+      setNeedLoading(true);
+      const need = await needAPI.getNeedById(needId);
+
+      if (!user || need.userId !== user.id) {
+        Alert.alert('İlan Düzenlenemez', 'Yalnızca kendi ilanlarınızı düzenleyebilirsiniz.', [
+          { text: 'Tamam', onPress: () => navigation.goBack() },
+        ], { cancelable: false });
+        return;
+      }
+
+      if (!isNeedEditable(need.status)) {
+        Alert.alert('İlan Düzenlenemez', 'Bu ilan artık düzenlenemez.', [
+          { text: 'Tamam', onPress: () => navigation.goBack() },
+        ], { cancelable: false });
+        return;
+      }
+
+      const loaded: FormData = {
+        title: need.title ?? '',
+        description: need.description ?? '',
+        categoryId: need.categoryId ?? null,
+        minBudget: budgetToForm(need.minBudget),
+        maxBudget: budgetToForm(need.maxBudget),
+        address: need.address ?? '',
+        urgency: parseUrgency(need.urgency),
+      };
+
+      setExistingNeed(need);
+      setFormData(loaded);
+      setInitialFormData(loaded);
+      if (need.category) {
+        setSelectedCategory(need.category);
+      }
+    } catch (err: any) {
+      Alert.alert(
+        'Hata',
+        err.response?.data?.message || 'İlan yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.',
+        [{ text: 'Tamam', onPress: () => navigation.goBack() }],
+        { cancelable: false }
+      );
+    } finally {
+      setNeedLoading(false);
+    }
+  };
+
+  // Once categories arrive, show the full category entry for the need being edited
+  useEffect(() => {
+    if (!isEdit || !formData.categoryId || categories.length === 0) return;
+    const match = categories.find(cat => cat.id === formData.categoryId);
+    if (match && match !== selectedCategory) {
+      setSelectedCategory(match);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, isEdit, formData.categoryId]);
 
   const loadCategories = async () => {
     try {
@@ -137,15 +232,16 @@ const CreateNeedScreen: React.FC = () => {
       return;
     }
 
+    if (isEdit) {
+      await handleUpdate();
+      return;
+    }
+
     try {
       setLoading(true);
 
       // Map urgency string to backend enum value
-      const urgencyMap: Record<string, number> = {
-        'Flexible': 1,
-        'Normal': 2,
-        'Urgent': 3,
-      };
+      const urgencyMap = URGENCY_TO_API;
 
       const requestData: CreateNeedRequest = {
         title: formData.title.trim(),
@@ -184,6 +280,61 @@ const CreateNeedScreen: React.FC = () => {
       Alert.alert(
         'Hata',
         err.response?.data?.message || 'İhtiyaç oluşturulurken hata oluştu'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Edit mode: send only the fields that changed, so budget/address/urgency-only
+  // edits keep an active need published (content changes go back to review)
+  const handleUpdate = async () => {
+    if (!editNeedId || !initialFormData) return;
+
+    const changes: Record<string, unknown> = {};
+    const title = formData.title.trim();
+    const description = formData.description.trim();
+    const address = formData.address.trim();
+
+    if (title !== initialFormData.title.trim()) changes.title = title;
+    if (description !== initialFormData.description.trim()) changes.description = description;
+    if (formData.categoryId !== initialFormData.categoryId) changes.categoryId = formData.categoryId;
+    if (formData.minBudget !== initialFormData.minBudget && formData.minBudget) {
+      changes.minBudget = Number(formData.minBudget);
+    }
+    if (formData.maxBudget !== initialFormData.maxBudget && formData.maxBudget) {
+      changes.maxBudget = Number(formData.maxBudget);
+    }
+    if (address !== initialFormData.address.trim()) changes.address = address;
+    if (formData.urgency !== initialFormData.urgency) {
+      changes.urgency = URGENCY_TO_API[formData.urgency];
+    }
+
+    if (Object.keys(changes).length === 0) {
+      Alert.alert('Değişiklik Yok', 'Kaydedilecek bir değişiklik yapmadınız.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const updated = await needAPI.updateNeed(
+        editNeedId,
+        changes as Partial<CreateNeedRequest>
+      );
+
+      const message =
+        updated?.status === 'PendingReview'
+          ? 'İlanınız güncellendi ve yeniden incelemeye gönderildi.'
+          : 'İlanınız güncellendi.';
+
+      Alert.alert('İlan Güncellendi', message, [
+        { text: 'Tamam', onPress: () => navigation.goBack() },
+      ], { cancelable: false });
+    } catch (err: any) {
+      Alert.alert(
+        'Hata',
+        err.response?.data?.message ||
+          'İlan kaydedilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.'
       );
     } finally {
       setLoading(false);
@@ -361,6 +512,15 @@ const CreateNeedScreen: React.FC = () => {
     );
   };
 
+  if (isEdit && (needLoading || categoriesLoading || !existingNeed)) {
+    // EditNeed uses the stack header, so no custom top bar here
+    return (
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <Loading text="İlan yükleniyor..." />
+      </SafeAreaView>
+    );
+  }
+
   if (categoriesLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -376,17 +536,23 @@ const CreateNeedScreen: React.FC = () => {
     );
   }
 
+  const isRejected = existingNeed?.status === 'Rejected';
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>İhtiyaç Oluştur</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={styles.container} edges={isEdit ? ['bottom'] : undefined}>
+      {!isEdit && (
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>İhtiyaç Oluştur</Text>
+          <View style={{ width: 24 }} />
+        </View>
+      )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {isEdit && existingNeed ? <NeedModerationNotice need={existingNeed} /> : null}
+
         <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Temel Bilgiler</Text>
 
@@ -498,18 +664,39 @@ const CreateNeedScreen: React.FC = () => {
         </Card>
 
         <View style={styles.actionContainer}>
-          <View style={styles.reviewNotice}>
-            <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
-            <Text style={styles.reviewNoticeText}>İlanlar yayınlanmadan önce incelenir.</Text>
-          </View>
-          <Button
-            title="İhtiyacı Oluştur"
-            onPress={handleSubmit}
-            loading={loading}
-            disabled={loading}
-            fullWidth
-            icon="add"
-          />
+          {!isEdit && (
+            <View style={styles.reviewNotice}>
+              <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
+              <Text style={styles.reviewNoticeText}>İlanlar yayınlanmadan önce incelenir.</Text>
+            </View>
+          )}
+          {isEdit && existingNeed?.status === 'Active' && (
+            <View style={styles.reviewNotice}>
+              <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
+              <Text style={styles.reviewNoticeText}>
+                Başlık, açıklama veya kategori değişikliği ilanınızı yeniden incelemeye gönderir.
+              </Text>
+            </View>
+          )}
+          {isEdit ? (
+            <Button
+              title={isRejected ? 'Düzenle ve Tekrar Gönder' : 'Değişiklikleri Kaydet'}
+              onPress={handleSubmit}
+              loading={loading}
+              disabled={loading}
+              fullWidth
+              icon={isRejected ? 'send' : 'save'}
+            />
+          ) : (
+            <Button
+              title="İhtiyacı Oluştur"
+              onPress={handleSubmit}
+              loading={loading}
+              disabled={loading}
+              fullWidth
+              icon="add"
+            />
+          )}
         </View>
       </ScrollView>
 

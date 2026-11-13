@@ -34,3 +34,9 @@ export const getNeedStatusColor = (status: string) => {
 
 export const PENDING_REVIEW_HELP =
   'İlanınız inceleniyor. Onaylandığında yayınlanacak ve size bildirim gelecek.';
+
+// Statuses in which the owner may still edit a need (mirrors the backend rule)
+export const EDITABLE_NEED_STATUSES = ['Active', 'PendingReview', 'Rejected'];
+
+export const isNeedEditable = (status?: string) =>
+  !!status && EDITABLE_NEED_STATUSES.includes(status);
