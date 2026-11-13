@@ -397,18 +397,7 @@ public class SecurityMonitoringMiddleware
 
     private string GetClientIpAddress(HttpContext context)
     {
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            return forwardedFor.Split(',')[0].Trim();
-        }
-
-        var realIp = context.Request.Headers["X-Real-IP"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(realIp))
-        {
-            return realIp;
-        }
-
+        // Real client IP, resolved by UseForwardedHeaders from the trusted reverse proxy only.
         return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 

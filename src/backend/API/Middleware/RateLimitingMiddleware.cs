@@ -112,14 +112,9 @@ public class RateLimitingMiddleware
         if (!string.IsNullOrEmpty(userId))
             return $"user:{userId}";
 
-        // Fall back to IP address
-        var forwardedFor = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            var ip = forwardedFor.Split(',')[0].Trim();
-            return $"ip:{ip}";
-        }
-
+        // Fall back to IP address. RemoteIpAddress is already the real client IP:
+        // UseForwardedHeaders (Program.cs) applies X-Forwarded-For from the trusted reverse
+        // proxy only, so a client-supplied header cannot be used to dodge the limit.
         return $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
     }
 

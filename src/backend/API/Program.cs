@@ -64,6 +64,22 @@ builder.Services.AddCorsPolicy(builder.Configuration);
 
 var app = builder.Build();
 
+// Behind the reverse proxy (Caddy) the API is only reachable on the internal Docker network,
+// so trust X-Forwarded-For/-Proto from it. Caddy overwrites X-Forwarded-For with the real
+// client IP (Cloudflare's CF-Connecting-IP), so RemoteIpAddress becomes the client's IP.
+if (app.Configuration.GetValue<bool>("ReverseProxy:Enabled"))
+{
+    var forwardedOptions = new Microsoft.AspNetCore.Builder.ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+        ForwardLimit = 1
+    };
+    forwardedOptions.KnownNetworks.Clear();
+    forwardedOptions.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedOptions);
+}
+
 // Seed database (skip in test environment)
 if (!app.Environment.IsEnvironment("Testing"))
 {
