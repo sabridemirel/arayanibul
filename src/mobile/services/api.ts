@@ -140,6 +140,15 @@ export interface Category {
   subCategories?: Category[];
 }
 
+export type NeedStatus =
+  | 'PendingReview'
+  | 'Rejected'
+  | 'Active'
+  | 'InProgress'
+  | 'Completed'
+  | 'Cancelled'
+  | 'Expired';
+
 export interface Need {
   id: number;
   title: string;
@@ -152,7 +161,12 @@ export interface Need {
   longitude?: number;
   address?: string;
   urgency: 'Flexible' | 'Normal' | 'Urgent';
-  status: 'Active' | 'InProgress' | 'Completed' | 'Cancelled' | 'Expired';
+  status: NeedStatus;
+  // Moderation (set when status is Rejected / once approved)
+  rejectionReason?: string | null;
+  rejectionReasonText?: string | null;
+  rejectionNote?: string | null;
+  approvedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   expiresAt?: string;
@@ -518,6 +532,39 @@ export const searchAPI = {
     api.get('/recommendation/discover', { 
       params: lat && lng ? { lat, lng } : {} 
     }).then(res => res.data),
+};
+
+// Moderation: user-facing report and block
+export type ReportTargetType = 'Need' | 'Message' | 'User';
+export type ReportReason = 'Spam' | 'Inappropriate' | 'Fraud' | 'Harassment' | 'Other';
+
+export interface CreateReportRequest {
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: ReportReason;
+  note?: string;
+}
+
+export interface BlockedUser {
+  userId: string;
+  fullName: string;
+  blockedAt: string;
+}
+
+export const reportAPI = {
+  createReport: (data: CreateReportRequest): Promise<{ message: string }> =>
+    api.post('/reports', data).then(res => res.data),
+};
+
+export const blockAPI = {
+  blockUser: (userId: string): Promise<{ message: string }> =>
+    api.post(`/users/${encodeURIComponent(userId)}/block`).then(res => res.data),
+
+  unblockUser: (userId: string): Promise<{ message: string }> =>
+    api.delete(`/users/${encodeURIComponent(userId)}/block`).then(res => res.data),
+
+  getBlockedUsers: (): Promise<BlockedUser[]> =>
+    api.get('/users/blocked').then(res => (Array.isArray(res.data) ? res.data : [])),
 };
 
 export interface NotificationSettings {

@@ -22,7 +22,7 @@ import { useChat } from '../contexts/ChatContext';
 import { withConversationsAuth } from '../hoc/withAuthPrompt';
 
 type RootStackParamList = {
-  Chat: { offerId: number };
+  Chat: { offerId: number; otherUserId?: string };
   NeedDetail: { needId: number };
 };
 
@@ -202,7 +202,7 @@ const ConversationsScreen: React.FC = () => {
   };
 
   const handleConversationPress = (conversation: Conversation) => {
-    navigation.navigate('Chat', { offerId: conversation.offerId });
+    navigation.navigate('Chat', { offerId: conversation.offerId, otherUserId: conversation.otherUserId });
   };
 
   const handleOfferPress = (needId: number) => {

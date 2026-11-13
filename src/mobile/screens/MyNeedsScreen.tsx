@@ -21,10 +21,12 @@ import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
+import NeedModerationNotice from '../components/NeedModerationNotice';
+import { getNeedStatusColor, getNeedStatusText } from '../utils/needStatus';
 
 type MyNeedsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
-type NeedStatus = 'All' | 'Active' | 'InProgress' | 'Completed' | 'Cancelled' | 'Expired';
+type NeedStatus = 'All' | 'PendingReview' | 'Rejected' | 'Active' | 'InProgress' | 'Completed' | 'Cancelled' | 'Expired';
 
 const MyNeedsScreen: React.FC = () => {
   const navigation = useNavigation<MyNeedsScreenNavigationProp>();
@@ -38,11 +40,13 @@ const MyNeedsScreen: React.FC = () => {
 
   const statusOptions: { key: NeedStatus; label: string; count?: number }[] = [
     { key: 'All', label: 'Tümü' },
+    { key: 'PendingReview', label: 'İncelemede' },
     { key: 'Active', label: 'Aktif' },
     { key: 'InProgress', label: 'Devam Eden' },
     { key: 'Completed', label: 'Tamamlanan' },
     { key: 'Cancelled', label: 'İptal Edilen' },
     { key: 'Expired', label: 'Süresi Dolan' },
+    { key: 'Rejected', label: 'Yayınlanmadı' },
   ];
 
   const loadMyNeeds = useCallback(async (refresh = false) => {
@@ -143,38 +147,8 @@ const MyNeedsScreen: React.FC = () => {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'Aktif';
-      case 'InProgress':
-        return 'Devam Ediyor';
-      case 'Completed':
-        return 'Tamamlandı';
-      case 'Cancelled':
-        return 'İptal Edildi';
-      case 'Expired':
-        return 'Süresi Doldu';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return colors.success;
-      case 'InProgress':
-        return colors.warning;
-      case 'Completed':
-        return colors.primary;
-      case 'Cancelled':
-      case 'Expired':
-        return colors.error;
-      default:
-        return colors.textSecondary;
-    }
-  };
+  const getStatusText = getNeedStatusText;
+  const getStatusColor = getNeedStatusColor;
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -295,6 +269,8 @@ const MyNeedsScreen: React.FC = () => {
             </View>
           </View>
         </View>
+
+        <NeedModerationNotice need={item} compact />
 
         <Text style={styles.needDescription} numberOfLines={3}>
           {item.description}

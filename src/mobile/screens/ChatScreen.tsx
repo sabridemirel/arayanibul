@@ -15,21 +15,24 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import { Input, Loading, ErrorMessage } from '../components/ui';
-import { messageAPI, offerAPI } from '../services/api';
+import { blockAPI, messageAPI, needAPI, offerAPI, ReportTargetType } from '../services/api';
 import { Message, Offer } from '../types';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
 import { withMessageAuth } from '../hoc/withAuthPrompt';
+import ReportSheet from '../components/ReportSheet';
 
 type RootStackParamList = {
-  Chat: { offerId: number };
+  Chat: { offerId: number; otherUserId?: string };
 };
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 type ChatScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Chat'>;
 
 const CLOSED_OFFER_NOTE = 'Bu teklif kapandığı için yeni mesaj gönderilemez.';
+const BLOCKED_NOTE = 'Bu kullanıcıyı engellediniz.';
+const MESSAGING_LOCKED_FALLBACK = 'Bu kullanıcıyla mesajlaşamazsınız.';
 const MAX_MESSAGE_LENGTH = 1000;
 
 const OFFER_STATUS_LABELS: Record<string, string> = {
@@ -55,10 +58,17 @@ const mergeMessages = (current: Message[], incoming: Message[]) => {
 interface MessageBubbleProps {
   message: Message;
   isOwnMessage: boolean;
+  onLongPress?: (message: Message) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwnMessage }) => (
-  <View style={[styles.messageBubble, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwnMessage, onLongPress }) => (
+  <TouchableOpacity
+    activeOpacity={0.8}
+    disabled={!onLongPress}
+    onLongPress={onLongPress ? () => onLongPress(message) : undefined}
+    accessibilityHint={onLongPress ? 'Mesajı şikayet etmek için basılı tutun' : undefined}
+    style={[styles.messageBubble, isOwnMessage ? styles.ownMessage : styles.otherMessage]}
+  >
     <Text style={[styles.messageText, { color: isOwnMessage ? colors.surface : colors.text }]}>
       {message.content}
     </Text>
@@ -68,7 +78,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwnMessage }) 
         minute: '2-digit',
       })}
     </Text>
-  </View>
+  </TouchableOpacity>
 );
 
 const ChatScreen: React.FC = () => {
@@ -92,6 +102,12 @@ const ChatScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [offer, setOffer] = useState<Offer | null>(null);
   const [closed, setClosed] = useState(false);
+  const [needOwnerId, setNeedOwnerId] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const [blockBusy, setBlockBusy] = useState(false);
+  // Server refused messaging (403, e.g. the other party blocked you); holds its message
+  const [lockedMessage, setLockedMessage] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ type: ReportTargetType; id: string } | null>(null);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -135,6 +151,21 @@ const ChatScreen: React.FC = () => {
     loadConversation();
     loadOffer();
   }, [loadConversation, loadOffer]);
+
+  // The offer only carries the provider; when you are the provider, the other party is the need owner.
+  useEffect(() => {
+    if (route.params.otherUserId || !offer || !user || offer.providerId !== user.id) return;
+    let cancelled = false;
+    needAPI
+      .getNeedById(offer.needId)
+      .then(need => {
+        if (!cancelled && need?.userId) setNeedOwnerId(need.userId);
+      })
+      .catch(err => console.warn('Error loading need owner:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [offer, user, route.params.otherUserId]);
 
   // Hub reconnected / app returned to foreground: merge a fresh snapshot (messages may have been missed).
   const lastReconnectRef = useRef(reconnectCount);
@@ -185,9 +216,103 @@ const ChatScreen: React.FC = () => {
     refreshUnread,
   ]);
 
+  const otherUserId: string | null =
+    route.params.otherUserId
+    ?? (offer && user && offer.providerId && offer.providerId !== user.id ? offer.providerId : null)
+    ?? needOwnerId
+    ?? messages.find(m => m.senderId !== user?.id)?.senderId
+    ?? null;
+
+  // Report/block need a full account and a known other party
+  const canModerate = !!user && !user.isGuest && !!otherUserId && otherUserId !== user.id;
+
+  // Initial block state for this conversation
+  useEffect(() => {
+    if (!canModerate || !otherUserId) return;
+    let cancelled = false;
+    blockAPI
+      .getBlockedUsers()
+      .then(list => {
+        if (!cancelled) setBlocked(list.some(b => b.userId === otherUserId));
+      })
+      .catch(err => console.warn('Error loading blocked users:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [canModerate, otherUserId]);
+
+  const serverMessage = (err: any, fallback: string) => {
+    const message = err?.response?.data?.message;
+    return typeof message === 'string' && message ? message : fallback;
+  };
+
+  const setBlockState = async (block: boolean) => {
+    if (!otherUserId || blockBusy) return;
+    try {
+      setBlockBusy(true);
+      const res = block
+        ? await blockAPI.blockUser(otherUserId)
+        : await blockAPI.unblockUser(otherUserId);
+      setBlocked(block);
+      if (!block) setLockedMessage(null);
+      if (res?.message) Alert.alert(block ? 'Kullanıcı Engellendi' : 'Engel Kaldırıldı', res.message);
+    } catch (err: any) {
+      Alert.alert(
+        'Hata',
+        serverMessage(
+          err,
+          block
+            ? 'Kullanıcı engellenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+            : 'Engel kaldırılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.'
+        )
+      );
+    } finally {
+      setBlockBusy(false);
+    }
+  };
+
+  const confirmBlock = () => {
+    Alert.alert(
+      'Kullanıcıyı Engelle',
+      'Engellediğiniz kullanıcıyla mesajlaşamazsınız ve birbirinizin ilanlarına teklif veremezsiniz. Engeli daha sonra kaldırabilirsiniz.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Engelle', style: 'destructive', onPress: () => setBlockState(true) },
+      ]
+    );
+  };
+
+  const confirmUnblock = () => {
+    Alert.alert('Engeli Kaldır', 'Bu kullanıcının engelini kaldırmak istiyor musunuz?', [
+      { text: 'Vazgeç', style: 'cancel' },
+      { text: 'Engeli Kaldır', onPress: () => setBlockState(false) },
+    ]);
+  };
+
+  const openMenu = () => {
+    if (!otherUserId) return;
+    Alert.alert('Seçenekler', undefined, [
+      { text: 'Şikayet Et', onPress: () => setReportTarget({ type: 'User', id: otherUserId }) },
+      blocked
+        ? { text: 'Engeli Kaldır', onPress: confirmUnblock }
+        : { text: 'Kullanıcıyı Engelle', style: 'destructive', onPress: confirmBlock },
+      { text: 'Vazgeç', style: 'cancel' },
+    ]);
+  };
+
+  const handleMessageLongPress = (message: Message) => {
+    Alert.alert('Mesaj', undefined, [
+      {
+        text: 'Mesajı Şikayet Et',
+        onPress: () => setReportTarget({ type: 'Message', id: String(message.id) }),
+      },
+      { text: 'Vazgeç', style: 'cancel' },
+    ]);
+  };
+
   const handleSendText = async () => {
     const content = newMessage.trim();
-    if (!content || !user || sending || closed) return;
+    if (!content || !user || sending || closed || blocked || lockedMessage) return;
 
     try {
       setSending(true);
@@ -203,6 +328,10 @@ const ChatScreen: React.FC = () => {
       if (err?.response?.status === 400 && typeof body === 'string' && body.includes('kapandığı')) {
         setClosed(true);
         loadOffer();
+      } else if (err?.response?.status === 403) {
+        const message = serverMessage(err, MESSAGING_LOCKED_FALLBACK);
+        setLockedMessage(message);
+        Alert.alert('Mesaj Gönderilemedi', message);
       } else {
         Alert.alert('Hata', 'Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
       }
@@ -212,9 +341,16 @@ const ChatScreen: React.FC = () => {
     }
   };
 
-  const renderMessage = ({ item }: { item: Message }) => (
-    <MessageBubble message={item} isOwnMessage={item.senderId === user?.id} />
-  );
+  const renderMessage = ({ item }: { item: Message }) => {
+    const isOwnMessage = item.senderId === user?.id;
+    return (
+      <MessageBubble
+        message={item}
+        isOwnMessage={isOwnMessage}
+        onLongPress={canModerate && !isOwnMessage ? handleMessageLongPress : undefined}
+      />
+    );
+  };
 
   const otherPartyName = messages.find(m => m.senderId !== user?.id)?.senderName
     ?? (offer && offer.providerId !== user?.id && offer.provider
@@ -244,10 +380,50 @@ const ChatScreen: React.FC = () => {
           </Text>
         ) : null}
       </View>
+      {canModerate ? (
+        <TouchableOpacity
+          onPress={openMenu}
+          style={styles.menuButton}
+          accessibilityRole="button"
+          accessibilityLabel="Seçenekler"
+          accessibilityHint="Şikayet etme ve engelleme seçenekleri için dokunun"
+        >
+          <MaterialIcons name="more-vert" size={24} color={colors.text} />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 
   const renderInputArea = () => {
+    if (blocked) {
+      return (
+        <View style={[styles.inputContainer, styles.blockedNote]}>
+          <View style={styles.closedNote}>
+            <MaterialIcons name="block" size={18} color={colors.textSecondary} />
+            <Text style={styles.closedNoteText}>{BLOCKED_NOTE}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={confirmUnblock}
+            disabled={blockBusy}
+            style={styles.unblockButton}
+            accessibilityRole="button"
+            accessibilityLabel="Engeli Kaldır"
+          >
+            <Text style={styles.unblockButtonText}>Engeli Kaldır</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    if (lockedMessage) {
+      return (
+        <View style={[styles.inputContainer, styles.closedNote]}>
+          <MaterialIcons name="lock-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.closedNoteText}>{lockedMessage}</Text>
+        </View>
+      );
+    }
+
     if (closed) {
       return (
         <View style={[styles.inputContainer, styles.closedNote]}>
@@ -347,6 +523,15 @@ const ChatScreen: React.FC = () => {
 
         {renderInputArea()}
       </KeyboardAvoidingView>
+
+      {canModerate && (
+        <ReportSheet
+          visible={!!reportTarget}
+          targetType={reportTarget?.type ?? 'User'}
+          targetId={reportTarget?.id}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -367,6 +552,28 @@ const styles = StyleSheet.create({
   backButton: {
     padding: spacing.sm,
     marginRight: spacing.sm,
+  },
+  menuButton: {
+    padding: spacing.sm,
+    marginLeft: spacing.sm,
+  },
+  blockedNote: {
+    alignItems: 'center',
+  },
+  unblockButton: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  unblockButtonText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: typography.body.fontSize,
   },
   headerInfo: {
     flex: 1,

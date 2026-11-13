@@ -241,6 +241,16 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.editButton}
         />
         
+        {!displayUser?.isGuest && (
+          <Button
+            title="Engellenen Kullanıcılar"
+            onPress={() => navigation.navigate('BlockedUsers')}
+            icon="block"
+            fullWidth
+            style={styles.editButton}
+          />
+        )}
+
         <Button
           title="Çıkış Yap"
           onPress={handleLogout}

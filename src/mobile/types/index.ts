@@ -7,6 +7,10 @@ export type {
   User,
   Category,
   Need,
+  NeedStatus,
+  BlockedUser,
+  ReportTargetType,
+  ReportReason,
   CreateNeedRequest,
   NeedFilters,
   Offer,
@@ -41,10 +45,11 @@ export type RootStackParamList = {
   MyNeeds: undefined;
   MyOffers: undefined;
   Conversations: undefined;
-  Chat: { offerId: number };
+  Chat: { offerId: number; otherUserId?: string };
   Profile: { userId?: string };
   EditProfile: undefined;
   NotificationSettings: undefined;
+  BlockedUsers: undefined;
   Notifications: undefined;
   Review: {
     revieweeId: string;

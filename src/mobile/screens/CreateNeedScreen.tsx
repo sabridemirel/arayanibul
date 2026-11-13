@@ -168,15 +168,17 @@ const CreateNeedScreen: React.FC = () => {
 
       await needAPI.createNeed(requestData);
 
+      // New needs start in review; the owner can follow them from MyNeeds
       Alert.alert(
-        'Başarılı',
-        'İhtiyacınız başarıyla oluşturuldu!',
+        'İlanınız Alındı',
+        'İlanınız alındı. İncelendikten sonra yayınlanacak.',
         [
           {
-            text: 'Tamam',
-            onPress: () => navigation.goBack(),
+            text: 'İlanlarıma Git',
+            onPress: () => navigation.replace('MyNeeds'),
           },
-        ]
+        ],
+        { cancelable: false }
       );
     } catch (err: any) {
       Alert.alert(
@@ -496,6 +498,10 @@ const CreateNeedScreen: React.FC = () => {
         </Card>
 
         <View style={styles.actionContainer}>
+          <View style={styles.reviewNotice}>
+            <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.reviewNoticeText}>İlanlar yayınlanmadan önce incelenir.</Text>
+          </View>
           <Button
             title="İhtiyacı Oluştur"
             onPress={handleSubmit}
@@ -682,6 +688,17 @@ const styles = StyleSheet.create({
   actionContainer: {
     marginTop: spacing.lg,
     marginBottom: spacing.xl,
+  },
+  reviewNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  reviewNoticeText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginLeft: spacing.xs,
+    flex: 1,
   },
   modalContainer: {
     flex: 1,

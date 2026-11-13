@@ -23,6 +23,9 @@ import ErrorMessage from '../components/ui/ErrorMessage';
 import OfferListScreen from '../components/OfferListScreen';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
+import NeedModerationNotice from '../components/NeedModerationNotice';
+import ReportSheet from '../components/ReportSheet';
+import { getNeedStatusColor, getNeedStatusText } from '../utils/needStatus';
 
 type NeedDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'NeedDetail'>;
 type NeedDetailScreenRouteProp = RouteProp<RootStackParamList, 'NeedDetail'>;
@@ -40,6 +43,7 @@ const NeedDetailScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [offersLoading, setOffersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
 
   useEffect(() => {
     loadNeedDetail();
@@ -154,38 +158,8 @@ const NeedDetailScreen: React.FC = () => {
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'Aktif';
-      case 'InProgress':
-        return 'Devam Ediyor';
-      case 'Completed':
-        return 'Tamamlandı';
-      case 'Cancelled':
-        return 'İptal Edildi';
-      case 'Expired':
-        return 'Süresi Doldu';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return colors.success;
-      case 'InProgress':
-        return colors.warning;
-      case 'Completed':
-        return colors.primary;
-      case 'Cancelled':
-      case 'Expired':
-        return colors.error;
-      default:
-        return colors.textSecondary;
-    }
-  };
+  const getStatusText = getNeedStatusText;
+  const getStatusColor = getNeedStatusColor;
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
     if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
@@ -250,6 +224,8 @@ const NeedDetailScreen: React.FC = () => {
 
   const isOwner = user && user.id === need.userId;
   const canCreateOffer = user && !user.isGuest && user.id !== need.userId && need.status === 'Active';
+  // Reporting needs a full account and is not offered on your own need
+  const canReport = !!user && !user.isGuest && user.id !== need.userId;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -263,7 +239,19 @@ const NeedDetailScreen: React.FC = () => {
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} allowFontScaling={true}>İhtiyaç Detayı</Text>
-        <View style={{ width: 24 }} accessible={false} />
+        {canReport ? (
+          <TouchableOpacity
+            onPress={() => setReportVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Şikayet Et"
+            accessibilityHint="Bu ilanı şikayet etmek için dokunun"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialIcons name="outlined-flag" size={24} color={colors.text} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 24 }} accessible={false} />
+        )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -283,6 +271,13 @@ const NeedDetailScreen: React.FC = () => {
               </View>
             </View>
           </View>
+
+          {isOwner && (
+            <NeedModerationNotice
+              need={need}
+              onCreateNew={() => navigation.navigate('CreateNeed')}
+            />
+          )}
 
           <Text style={styles.needDescription} allowFontScaling={true}>{need.description}</Text>
 
@@ -370,6 +365,15 @@ const NeedDetailScreen: React.FC = () => {
             fullWidth
           />
         </View>
+      )}
+
+      {canReport && (
+        <ReportSheet
+          visible={reportVisible}
+          targetType="Need"
+          targetId={need.id}
+          onClose={() => setReportVisible(false)}
+        />
       )}
     </SafeAreaView>
   );

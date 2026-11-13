@@ -28,6 +28,7 @@ import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import NotificationSettingsScreen from './screens/NotificationSettingsScreen';
+import BlockedUsersScreen from './screens/BlockedUsersScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { ReviewHistoryScreen } from './screens/ReviewHistoryScreen';
 import OnboardingScreen from './src/screens/OnboardingScreen';
@@ -76,6 +77,11 @@ function AppNavigator() {
             name="NotificationSettings"
             component={NotificationSettingsScreen}
             options={{ title: 'Bildirim Ayarları' }}
+          />
+          <Stack.Screen
+            name="BlockedUsers"
+            component={BlockedUsersScreen}
+            options={{ title: 'Engellenen Kullanıcılar' }}
           />
           <Stack.Screen name="Review" component={ReviewScreen} options={{ title: 'Değerlendirme' }} />
           <Stack.Screen name="ReviewHistory" component={ReviewHistoryScreen} options={{ title: 'Değerlendirmeler' }} />
