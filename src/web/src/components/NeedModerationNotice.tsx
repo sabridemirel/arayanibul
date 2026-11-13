@@ -1,17 +1,17 @@
 import { useNavigate } from 'react-router-dom';
-import { ClockIcon, ExclamationTriangleIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, ExclamationTriangleIcon, PencilSquareIcon } from '@heroicons/react/24/outline';
 import Button from './ui/Button';
 import type { Need } from '../services/api';
 
 interface NeedModerationNoticeProps {
-  need: Pick<Need, 'status' | 'rejectionReasonText' | 'rejectionNote'>;
+  need: Pick<Need, 'id' | 'status' | 'rejectionReasonText' | 'rejectionNote'>;
   compact?: boolean;
   className?: string;
 }
 
 /**
  * Owner-facing explanation for needs that are not public yet (PendingReview) or were not
- * published (Rejected). The web app has no edit page, so a rejected need is replaced by a new one.
+ * published (Rejected). A rejected need can be edited and sent back to review.
  */
 const NeedModerationNotice: React.FC<NeedModerationNoticeProps> = ({ need, compact = false, className = '' }) => {
   const navigate = useNavigate();
@@ -40,15 +40,15 @@ const NeedModerationNotice: React.FC<NeedModerationNoticeProps> = ({ need, compa
           {need.rejectionNote && <p className="mt-1 whitespace-pre-wrap break-words">{need.rejectionNote}</p>}
           {!compact && (
             <p className="mt-2 text-red-900/80">
-              Yayınlanmayan ilanlar düzenlenemez. Kurallara uygun şekilde yeni bir ilan verebilirsiniz.
+              İlanınızı kurallara uygun şekilde düzenleyip tekrar incelemeye gönderebilirsiniz.
             </p>
           )}
         </div>
       </div>
       {!compact && (
         <div className="mt-3">
-          <Button size="sm" leftIcon={<PlusCircleIcon className="h-4 w-4" />} onClick={() => navigate('/create-need')}>
-            Yeni İlan Ver
+          <Button size="sm" leftIcon={<PencilSquareIcon className="h-4 w-4" />} onClick={() => navigate(`/needs/${need.id}/edit`)}>
+            Düzenle ve Tekrar Gönder
           </Button>
         </div>
       )}

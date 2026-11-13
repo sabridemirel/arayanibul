@@ -18,13 +18,13 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
-import { needAPI, offerAPI } from '../services/api';
+import { needAPI, offerAPI, resolveMediaUrl } from '../services/api';
 import type { Need, Offer } from '../services/api';
 import { Button, Card, Loading, Badge, ErrorMessage, Toast } from '../components/ui';
 import { Header, Footer } from '../components/layout';
 import ReportModal from '../components/ReportModal';
 import NeedModerationNotice from '../components/NeedModerationNotice';
-import { NEED_STATUS_LABELS, NEED_STATUS_TONES } from '../services/moderation';
+import { NEED_STATUS_LABELS, NEED_STATUS_TONES, isNeedEditable } from '../services/moderation';
 import { useToast } from '../hooks/useToast';
 
 // Loading Skeleton Component
@@ -406,7 +406,7 @@ const NeedDetailPage: React.FC = () => {
   };
 
   const handleEdit = () => {
-    navigate(`/edit-need/${needId}`);
+    navigate(`/needs/${needId}/edit`);
   };
 
   const handleDelete = async () => {
@@ -537,7 +537,7 @@ const NeedDetailPage: React.FC = () => {
                   {isOwner && isUnderModeration && <NeedModerationNotice need={need} className="mb-6" />}
 
                   {/* Image Gallery */}
-                  <ImageGallery images={need.images || []} />
+                  <ImageGallery images={(need.images || []).map(image => resolveMediaUrl(image.imageUrl))} />
 
                   {/* Title and Badges */}
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -623,7 +623,7 @@ const NeedDetailPage: React.FC = () => {
                   {/* Owner Actions */}
                   {isOwner && (
                     <div className="border-t border-border pt-6 mt-6 flex gap-3">
-                      {!isUnderModeration && (
+                      {isNeedEditable(need.status) && (
                         <Button
                           variant="outline"
                           leftIcon={<PencilSquareIcon className="w-4 h-4" />}

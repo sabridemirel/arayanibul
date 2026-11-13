@@ -8,6 +8,7 @@ import {
   RegisterPage,
   CreateOfferPage,
   CreateNeedPage,
+  EditNeedPage,
   SearchPage,
   MyNeedsPage,
   NeedDetailPage,
@@ -170,6 +171,14 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route path="/needs/:id" element={<NeedDetailPage />} />
+      <Route
+        path="/needs/:id/edit"
+        element={
+          <ProtectedRoute requireAuth>
+            <EditNeedPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/offers/create/:needId"
         element={

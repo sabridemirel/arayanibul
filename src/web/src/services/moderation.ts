@@ -13,6 +13,12 @@ export const NEED_STATUS_LABELS: Record<string, string> = {
   Rejected: 'Yayınlanmadı',
 };
 
+/** Statuses in which the owner may still edit a need (mirrors the backend rule) */
+export const EDITABLE_NEED_STATUSES: ReadonlyArray<Need['status']> = ['Active', 'PendingReview', 'Rejected'];
+
+export const isNeedEditable = (status?: Need['status']): boolean =>
+  !!status && EDITABLE_NEED_STATUSES.includes(status);
+
 export type BadgeTone = 'success' | 'warning' | 'primary' | 'error' | 'default' | 'info' | 'secondary';
 
 export const NEED_STATUS_TONES: Record<string, BadgeTone> = {

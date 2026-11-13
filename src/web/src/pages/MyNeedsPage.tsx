@@ -18,7 +18,7 @@ import type { Need } from '../services/api';
 import { Button, Card, Loading, Badge, ErrorMessage } from '../components/ui';
 import { Header, Footer } from '../components/layout';
 import NeedModerationNotice from '../components/NeedModerationNotice';
-import { NEED_STATUS_LABELS, NEED_STATUS_TONES } from '../services/moderation';
+import { NEED_STATUS_LABELS, NEED_STATUS_TONES, isNeedEditable } from '../services/moderation';
 
 type NeedStatus = 'All' | Need['status'];
 
@@ -394,9 +394,10 @@ const MyNeedsPage: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
-                      {need.status === 'Active' && (
+                      {isNeedEditable(need.status) && (
                         <button
                           onClick={() => handleEditNeed(need.id)}
+                          aria-label="Düzenle"
                           className="p-2 rounded-lg text-primary hover:bg-primary-light transition-colors"
                           title="Düzenle"
                         >

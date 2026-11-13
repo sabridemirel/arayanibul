@@ -3,6 +3,7 @@ export { default as LoginPage } from './LoginPage';
 export { default as RegisterPage } from './RegisterPage';
 export { default as CreateOfferPage } from './CreateOfferPage';
 export { default as CreateNeedPage } from './CreateNeedPage';
+export { default as EditNeedPage } from './EditNeedPage';
 export { default as SearchPage } from './SearchPage';
 export { default as MyOffersPage } from './MyOffersPage';
 export { default as MyNeedsPage } from './MyNeedsPage';

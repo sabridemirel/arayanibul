@@ -154,8 +154,15 @@ export interface Need {
   userId: string;
   user?: User;
   category?: Category;
-  images?: string[];
+  images?: NeedImage[];
   offerCount?: number;
+}
+
+export interface NeedImage {
+  id: number;
+  imageUrl: string;
+  altText?: string;
+  sortOrder: number;
 }
 
 export interface CreateNeedRequest {
@@ -169,6 +176,19 @@ export interface CreateNeedRequest {
   address?: string;
   urgency: number; // 1=Flexible, 2=Normal, 3=Urgent
   images?: string[];
+}
+
+export interface UpdateNeedRequest {
+  title?: string;
+  description?: string;
+  categoryId?: number;
+  minBudget?: number;
+  maxBudget?: number;
+  address?: string;
+  urgency?: number; // 1=Flexible, 2=Normal, 3=Urgent
+  expiresAt?: string;
+  /** Full, ordered list of image URLs; replaces the need's images */
+  imageUrls?: string[];
 }
 
 export interface NeedFilters {
@@ -393,8 +413,21 @@ export const needAPI = {
   getUserNeeds: (status?: string): Promise<Need[]> =>
     api.get('/need/my-needs', { params: { status } }).then(res => normalizeList(res.data, normalizeNeed)),
 
-  updateNeed: (id: number, data: Partial<CreateNeedRequest>): Promise<Need> =>
+  updateNeed: (id: number, data: UpdateNeedRequest): Promise<Need> =>
     api.put(`/need/${id}`, data).then(res => normalizeNeed(res.data)),
+
+  /** Uploads image files to a need (multipart, field "images"); resolves with the stored URLs */
+  uploadNeedImages: (id: number, files: File[]): Promise<string[]> => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('images', file));
+    return api.post(`/need/${id}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    }).then(res => res.data);
+  },
+
+  deleteNeedImage: (id: number, imageId: number): Promise<void> =>
+    api.delete(`/need/${id}/images/${imageId}`).then(res => res.data),
 
   deleteNeed: (id: number): Promise<void> =>
     api.delete(`/need/${id}`).then(res => res.data),
