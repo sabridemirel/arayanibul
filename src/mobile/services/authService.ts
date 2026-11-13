@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import { authAPI, AuthResponse, RegisterData, LoginData, User } from './api';
 import secureStorageService from './secureStorageService';
 import biometricAuthService from './biometricAuthService';
@@ -135,32 +136,39 @@ class AuthService {
     if (!facebook) {
       throw new Error('Facebook ile giriş şu anda kullanılamıyor.');
     }
-    const { LoginManager, AccessToken, Settings } = facebook;
+    const { LoginManager, AccessToken, AuthenticationToken, Settings } = facebook;
 
-    let accessToken: string | undefined;
+    let facebookToken: string | undefined;
     try {
       if (!this.facebookInitialized) {
         Settings.initializeSDK();
         this.facebookInitialized = true;
       }
-      // Classic login: the backend verifies an access token via the Graph API. On iOS the SDK
-      // falls back to Limited Login (no access token) when App Tracking is not authorized.
-      const result = await LoginManager.logInWithPermissions(['public_profile', 'email'], 'enabled');
+      // 'enabled' gives classic login (access token, verified via Graph API) when App Tracking is
+      // authorized; otherwise iOS falls back to Limited Login, which only yields an OIDC
+      // authentication token (JWT) that the backend validates against Facebook's JWKS.
+      // The nonce is embedded in that JWT; the backend does not verify it yet.
+      const nonce = Platform.OS === 'ios' ? Crypto.randomUUID() : undefined;
+      const result = await LoginManager.logInWithPermissions(['public_profile', 'email'], 'enabled', nonce);
       if (result.isCancelled) {
         throw new AuthCancelledError();
       }
       const tokenData = await AccessToken.getCurrentAccessToken();
-      accessToken = tokenData?.accessToken;
+      facebookToken = tokenData?.accessToken;
+      if (!facebookToken && Platform.OS === 'ios') {
+        const authToken = await AuthenticationToken.getAuthenticationTokenIOS();
+        facebookToken = authToken?.authenticationToken;
+      }
     } catch (error) {
       if (isAuthCancelled(error)) throw error;
       console.warn('Facebook sign-in failed:', error);
       throw new Error('Facebook ile giriş yapılamadı. Lütfen tekrar deneyin.');
     }
 
-    if (!accessToken) {
+    if (!facebookToken) {
       throw new Error('Facebook ile giriş tamamlanamadı. Lütfen başka bir giriş yöntemi deneyin.');
     }
-    const token = accessToken;
+    const token = facebookToken;
     return this.completeSocialLogin(
       () => authAPI.facebookLogin(token),
       'Facebook ile giriş yapılamadı. Lütfen tekrar deneyin.'

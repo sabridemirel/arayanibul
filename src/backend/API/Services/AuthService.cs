@@ -361,13 +361,15 @@ public class AuthService : IAuthService
 
         try
         {
-            var facebookUser = await _facebookService.ValidateTokenAsync(facebookToken);
+            // Accepts a classic access token or an iOS Limited Login authentication token (JWT).
+            var facebookUser = await _facebookService.ValidateTokenAsync(facebookToken.Trim());
             if (facebookUser == null)
             {
                 return Fail("Facebook token doğrulaması başarısız.");
             }
 
-            // Facebook only returns confirmed email addresses, so a returned email counts as verified.
+            // Facebook only returns confirmed email addresses (Graph API and Limited Login alike),
+            // so a returned email counts as verified.
             return await SocialSignInAsync(
                 SocialProvider.Facebook,
                 facebookUser.Id,
