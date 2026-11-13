@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,18 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { MaterialIcons } from '@expo/vector-icons';
-// import * as ImagePicker from 'expo-image-picker';
-// import * as Location from 'expo-location';
 
-import { Input, Button, Loading, ErrorMessage, Card } from '../components/ui';
+import { Input, Loading, ErrorMessage } from '../components/ui';
 import { messageAPI, offerAPI } from '../services/api';
-import { Message, SendMessageRequest, Offer } from '../types';
+import { Message, Offer } from '../types';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
+import { useChat } from '../contexts/ChatContext';
 import { withMessageAuth } from '../hoc/withAuthPrompt';
 
 type RootStackParamList = {
@@ -31,90 +29,52 @@ type RootStackParamList = {
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 type ChatScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Chat'>;
 
+const CLOSED_OFFER_NOTE = 'Bu teklif kapandığı için yeni mesaj gönderilemez.';
+const MAX_MESSAGE_LENGTH = 1000;
+
+const OFFER_STATUS_LABELS: Record<string, string> = {
+  Pending: 'Beklemede',
+  Accepted: 'Kabul Edildi',
+  Rejected: 'Reddedildi',
+  Withdrawn: 'Geri Çekildi',
+};
+
+const isClosedStatus = (status?: string) => status === 'Rejected' || status === 'Withdrawn';
+
+const sortByDate = (list: Message[]) =>
+  [...list].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
 interface MessageBubbleProps {
   message: Message;
   isOwnMessage: boolean;
-  onImagePress?: (imageUrl: string) => void;
-  onLocationPress?: (latitude: number, longitude: number) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({
-  message,
-  isOwnMessage,
-  onImagePress,
-  onLocationPress,
-}) => {
-  const renderMessageContent = () => {
-    switch (message.type) {
-      case 'Image':
-        return (
-          <TouchableOpacity
-            onPress={() => message.attachmentUrl && onImagePress?.(message.attachmentUrl)}
-            style={styles.imageContainer}
-          >
-            <Image
-              source={{ uri: message.attachmentUrl }}
-              style={styles.messageImage as any}
-              resizeMode="cover"
-            />
-            {message.content && (
-              <Text style={[styles.messageText, { color: isOwnMessage ? colors.surface : colors.text }]}>
-                {message.content}
-              </Text>
-            )}
-          </TouchableOpacity>
-        );
-      
-      case 'Location':
-        return (
-          <TouchableOpacity
-            onPress={() => {
-              // Parse location from content (format: "lat,lng")
-              const coords = message.content.split(',');
-              if (coords.length === 2) {
-                onLocationPress?.(parseFloat(coords[0]), parseFloat(coords[1]));
-              }
-            }}
-            style={styles.locationContainer}
-          >
-            <MaterialIcons 
-              name="location-on" 
-              size={24} 
-              color={isOwnMessage ? colors.surface : colors.primary} 
-            />
-            <Text style={[styles.messageText, { color: isOwnMessage ? colors.surface : colors.text }]}>
-              Konum paylaşıldı
-            </Text>
-          </TouchableOpacity>
-        );
-      
-      default: // Text
-        return (
-          <Text style={[styles.messageText, { color: isOwnMessage ? colors.surface : colors.text }]}>
-            {message.content}
-          </Text>
-        );
-    }
-  };
-
-  return (
-    <View style={[styles.messageBubble, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
-      {renderMessageContent()}
-      <Text style={[styles.messageTime, { color: isOwnMessage ? colors.surface : colors.textSecondary }]}>
-        {new Date(message.createdAt).toLocaleTimeString('tr-TR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        })}
-      </Text>
-    </View>
-  );
-};
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwnMessage }) => (
+  <View style={[styles.messageBubble, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
+    <Text style={[styles.messageText, { color: isOwnMessage ? colors.surface : colors.text }]}>
+      {message.content}
+    </Text>
+    <Text style={[styles.messageTime, { color: isOwnMessage ? colors.surface : colors.textSecondary }]}>
+      {new Date(message.createdAt).toLocaleTimeString('tr-TR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}
+    </Text>
+  </View>
+);
 
 const ChatScreen: React.FC = () => {
   const route = useRoute<ChatScreenRouteProp>();
   const navigation = useNavigation<ChatScreenNavigationProp>();
   const { user } = useAuth();
-  const { offerId } = route.params;
+  const {
+    subscribe,
+    joinConversation,
+    leaveConversation,
+    setActiveConversation,
+    refreshUnread,
+  } = useChat();
+  const offerId = Number(route.params.offerId);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -122,120 +82,118 @@ const ChatScreen: React.FC = () => {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [offer, setOffer] = useState<Offer | null>(null);
-  
+  const [closed, setClosed] = useState(false);
+
   const flatListRef = useRef<FlatList>(null);
 
-  useEffect(() => {
-    loadConversation();
-    loadOffer();
+  const markRead = useCallback(async () => {
+    try {
+      await messageAPI.markConversationRead(offerId);
+    } catch (err) {
+      console.warn('Error marking conversation read:', err);
+    } finally {
+      refreshUnread();
+    }
+  }, [offerId, refreshUnread]);
+
+  const loadOffer = useCallback(async () => {
+    try {
+      const data = await offerAPI.getOfferById(offerId);
+      setOffer(data);
+      setClosed(isClosedStatus(data?.status));
+    } catch (err) {
+      // Header falls back to a generic title; sending still works via the API's own checks.
+      console.warn('Error loading offer:', err);
+    }
   }, [offerId]);
 
-  const loadOffer = async () => {
-    try {
-      // Note: We need to get offer details from the offers API
-      // For now, we'll assume we have this information
-      // In a real implementation, you might pass offer details through navigation params
-    } catch (err) {
-      console.error('Error loading offer:', err);
-    }
-  };
-
-  const loadConversation = async () => {
+  const loadConversation = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const conversationMessages = await messageAPI.getConversation(offerId);
-      setMessages(conversationMessages);
-      
-      // Mark messages as read
-      const unreadMessages = conversationMessages.filter(msg => !msg.isRead && msg.senderId !== user?.id);
-      for (const msg of unreadMessages) {
-        await messageAPI.markAsRead(msg.id);
-      }
-    } catch (err: any) {
-      setError('Mesajlar yüklenirken hata oluştu');
+      setMessages(sortByDate(conversationMessages));
+      markRead();
+    } catch (err) {
+      setError('Mesajlar yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
       console.error('Error loading conversation:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [offerId, markRead]);
 
-  const sendMessage = async (messageData: Omit<SendMessageRequest, 'offerId'>) => {
-    if (!user) return;
+  useEffect(() => {
+    loadConversation();
+    loadOffer();
+  }, [loadConversation, loadOffer]);
+
+  // Real-time: join the offer group and append incoming messages.
+  useEffect(() => {
+    setActiveConversation(offerId);
+    joinConversation(offerId);
+
+    const unsubscribe = subscribe(message => {
+      if (Number(message.offerId) !== offerId) return;
+      setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]));
+      if (message.senderId !== user?.id) {
+        markRead();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      leaveConversation(offerId);
+      setActiveConversation(null);
+      refreshUnread();
+    };
+  }, [
+    offerId,
+    user?.id,
+    subscribe,
+    joinConversation,
+    leaveConversation,
+    setActiveConversation,
+    markRead,
+    refreshUnread,
+  ]);
+
+  const handleSendText = async () => {
+    const content = newMessage.trim();
+    if (!content || !user || sending || closed) return;
 
     try {
       setSending(true);
-      const message = await messageAPI.sendMessage({
-        ...messageData,
-        offerId,
-      });
-      
-      setMessages(prev => [...prev, message]);
+      const message = await messageAPI.sendMessage({ offerId, content, type: 'Text' });
+      setMessages(prev => (prev.some(m => m.id === message.id) ? prev : [...prev, message]));
       setNewMessage('');
-      
-      // Scroll to bottom
+
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (err: any) {
-      Alert.alert('Hata', 'Mesaj gönderilirken hata oluştu');
+      const body = err?.response?.data;
+      if (err?.response?.status === 400 && typeof body === 'string' && body.includes('kapandığı')) {
+        setClosed(true);
+        loadOffer();
+      } else {
+        Alert.alert('Hata', 'Mesaj gönderilemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+      }
       console.error('Error sending message:', err);
     } finally {
       setSending(false);
     }
   };
 
-  const handleSendText = async () => {
-    if (!newMessage.trim()) return;
-    
-    await sendMessage({
-      content: newMessage.trim(),
-      type: 'Text',
-    });
-  };
+  const renderMessage = ({ item }: { item: Message }) => (
+    <MessageBubble message={item} isOwnMessage={item.senderId === user?.id} />
+  );
 
-  const handleSendImage = async () => {
-    try {
-      // Mock implementation - image picker not available
-      Alert.alert('Bilgi', 'Fotoğraf gönderme özelliği geliştirme aşamasında.');
-    } catch (err) {
-      Alert.alert('Hata', 'Fotoğraf seçilirken hata oluştu');
-      console.error('Error picking image:', err);
-    }
-  };
-
-  const handleSendLocation = async () => {
-    try {
-      // Mock implementation - location not available
-      Alert.alert('Bilgi', 'Konum paylaşma özelliği geliştirme aşamasında.');
-    } catch (err) {
-      Alert.alert('Hata', 'Konum alınırken hata oluştu');
-      console.error('Error getting location:', err);
-    }
-  };
-
-  const handleImagePress = (imageUrl: string) => {
-    // In a real implementation, you might open a full-screen image viewer
-    Alert.alert('Fotoğraf', 'Fotoğraf görüntüleyici açılacak');
-  };
-
-  const handleLocationPress = (latitude: number, longitude: number) => {
-    // In a real implementation, you might open a map view
-    Alert.alert('Konum', `Konum: ${latitude}, ${longitude}\nHarita açılacak`);
-  };
-
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isOwnMessage = item.senderId === user?.id;
-    
-    return (
-      <MessageBubble
-        message={item}
-        isOwnMessage={isOwnMessage}
-        onImagePress={handleImagePress}
-        onLocationPress={handleLocationPress}
-      />
-    );
-  };
+  const otherPartyName = messages.find(m => m.senderId !== user?.id)?.senderName
+    ?? (offer && offer.providerId !== user?.id && offer.provider
+      ? `${offer.provider.firstName} ${offer.provider.lastName}`.trim()
+      : undefined);
+  const statusLabel = offer ? OFFER_STATUS_LABELS[offer.status] : undefined;
+  const subtitle = [otherPartyName, statusLabel].filter(Boolean).join(' · ');
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -249,60 +207,60 @@ const ChatScreen: React.FC = () => {
         <MaterialIcons name="arrow-back" size={24} color={colors.text} />
       </TouchableOpacity>
       <View style={styles.headerInfo}>
-        <Text style={styles.headerTitle} allowFontScaling={true}>Mesajlaşma</Text>
-        <Text style={styles.headerSubtitle} allowFontScaling={true}>Teklif #{offerId}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1} allowFontScaling={true}>
+          {offer?.need?.title || 'Mesajlaşma'}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.headerSubtitle} numberOfLines={1} allowFontScaling={true}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
 
-  const renderInputArea = () => (
-    <View style={styles.inputContainer}>
-      <View style={styles.inputRow}>
-        <TouchableOpacity
-          onPress={handleSendImage}
-          style={styles.attachButton}
-          accessibilityRole="button"
-          accessibilityLabel="Fotoğraf gönder"
-          accessibilityHint="Mesaja fotoğraf eklemek için dokunun"
-        >
-          <MaterialIcons name="photo" size={24} color={colors.primary} />
-        </TouchableOpacity>
+  const renderInputArea = () => {
+    if (closed) {
+      return (
+        <View style={[styles.inputContainer, styles.closedNote]}>
+          <MaterialIcons name="lock-outline" size={18} color={colors.textSecondary} />
+          <Text style={styles.closedNoteText}>{CLOSED_OFFER_NOTE}</Text>
+        </View>
+      );
+    }
 
-        <TouchableOpacity
-          onPress={handleSendLocation}
-          style={styles.attachButton}
-          accessibilityRole="button"
-          accessibilityLabel="Konum paylaş"
-          accessibilityHint="Mesaja konum eklemek için dokunun"
-        >
-          <MaterialIcons name="location-on" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        
-        <Input
-          value={newMessage}
-          onChangeText={setNewMessage}
-          placeholder="Mesajınızı yazın..."
-          multiline
-          numberOfLines={3}
-          containerStyle={styles.messageInput}
-          onSubmitEditing={handleSendText}
-          returnKeyType="send"
-        />
-        
-        <TouchableOpacity
-          onPress={handleSendText}
-          style={[styles.sendButton, { opacity: newMessage.trim() ? 1 : 0.5 }]}
-          disabled={!newMessage.trim() || sending}
-          accessibilityRole="button"
-          accessibilityLabel="Gönder"
-          accessibilityHint="Mesajı göndermek için dokunun"
-          accessibilityState={{ disabled: !newMessage.trim() || sending }}
-        >
-          <MaterialIcons name="send" size={24} color={colors.surface} />
-        </TouchableOpacity>
+    const canSend = !!newMessage.trim() && !sending;
+
+    return (
+      <View style={styles.inputContainer}>
+        <View style={styles.inputRow}>
+          <Input
+            value={newMessage}
+            onChangeText={setNewMessage}
+            placeholder="Mesajınızı yazın..."
+            multiline
+            numberOfLines={3}
+            maxLength={MAX_MESSAGE_LENGTH}
+            containerStyle={styles.messageInput}
+            onSubmitEditing={handleSendText}
+            returnKeyType="send"
+          />
+
+          <TouchableOpacity
+            onPress={handleSendText}
+            style={[styles.sendButton, { opacity: canSend ? 1 : 0.5 }]}
+            disabled={!canSend}
+            accessibilityRole="button"
+            accessibilityLabel="Gönder"
+            accessibilityHint="Mesajı göndermek için dokunun"
+            accessibilityState={{ disabled: !canSend }}
+          >
+            <MaterialIcons name="send" size={24} color={colors.surface} />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -329,8 +287,8 @@ const ChatScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       {renderHeader()}
-      
-      <KeyboardAvoidingView 
+
+      <KeyboardAvoidingView
         style={styles.chatContainer}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -341,11 +299,24 @@ const ChatScreen: React.FC = () => {
           renderItem={renderMessage}
           keyExtractor={(item) => item.id.toString()}
           style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
+          contentContainerStyle={[
+            styles.messagesContent,
+            messages.length === 0 && styles.emptyContent,
+          ]}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="chat-bubble-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyText}>
+                {closed
+                  ? 'Bu teklif için mesaj yok.'
+                  : 'Henüz mesaj yok. Teklifle ilgili sorularınızı buradan yazabilirsiniz.'}
+              </Text>
+            </View>
+          }
         />
-        
+
         {renderInputArea()}
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -428,18 +399,19 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     textAlign: 'right',
   },
-  imageContainer: {
-    minWidth: 200,
+  emptyContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
-  messageImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-  },
-  locationContainer: {
-    flexDirection: 'row',
+  emptyContainer: {
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  emptyText: {
+    fontSize: typography.body.fontSize,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
   },
   inputContainer: {
     backgroundColor: colors.surface,
@@ -451,9 +423,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
   },
-  attachButton: {
-    padding: spacing.sm,
-    marginRight: spacing.sm,
+  closedNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closedNoteText: {
+    fontSize: typography.caption.fontSize,
+    color: colors.textSecondary,
+    marginLeft: spacing.xs,
+    textAlign: 'center',
   },
   messageInput: {
     flex: 1,

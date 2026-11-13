@@ -18,6 +18,7 @@ import { messageAPI } from '../services/api';
 import { Conversation } from '../types';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
+import { useChat } from '../contexts/ChatContext';
 import { withConversationsAuth } from '../hoc/withAuthPrompt';
 
 type RootStackParamList = {
@@ -34,7 +35,6 @@ interface ConversationItemProps {
 
 const ConversationItem: React.FC<ConversationItemProps> = ({ conversation, onPress }) => {
   const { user } = useAuth();
-  const otherUser = conversation.otherUser;
   const lastMessage = conversation.lastMessage;
   
   const formatMessageTime = (dateString: string) => {
@@ -63,24 +63,16 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ conversation, onPre
     if (!lastMessage) return 'Henüz mesaj yok';
     
     const isOwnMessage = lastMessage.senderId === user?.id;
-    const prefix = isOwnMessage ? 'Sen: ' : '';
-    
-    switch (lastMessage.type) {
-      case 'Image':
-        return `${prefix}📷 Fotoğraf`;
-      case 'Location':
-        return `${prefix}📍 Konum`;
-      default:
-        return `${prefix}${lastMessage.content}`;
-    }
+    const prefix = isOwnMessage ? 'Siz: ' : '';
+    return `${prefix}${lastMessage.content}`;
   };
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.conversationItem}>
       <View style={styles.avatarContainer}>
-        {otherUser?.profileImageUrl ? (
+        {conversation.otherUserProfileImage ? (
           <Image 
-            source={{ uri: otherUser.profileImageUrl }} 
+            source={{ uri: conversation.otherUserProfileImage }} 
             style={styles.avatar}
           />
         ) : (
@@ -99,11 +91,11 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ conversation, onPre
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
           <Text style={styles.userName}>
-            {otherUser ? `${otherUser.firstName} ${otherUser.lastName}` : 'Kullanıcı'}
+            {conversation.otherUserName || 'Kullanıcı'}
           </Text>
-          {lastMessage && (
+          {(lastMessage?.createdAt || conversation.lastActivity) && (
             <Text style={styles.messageTime}>
-              {formatMessageTime(lastMessage.createdAt)}
+              {formatMessageTime(lastMessage?.createdAt || conversation.lastActivity)}
             </Text>
           )}
         </View>
@@ -119,11 +111,9 @@ const ConversationItem: React.FC<ConversationItemProps> = ({ conversation, onPre
             {getLastMessagePreview()}
           </Text>
           
-          {conversation.offer && (
-            <Text style={styles.offerInfo} numberOfLines={1}>
-              {conversation.offer.need?.title || `Teklif #${conversation.offerId}`}
-            </Text>
-          )}
+          <Text style={styles.offerInfo} numberOfLines={1}>
+            {conversation.needTitle || `Teklif #${conversation.offerId}`}
+          </Text>
         </View>
       </View>
       
@@ -140,12 +130,30 @@ const ConversationsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { subscribe, refreshUnread } = useChat();
 
   useFocusEffect(
     useCallback(() => {
       loadConversations();
     }, [])
   );
+
+  // Refresh silently when a message arrives while this list is mounted.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsubscribe = subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        messageAPI.getConversations()
+          .then(setConversations)
+          .catch(err => console.warn('Error refreshing conversations:', err));
+      }, 300);
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [subscribe]);
 
   useEffect(() => {
     filterConversations();
@@ -162,8 +170,9 @@ const ConversationsScreen: React.FC = () => {
       
       const conversationsData = await messageAPI.getConversations();
       setConversations(conversationsData);
+      refreshUnread();
     } catch (err: any) {
-      setError('Konuşmalar yüklenirken hata oluştu');
+      setError('Mesajlar yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
       console.error('Error loading conversations:', err);
     } finally {
       setLoading(false);
@@ -178,12 +187,11 @@ const ConversationsScreen: React.FC = () => {
     }
 
     const filtered = conversations.filter(conversation => {
-      const otherUser = conversation.otherUser;
-      const userName = otherUser ? `${otherUser.firstName} ${otherUser.lastName}`.toLowerCase() : '';
-      const offerTitle = conversation.offer?.need?.title?.toLowerCase() || '';
-      const lastMessageContent = conversation.lastMessage?.content?.toLowerCase() || '';
+      const userName = (conversation.otherUserName || '').toLocaleLowerCase('tr-TR');
+      const offerTitle = (conversation.needTitle || '').toLocaleLowerCase('tr-TR');
+      const lastMessageContent = (conversation.lastMessage?.content || '').toLocaleLowerCase('tr-TR');
       
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLocaleLowerCase('tr-TR');
       
       return userName.includes(query) || 
              offerTitle.includes(query) || 
@@ -217,14 +225,26 @@ const ConversationsScreen: React.FC = () => {
       <MaterialIcons name="chat-bubble-outline" size={64} color={colors.textSecondary} />
       <Text style={styles.emptyTitle}>Henüz mesajınız yok</Text>
       <Text style={styles.emptySubtitle}>
-        İhtiyaçlara teklif verin veya tekliflerinizi kabul edin, mesajlaşmaya başlayın
+        İlanlara teklif verin ya da ilanlarınıza gelen tekliflere yazın; konuşmalarınız burada görünür.
       </Text>
     </View>
   );
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>Mesajlar</Text>
+      <View style={styles.headerTitleRow}>
+        {navigation.canGoBack() && (
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+        )}
+        <Text style={styles.headerTitle}>Mesajlar</Text>
+      </View>
       <View style={styles.searchContainer}>
         <Input
           value={searchQuery}
@@ -300,11 +320,19 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.sm,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  backButton: {
+    padding: spacing.xs,
+    marginRight: spacing.sm,
+  },
   headerTitle: {
     fontSize: typography.h2.fontSize,
     fontWeight: typography.h2.fontWeight as any,
     color: colors.text,
-    marginBottom: spacing.md,
   },
   searchContainer: {
     marginBottom: spacing.sm,

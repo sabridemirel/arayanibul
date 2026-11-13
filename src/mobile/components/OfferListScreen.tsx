@@ -263,14 +263,14 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
               Bu teklif kabul edildi
             </Text>
           </View>
-          <Button
-            title="Mesajlaş"
-            size="small"
-            onPress={() => {
-              navigation.navigate('Chat', { offerId: offer.id });
-            }}
-            icon="message"
-          />
+          {isOwner && (
+            <Button
+              title="Mesajlaş"
+              size="small"
+              onPress={() => navigation.navigate('Chat', { offerId: offer.id })}
+              icon="message"
+            />
+          )}
         </View>
       )}
     </Card>

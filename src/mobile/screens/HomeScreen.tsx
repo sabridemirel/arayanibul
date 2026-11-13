@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useAuth } from '../contexts/AuthContext';
+import { useChat } from '../contexts/ChatContext';
 import { needAPI, categoryAPI, normalizeNeed } from '../services/api';
 import { optimizedApiService } from '../services/optimizedApiService';
 import { Need, Category, NeedFilters } from '../types';
@@ -38,7 +39,8 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { user, trackGuestAction } = useAuth();
+  const { user, isAuthenticated, trackGuestAction } = useAuth();
+  const { unreadCount } = useChat();
   const { measureOperation } = usePerformanceMonitor('HomeScreen');
   const { 
     requireAuthForGuest, 
@@ -321,9 +323,32 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  const renderMessagesButton = () => {
+    if (!isAuthenticated || !user || user.isGuest) return null;
+    const badgeText = unreadCount > 9 ? '9+' : String(unreadCount);
+
+    return (
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Conversations')}
+        style={styles.messagesButton}
+        accessibilityRole="button"
+        accessibilityLabel={unreadCount > 0 ? `Mesajlar, ${unreadCount} okunmamış` : 'Mesajlar'}
+        accessibilityHint="Mesajlarınızı görmek için dokunun"
+      >
+        <MaterialIcons name="chat-bubble-outline" size={24} color={colors.primaryDark} />
+        {unreadCount > 0 && (
+          <View style={styles.messagesBadge}>
+            <Text style={styles.messagesBadgeText}>{badgeText}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   const renderHeaderRightComponent = () => (
     <View style={styles.headerRightContainer}>
       {renderFilterButton()}
+      {renderMessagesButton()}
       {renderAuthButton()}
     </View>
   );
@@ -647,6 +672,27 @@ const styles = StyleSheet.create({
   },
   authButton: {
     padding: spacing.sm,
+  },
+  messagesButton: {
+    padding: spacing.sm,
+    position: 'relative',
+  },
+  messagesBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: colors.error,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  messagesBadgeText: {
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: 'bold',
   },
   searchContainer: {
     paddingHorizontal: spacing.lg,

@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ChatProvider } from './contexts/ChatContext';
 
 // Import real screens
 import LoginScreen from './screens/LoginScreen';
@@ -145,9 +146,11 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <NotificationProvider>
-            <AppContent />
-          </NotificationProvider>
+          <ChatProvider>
+            <NotificationProvider>
+              <AppContent />
+            </NotificationProvider>
+          </ChatProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

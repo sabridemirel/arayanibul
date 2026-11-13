@@ -1,6 +1,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+// Token lives in secure storage (written by authService.saveAuthData). Do not import
+// authService here: it imports this module.
+import secureStorageService from './secureStorageService';
 
 // API URL: set EXPO_PUBLIC_API_URL (e.g. https://api.example.com/api) for any deployed build.
 // Without it, fall back to the local Docker API (Android emulator reaches the host via 10.0.2.2).
@@ -26,7 +29,7 @@ export { api };
 // Request interceptor - Token'ı otomatik ekle
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('authToken');
+    const { accessToken: token } = await secureStorageService.getAuthTokens();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -42,7 +45,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await AsyncStorage.removeItem('authToken');
+      await secureStorageService.clearAuthTokens();
       await AsyncStorage.removeItem('user');
     }
     return Promise.reject(error);
@@ -175,31 +178,46 @@ export interface CreateOfferRequest {
   images?: string[];
 }
 
+export type MessageType = 'Text' | 'Image' | 'Location';
+
+// Mirrors the backend MessageDto. isSentByCurrentUser is false in hub broadcasts,
+// so compare senderId with the current user's id instead.
 export interface Message {
   id: number;
   offerId: number;
   senderId: string;
+  senderName: string;
+  senderProfileImage?: string | null;
   content: string;
-  type: 'Text' | 'Image' | 'Location';
-  attachmentUrl?: string;
+  type: MessageType;
+  attachmentUrl?: string | null;
   isRead: boolean;
   createdAt: string;
-  sender?: User;
+  isSentByCurrentUser: boolean;
 }
 
 export interface SendMessageRequest {
   offerId: number;
   content: string;
-  type: 'Text' | 'Image' | 'Location';
+  type?: MessageType;
   attachmentUrl?: string;
 }
 
+export type OfferStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Withdrawn';
+
+// Mirrors the backend ConversationDto.
 export interface Conversation {
   offerId: number;
-  offer?: Offer;
-  lastMessage?: Message;
+  needId: number;
+  needTitle: string;
+  otherUserId: string;
+  otherUserName: string;
+  otherUserProfileImage?: string | null;
+  lastMessage?: Message | null;
   unreadCount: number;
-  otherUser?: User;
+  lastActivity: string;
+  offerPrice?: number | null;
+  offerStatus: OfferStatus;
 }
 
 // API Services
@@ -346,20 +364,30 @@ export const offerAPI = {
   
   updateOffer: (id: number, data: Partial<CreateOfferRequest>): Promise<Offer> =>
     api.put(`/offer/${id}`, data).then(res => normalizeOffer(res.data)),
+
+  getOfferById: (id: number): Promise<Offer> =>
+    api.get(`/offer/${id}`).then(res => normalizeOffer(res.data)),
 };
 
 export const messageAPI = {
   sendMessage: (data: SendMessageRequest): Promise<Message> =>
-    api.post('/message/send', data).then(res => res.data),
+    api.post('/message/send', { type: 'Text', ...data }).then(res => res.data),
   
   getConversation: (offerId: number): Promise<Message[]> =>
-    api.get(`/message/conversation/${offerId}`).then(res => res.data),
+    api.get(`/message/conversation/${offerId}`).then(res => (Array.isArray(res.data) ? res.data : [])),
   
   getConversations: (): Promise<Conversation[]> =>
-    api.get('/message/conversations').then(res => res.data),
+    api.get('/message/conversations').then(res => (Array.isArray(res.data) ? res.data : [])),
   
-  markAsRead: (messageId: number): Promise<void> =>
-    api.post('/message/mark-read', { messageId }).then(res => res.data),
+  markConversationRead: (offerId: number): Promise<void> =>
+    api.post('/message/mark-conversation-read', { offerId }).then(() => undefined),
+
+  getUnreadCount: (): Promise<number> =>
+    api.get('/message/unread-count').then(res => {
+      const val = res.data;
+      if (typeof val === 'number') return val;
+      return Number(val?.count ?? val?.unreadCount ?? 0) || 0;
+    }),
 };
 
 export interface UserStats {

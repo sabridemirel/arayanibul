@@ -269,9 +269,10 @@ const MyOffersScreen: React.FC = () => {
             style={styles.actionButton}
           />
           <Button
-            title="Detayları Gör"
+            title="Mesajlaş"
             size="small"
-            onPress={() => handleOfferPress(offer)}
+            onPress={() => navigation.navigate('Chat', { offerId: offer.id })}
+            icon="message"
             style={styles.actionButton}
           />
         </View>
@@ -289,10 +290,7 @@ const MyOffersScreen: React.FC = () => {
             <Button
               title="Mesajlaş"
               size="small"
-              onPress={() => {
-                // Navigate to chat screen (will be implemented later)
-                Alert.alert('Bilgi', 'Mesajlaşma özelliği yakında eklenecek.');
-              }}
+              onPress={() => navigation.navigate('Chat', { offerId: offer.id })}
               icon="message"
               style={styles.actionButton}
             />

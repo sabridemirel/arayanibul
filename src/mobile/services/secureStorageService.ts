@@ -1,6 +1,11 @@
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
+import { Platform } from 'react-native';
+
+// expo-secure-store has no web implementation; fall back to AsyncStorage
+// (localStorage) when running via `expo start --web`.
+const isWeb = Platform.OS === 'web';
 
 export interface SecureStorageOptions {
   requireAuthentication?: boolean;
@@ -25,6 +30,11 @@ class SecureStorageService {
         storeOptions.accessGroup = options.accessGroup;
       }
 
+      if (isWeb) {
+        await AsyncStorage.setItem(secureKey, value);
+        return;
+      }
+
       await SecureStore.setItemAsync(secureKey, value, storeOptions);
     } catch (error) {
       console.error('Error storing secure item:', error);
@@ -47,6 +57,10 @@ class SecureStorageService {
         storeOptions.accessGroup = options.accessGroup;
       }
 
+      if (isWeb) {
+        return await AsyncStorage.getItem(secureKey);
+      }
+
       return await SecureStore.getItemAsync(secureKey, storeOptions);
     } catch (error) {
       console.error('Error retrieving secure item:', error);
@@ -67,6 +81,11 @@ class SecureStorageService {
 
       if (options?.accessGroup) {
         storeOptions.accessGroup = options.accessGroup;
+      }
+
+      if (isWeb) {
+        await AsyncStorage.removeItem(secureKey);
+        return;
       }
 
       await SecureStore.deleteItemAsync(secureKey, storeOptions);
