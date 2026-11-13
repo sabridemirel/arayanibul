@@ -18,6 +18,18 @@ public class Need
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }
     public string UserId { get; set; } = string.Empty;
+
+    // Moderation
+    public NeedRejectionReason? RejectionReason { get; set; }
+    public string? RejectionNote { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? ReviewedById { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    /// <summary>Comma-joined terms that matched the keyword list / contact-info patterns.</summary>
+    public string? FlaggedTerms { get; set; }
+    /// <summary>True while the current content has not been approved by an admin
+    /// (prevents re-activating an unreviewed listing by cancelling and re-opening it).</summary>
+    public bool NeedsReview { get; set; }
     
     // Navigation Properties
     public ApplicationUser User { get; set; } = null!;

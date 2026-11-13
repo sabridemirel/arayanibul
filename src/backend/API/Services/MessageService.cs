@@ -44,6 +44,15 @@ public class MessageService : IMessageService
             throw new ArgumentException("Bu teklif kapandığı için yeni mesaj gönderilemez.");
         }
 
+        var recipientId = offer.ProviderId == senderId ? offer.Need.UserId : offer.ProviderId;
+        var blocked = await _context.UserBlocks.AnyAsync(b =>
+            (b.BlockerId == senderId && b.BlockedId == recipientId) ||
+            (b.BlockerId == recipientId && b.BlockedId == senderId));
+        if (blocked)
+        {
+            throw new API.Middleware.ForbiddenException("Bu kullanıcıyla mesajlaşamazsınız.");
+        }
+
         var message = new Message
         {
             OfferId = request.OfferId,
@@ -64,8 +73,6 @@ public class MessageService : IMessageService
 
         if (savedMessage != null)
         {
-            // Determine recipient (the other party in the conversation)
-            var recipientId = offer.ProviderId == senderId ? offer.Need.UserId : offer.ProviderId;
             
             // Create message DTO for real-time notification
             var messageDto = new MessageDto

@@ -51,6 +51,10 @@ public class MessageController : ControllerBase
 
             return Ok(messageDto);
         }
+        catch (API.Middleware.ForbiddenException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);

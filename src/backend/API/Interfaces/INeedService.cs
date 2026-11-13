@@ -9,7 +9,7 @@ public interface INeedService
     Task<NeedResponse?> GetNeedByIdAsync(int needId, string? userId = null);
     Task<NeedResponse?> UpdateNeedAsync(int needId, UpdateNeedRequest request, string userId);
     Task<bool> DeleteNeedAsync(int needId, string userId);
-    Task<PagedResult<NeedResponse>> GetUserNeedsAsync(string userId, NeedStatus? status = null, int page = 1, int pageSize = 20);
+    Task<PagedResult<NeedResponse>> GetUserNeedsAsync(string userId, NeedStatus? status = null, int page = 1, int pageSize = 20, bool ownerView = false);
     Task<List<NeedResponse>> SearchNeedsAsync(string searchText, double? latitude = null, double? longitude = null, double? radiusKm = null, int maxResults = 50);
     Task<bool> ExpireNeedAsync(int needId);
     Task<List<NeedResponse>> GetNearbyNeedsAsync(double latitude, double longitude, double radiusKm = 10, int maxResults = 50);

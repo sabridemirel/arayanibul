@@ -38,6 +38,10 @@ public class OfferController : ControllerBase
             var offer = await _offerService.CreateOfferAsync(request, userId);
             return CreatedAtAction(nameof(GetOfferById), new { id = offer.Id }, offer);
         }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
         catch (ValidationException ex)
         {
             return BadRequest(new { message = ex.Message, errors = ex.Errors });

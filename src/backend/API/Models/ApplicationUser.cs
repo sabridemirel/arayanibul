@@ -18,6 +18,10 @@ public class ApplicationUser : IdentityUser
     public string? Provider { get; set; } = "Local";
     public bool IsGuest { get; set; } = false;
 
+    // Admin suspension (also locked out via LockoutEnd)
+    public DateTime? SuspendedAt { get; set; }
+    public string? SuspendedReason { get; set; }
+
     // Stable subject ids from social identity providers (unique when set)
     public string? GoogleId { get; set; }
     public string? FacebookId { get; set; }

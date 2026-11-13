@@ -14,8 +14,9 @@ public sealed class StringEnumExceptFlagsConverter : JsonConverterFactory
 
     public override bool CanConvert(Type typeToConvert)
     {
-        var enumType = Nullable.GetUnderlyingType(typeToConvert) ?? typeToConvert;
-        return enumType.IsEnum && !enumType.IsDefined(typeof(FlagsAttribute), inherit: false);
+        // Only claim the enum type itself: System.Text.Json wraps Nullable<TEnum> automatically
+        // using this converter, while JsonStringEnumConverter.CreateConverter rejects Nullable<T>.
+        return typeToConvert.IsEnum && !typeToConvert.IsDefined(typeof(FlagsAttribute), inherit: false);
     }
 
     public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)

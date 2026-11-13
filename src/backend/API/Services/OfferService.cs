@@ -57,6 +57,15 @@ public class OfferService : IOfferService
             });
         }
 
+        // Either side has blocked the other
+        var blocked = await _context.UserBlocks.AnyAsync(b =>
+            (b.BlockerId == need.UserId && b.BlockedId == providerId) ||
+            (b.BlockerId == providerId && b.BlockedId == need.UserId));
+        if (blocked)
+        {
+            throw new ForbiddenException("Bu ilana teklif veremezsiniz.");
+        }
+
         // Check if provider already has a pending offer for this need
         var existingOffer = await _context.Offers
             .FirstOrDefaultAsync(o => o.NeedId == request.NeedId && 

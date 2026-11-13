@@ -193,6 +193,9 @@ public static class ServiceExtensions
         services.AddSingleton<AppleTokenValidator>();
         services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
+        services.AddScoped<IContentModerationService, ContentModerationService>();
+        services.AddScoped<AdminRoleService>();
+        services.AddScoped<AdminService>();
 
         // Background services
         services.AddHostedService<GuestCleanupService>();

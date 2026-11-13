@@ -13,7 +13,49 @@ public enum NeedStatus
     InProgress = 2,
     Completed = 3,
     Cancelled = 4,
-    Expired = 5
+    Expired = 5,
+    PendingReview = 6,  // Waiting for admin moderation (not publicly visible)
+    Rejected = 7        // Rejected or taken down by an admin (not publicly visible)
+}
+
+public enum NeedRejectionReason
+{
+    ProhibitedItem = 1,
+    Misleading = 2,
+    InappropriateLanguage = 3,
+    ContactInfo = 4,
+    Duplicate = 5,
+    Other = 6
+}
+
+public enum ReportTargetType
+{
+    Need = 1,
+    Message = 2,
+    User = 3
+}
+
+public enum ReportReason
+{
+    Spam = 1,
+    Inappropriate = 2,
+    Fraud = 3,
+    Harassment = 4,
+    Other = 5
+}
+
+public enum ReportStatus
+{
+    Open = 1,
+    Resolved = 2,
+    Dismissed = 3
+}
+
+public enum ReportResolutionAction
+{
+    Dismiss = 1,
+    TakeDownNeed = 2,
+    SuspendUser = 3
 }
 
 public enum OfferStatus

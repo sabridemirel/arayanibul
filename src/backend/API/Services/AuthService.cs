@@ -23,6 +23,7 @@ public class AuthService : IAuthService
     private readonly AppleTokenValidator _appleTokenValidator;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
+    private readonly AdminRoleService _adminRoleService;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -32,8 +33,10 @@ public class AuthService : IAuthService
         FacebookService facebookService,
         AppleTokenValidator appleTokenValidator,
         IEmailService emailService,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        AdminRoleService adminRoleService)
     {
+        _adminRoleService = adminRoleService;
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
@@ -62,7 +65,9 @@ public class AuthService : IAuthService
             Email = dto.Email,
             FirstName = dto.FirstName,
             LastName = dto.LastName,
-            EmailConfirmed = true
+            // Ownership is not proven at registration; confirmed later via password reset link,
+            // email verification or a verified social sign-in.
+            EmailConfirmed = false
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
@@ -82,7 +87,7 @@ public class AuthService : IAuthService
             Message = "Kayıt başarılı",
             Token = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,
-            User = MapToUserDto(user)
+            User = await MapToUserDtoAsync(user)
         };
     }
 
@@ -99,6 +104,15 @@ public class AuthService : IAuthService
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+        if (result.IsLockedOut && user.SuspendedAt.HasValue)
+        {
+            return new AuthResponseDto
+            {
+                Success = false,
+                Message = "Hesabınız askıya alınmıştır. Destek için bizimle iletişime geçebilirsiniz."
+            };
+        }
+
         if (!result.Succeeded)
         {
             return new AuthResponseDto
@@ -115,7 +129,7 @@ public class AuthService : IAuthService
             Message = "Giriş başarılı",
             Token = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,
-            User = MapToUserDto(user)
+            User = await MapToUserDtoAsync(user)
         };
     }
 
@@ -150,7 +164,7 @@ public class AuthService : IAuthService
             Message = "Misafir girişi başarılı",
             Token = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,
-            User = MapToUserDto(guestUser)
+            User = await MapToUserDtoAsync(guestUser)
         };
     }
 
@@ -183,6 +197,7 @@ public class AuthService : IAuthService
         guestUser.FirstName = registerDto.FirstName;
         guestUser.LastName = registerDto.LastName;
         guestUser.IsGuest = false;
+        guestUser.EmailConfirmed = false; // the new address is not verified yet
         guestUser.UpdatedAt = DateTime.UtcNow;
         guestUser.Provider = "Local";
 
@@ -217,13 +232,16 @@ public class AuthService : IAuthService
             Message = "Hesap başarıyla oluşturuldu",
             Token = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,
-            User = MapToUserDto(guestUser)
+            User = await MapToUserDtoAsync(guestUser)
         };
     }
 
     private async Task<TokenResponseDto> GenerateTokensAsync(ApplicationUser user)
     {
-        var accessToken = GenerateJwtToken(user);
+        // Grant the Admin role on login/register when the email is configured as an admin email.
+        await _adminRoleService.EnsureAdminIfConfiguredAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
+        var accessToken = GenerateJwtToken(user, roles);
         var refreshToken = await GenerateRefreshTokenAsync(user);
         
         return new TokenResponseDto
@@ -234,7 +252,7 @@ public class AuthService : IAuthService
         };
     }
 
-    private string GenerateJwtToken(ApplicationUser user)
+    private string GenerateJwtToken(ApplicationUser user, IEnumerable<string> roles)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]!);
@@ -246,6 +264,7 @@ public class AuthService : IAuthService
             new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
             new("isGuest", user.IsGuest.ToString())
         };
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -629,7 +648,7 @@ public class AuthService : IAuthService
             Message = message,
             Token = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,
-            User = MapToUserDto(user)
+            User = await MapToUserDtoAsync(user)
         };
     }
 
@@ -722,6 +741,8 @@ public class AuthService : IAuthService
             user.EmailConfirmed = true;
             await _userManager.UpdateAsync(user);
         }
+
+        await _adminRoleService.EnsureAdminIfConfiguredAsync(user);
 
         await RevokeAllRefreshTokensAsync(user.Id);
 
@@ -848,10 +869,13 @@ public class AuthService : IAuthService
         }
     }
 
-    private UserDto MapToUserDto(ApplicationUser user)
+    private async Task<UserDto> MapToUserDtoAsync(ApplicationUser user)
     {
+        var roles = (await _userManager.GetRolesAsync(user)).ToArray();
         return new UserDto
         {
+            Roles = roles,
+            IsAdmin = roles.Contains(AppRoles.Admin),
             Id = user.Id,
             Email = user.Email!,
             FirstName = user.FirstName ?? "",

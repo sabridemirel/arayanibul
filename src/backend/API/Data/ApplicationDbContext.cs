@@ -23,6 +23,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserBehavior> UserBehaviors { get; set; }
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<UserVerification> UserVerifications { get; set; }
+    public DbSet<ModerationKeyword> ModerationKeywords { get; set; }
+    public DbSet<Report> Reports { get; set; }
+    public DbSet<UserBlock> UserBlocks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -275,5 +278,57 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<UserVerification>()
             .HasIndex(v => v.Status)
             .HasDatabaseName("IX_UserVerifications_Status");
+
+        // Moderation
+        builder.Entity<Need>()
+            .Property(n => n.RejectionNote)
+            .HasMaxLength(500);
+
+        builder.Entity<Need>()
+            .HasIndex(n => new { n.Status, n.UpdatedAt })
+            .HasDatabaseName("IX_Needs_Status_UpdatedAt");
+
+        builder.Entity<ApplicationUser>()
+            .Property(u => u.SuspendedReason)
+            .HasMaxLength(500);
+
+        builder.Entity<ModerationKeyword>()
+            .HasIndex(k => k.Term)
+            .IsUnique();
+
+        builder.Entity<Report>()
+            .HasOne(r => r.Reporter)
+            .WithMany()
+            .HasForeignKey(r => r.ReporterId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Report>()
+            .HasIndex(r => new { r.Status, r.CreatedAt })
+            .HasDatabaseName("IX_Reports_Status_CreatedAt");
+
+        builder.Entity<Report>()
+            .HasIndex(r => new { r.ReporterId, r.TargetType, r.TargetId })
+            .HasDatabaseName("IX_Reports_Reporter_Target");
+
+        builder.Entity<Report>()
+            .HasIndex(r => r.TargetUserId)
+            .HasDatabaseName("IX_Reports_TargetUserId");
+
+        builder.Entity<UserBlock>()
+            .HasOne(b => b.Blocker)
+            .WithMany()
+            .HasForeignKey(b => b.BlockerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserBlock>()
+            .HasOne(b => b.Blocked)
+            .WithMany()
+            .HasForeignKey(b => b.BlockedId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UserBlock>()
+            .HasIndex(b => new { b.BlockerId, b.BlockedId })
+            .IsUnique()
+            .HasDatabaseName("IX_UserBlocks_BlockerId_BlockedId");
     }
 }

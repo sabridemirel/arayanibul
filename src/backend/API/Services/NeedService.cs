@@ -10,11 +10,22 @@ public class NeedService : INeedService
 {
     private readonly ApplicationDbContext _context;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IContentModerationService? _moderation;
 
-    public NeedService(ApplicationDbContext context, IFileStorageService fileStorageService)
+    public NeedService(ApplicationDbContext context, IFileStorageService fileStorageService, IContentModerationService? moderation = null)
     {
         _context = context;
         _fileStorageService = fileStorageService;
+        _moderation = moderation;
+    }
+
+    private bool ModerationEnabled => _moderation?.IsEnabled ?? false;
+
+    private async Task<string?> GetFlaggedTermsAsync(string title, string description)
+    {
+        if (_moderation == null) return null;
+        var terms = await _moderation.FindFlaggedTermsAsync(title, description);
+        return terms.Count > 0 ? string.Join(",", terms) : null;
     }
 
     public async Task<NeedResponse> CreateNeedAsync(CreateNeedRequest request, string userId)
@@ -60,7 +71,9 @@ public class NeedService : INeedService
             Longitude = request.Longitude,
             Address = request.Address,
             Urgency = request.Urgency,
-            Status = NeedStatus.Active,
+            Status = ModerationEnabled ? NeedStatus.PendingReview : NeedStatus.Active,
+            NeedsReview = ModerationEnabled,
+            FlaggedTerms = await GetFlaggedTermsAsync(request.Title, request.Description),
             UserId = userId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -88,7 +101,11 @@ public class NeedService : INeedService
         return await GetNeedByIdAsync(need.Id, userId) ?? throw new Exception("İhtiyaç oluşturulduktan sonra bulunamadı.");
     }
 
-    public async Task<PagedResult<NeedResponse>> GetNeedsAsync(NeedFilterRequest filter)
+    /// <summary>Public listing: only Active needs are ever returned.</summary>
+    public Task<PagedResult<NeedResponse>> GetNeedsAsync(NeedFilterRequest filter)
+        => QueryNeedsAsync(filter, publicOnly: true);
+
+    private async Task<PagedResult<NeedResponse>> QueryNeedsAsync(NeedFilterRequest filter, bool publicOnly)
     {
         var query = _context.Needs
             .Include(n => n.User)
@@ -128,14 +145,14 @@ public class NeedService : INeedService
             query = query.Where(n => n.Urgency == filter.Urgency.Value);
         }
 
-        if (filter.Status.HasValue)
+        if (publicOnly)
+        {
+            // Unmoderated, rejected or closed needs are never public.
+            query = query.Where(n => n.Status == NeedStatus.Active);
+        }
+        else if (filter.Status.HasValue)
         {
             query = query.Where(n => n.Status == filter.Status.Value);
-        }
-        else
-        {
-            // Default to active needs only
-            query = query.Where(n => n.Status == NeedStatus.Active);
         }
 
         if (filter.CreatedAfter.HasValue)
@@ -237,6 +254,23 @@ public class NeedService : INeedService
             throw new NotFoundException("İhtiyaç bulunamadı veya güncelleme yetkiniz yok.");
         }
 
+        // Content/detail edits are only allowed while the listing is live or under moderation.
+        // (Status-only requests, e.g. closing a listing, are handled by the status rules below.)
+        var editsDetails = request.Title != null || request.Description != null || request.CategoryId.HasValue ||
+                           request.MinBudget.HasValue || request.MaxBudget.HasValue || request.Currency != null ||
+                           request.Latitude.HasValue || request.Longitude.HasValue || request.Address != null ||
+                           request.Urgency.HasValue || request.ExpiresAt.HasValue || request.ImageUrls != null;
+        if (editsDetails && !IsEditableStatus(need.Status))
+        {
+            throw new BusinessException(NotEditableMessage);
+        }
+
+        var oldTitle = need.Title;
+        var oldDescription = need.Description;
+        var oldCategoryId = need.CategoryId;
+        var imagesChanged = request.ImageUrls != null &&
+            !request.ImageUrls.SequenceEqual(need.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl));
+
         // Update fields if provided
         if (!string.IsNullOrEmpty(request.Title))
         {
@@ -305,9 +339,45 @@ public class NeedService : INeedService
             need.Urgency = request.Urgency.Value;
         }
 
-        if (request.Status.HasValue)
+        if (request.Status.HasValue && request.Status.Value != need.Status)
         {
-            need.Status = request.Status.Value;
+            var target = request.Status.Value;
+            if (target == NeedStatus.PendingReview || target == NeedStatus.Rejected)
+            {
+                throw new ValidationException("Status", "Bu durum yalnızca yönetici tarafından ayarlanabilir.");
+            }
+
+            var underModeration = need.Status == NeedStatus.PendingReview || need.Status == NeedStatus.Rejected;
+            if (underModeration && target != NeedStatus.Cancelled)
+            {
+                throw new ValidationException("Status", "İlanınız onaylanmadan bu durum değiştirilemez.");
+            }
+
+            // Re-opening a listing whose content was never approved sends it to review instead.
+            if (target == NeedStatus.Active && ModerationEnabled && need.NeedsReview)
+            {
+                target = NeedStatus.PendingReview;
+            }
+
+            need.Status = target;
+        }
+
+        var contentChanged = need.Title != oldTitle || need.Description != oldDescription ||
+                             need.CategoryId != oldCategoryId || imagesChanged;
+        if (contentChanged)
+        {
+            need.FlaggedTerms = await GetFlaggedTermsAsync(need.Title, need.Description);
+
+            if (ModerationEnabled)
+            {
+                need.NeedsReview = true;
+                if (need.Status == NeedStatus.Active || need.Status == NeedStatus.Rejected)
+                {
+                    need.Status = NeedStatus.PendingReview;
+                    need.RejectionReason = null;
+                    need.RejectionNote = null;
+                }
+            }
         }
 
         if (request.ExpiresAt.HasValue)
@@ -343,6 +413,11 @@ public class NeedService : INeedService
         return await GetNeedByIdAsync(needId, userId);
     }
 
+    public const string NotEditableMessage = "Bu ilan artık düzenlenemez.";
+
+    public static bool IsEditableStatus(NeedStatus status) =>
+        status == NeedStatus.Active || status == NeedStatus.PendingReview || status == NeedStatus.Rejected;
+
     public async Task<bool> DeleteNeedAsync(int needId, string userId)
     {
         var need = await _context.Needs
@@ -371,7 +446,7 @@ public class NeedService : INeedService
         return true;
     }
 
-    public async Task<PagedResult<NeedResponse>> GetUserNeedsAsync(string userId, NeedStatus? status = null, int page = 1, int pageSize = 20)
+    public async Task<PagedResult<NeedResponse>> GetUserNeedsAsync(string userId, NeedStatus? status = null, int page = 1, int pageSize = 20, bool ownerView = false)
     {
         var filter = new NeedFilterRequest
         {
@@ -381,7 +456,8 @@ public class NeedService : INeedService
             PageSize = pageSize
         };
 
-        return await GetNeedsAsync(filter);
+        // The owner sees all statuses (pending review, rejected, ...); everyone else only Active.
+        return await QueryNeedsAsync(filter, publicOnly: !ownerView);
     }
 
     public async Task<List<NeedResponse>> SearchNeedsAsync(string searchText, double? latitude = null, double? longitude = null, double? radiusKm = null, int maxResults = 50)
@@ -460,7 +536,11 @@ public class NeedService : INeedService
                 AltText = i.AltText,
                 SortOrder = i.SortOrder
             }).OrderBy(i => i.SortOrder).ToList() ?? new List<NeedImageResponse>(),
-            OfferCount = need.Offers?.Count ?? 0
+            OfferCount = need.Offers?.Count ?? 0,
+            RejectionReason = need.RejectionReason,
+            RejectionReasonText = ModerationLabels.For(need.RejectionReason),
+            RejectionNote = need.RejectionNote,
+            ApprovedAt = need.ApprovedAt
         };
 
         // Calculate distance if user location is provided

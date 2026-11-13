@@ -4,6 +4,7 @@ using System.Security.Claims;
 using API.Interfaces;
 using API.Models;
 using API.Middleware;
+using API.Services;
 
 namespace API.Controllers;
 
@@ -89,6 +90,21 @@ public class NeedController : ControllerBase
             return NotFound("İhtiyaç bulunamadı.");
         }
 
+        // Listings under review or rejected are visible only to their owner and admins.
+        if ((need.Status == NeedStatus.PendingReview || need.Status == NeedStatus.Rejected) &&
+            need.UserId != userId && !User.IsInRole(AppRoles.Admin))
+        {
+            return NotFound("İhtiyaç bulunamadı.");
+        }
+
+        // Rejection details are only for the owner and admins.
+        if (need.UserId != userId && !User.IsInRole(AppRoles.Admin))
+        {
+            need.RejectionReason = null;
+            need.RejectionReasonText = null;
+            need.RejectionNote = null;
+        }
+
         // Track user behavior for recommendations
         if (!string.IsNullOrEmpty(userId))
         {
@@ -136,9 +152,14 @@ public class NeedController : ControllerBase
 
             return Ok(need);
         }
+        catch (BusinessException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (ValidationException ex)
         {
-            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+            var first = ex.Errors.Values.SelectMany(v => v).FirstOrDefault() ?? ex.Message;
+            return BadRequest(new { message = first, errors = ex.Errors });
         }
         catch (NotFoundException ex)
         {
@@ -191,7 +212,7 @@ public class NeedController : ControllerBase
             return Unauthorized("Kullanıcı kimliği bulunamadı.");
         }
 
-        var result = await _needService.GetUserNeedsAsync(userId, status, page, pageSize);
+        var result = await _needService.GetUserNeedsAsync(userId, status, page, pageSize, ownerView: true);
         return Ok(result);
     }
 
@@ -266,14 +287,19 @@ public class NeedController : ControllerBase
                 return NotFound("İhtiyaç bulunamadı veya yetkiniz yok.");
             }
 
+            if (!NeedService.IsEditableStatus(need.Status))
+            {
+                return BadRequest(new { message = NeedService.NotEditableMessage });
+            }
+
             if (images == null || !images.Any())
             {
                 return BadRequest("En az bir resim yüklenmeli.");
             }
 
-            if (images.Count > 5)
+            if (images.Count + need.Images.Count > 5)
             {
-                return BadRequest("En fazla 5 resim yüklenebilir.");
+                return BadRequest(new { message = "Bir ilana en fazla 5 resim eklenebilir." });
             }
 
             var imageUrls = new List<string>();
@@ -301,10 +327,10 @@ public class NeedController : ControllerBase
                 }
             }
 
-            // Update need with new images
+            // Append the new images to the existing ones (triggers re-review when moderation is on)
             var updateRequest = new UpdateNeedRequest
             {
-                ImageUrls = imageUrls
+                ImageUrls = need.Images.OrderBy(i => i.SortOrder).Select(i => i.ImageUrl).Concat(imageUrls).ToList()
             };
 
             await _needService.UpdateNeedAsync(id, updateRequest, userId);
@@ -337,6 +363,11 @@ public class NeedController : ControllerBase
             if (need == null || need.UserId != userId)
             {
                 return NotFound("İhtiyaç bulunamadı veya yetkiniz yok.");
+            }
+
+            if (!NeedService.IsEditableStatus(need.Status))
+            {
+                return BadRequest(new { message = NeedService.NotEditableMessage });
             }
 
             var imageToDelete = need.Images.FirstOrDefault(i => i.Id == imageId);

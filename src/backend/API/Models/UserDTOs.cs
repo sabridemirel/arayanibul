@@ -46,6 +46,8 @@ public class UserProfileDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsGuest { get; set; }
+    public string[]? Roles { get; set; }
+    public bool? IsAdmin { get; set; }
 }
 
 public class UploadImageResponse

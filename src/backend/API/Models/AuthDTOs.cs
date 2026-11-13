@@ -52,6 +52,8 @@ public class UserDto
     public string LastName { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
     public bool IsGuest { get; set; }
+    public string[] Roles { get; set; } = Array.Empty<string>();
+    public bool IsAdmin { get; set; }
 }
 
 public class GoogleLoginDto

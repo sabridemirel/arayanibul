@@ -78,8 +78,15 @@ Caddy sertifikayı ilk istekte otomatik alır. Veritabanı şeması açılışta
 `python3 scripts/seed_demo.py https://api.<test-alanı>/api` kullanılabilir.)
 
 ### Yönetici hesabı
-`ADMIN_EMAILS` içindeki e-postayla web'den kayıt olun (veya zaten kayıtlıysa giriş yapın);
-hesap otomatik olarak yönetici olur ve üst menüde **Yönetim** görünür (`/admin`).
+Yönetici rolü yalnızca **e-postası doğrulanmış** hesaplara verilir (başkası sizin adresinizle
+kayıt olup yönetici olamasın diye):
+
+1. `ADMIN_EMAILS` içindeki e-postayla web'den kayıt olun.
+2. Giriş sayfasındaki **Şifremi Unuttum** ile o adrese gelen bağlantıdan şifrenizi bir kez yenileyin
+   (bu, adresin size ait olduğunu doğrular) — ya da aynı e-postalı Google/Apple hesabıyla giriş yapın.
+3. Tekrar giriş yapın: üst menüde **Yönetim** görünür (`/admin`).
+
+Bu yüzden SMTP (e-posta) ayarları yönetici hesabı açılmadan önce yapılmış olmalı.
 
 ## 4. Web (Cloudflare Pages)
 

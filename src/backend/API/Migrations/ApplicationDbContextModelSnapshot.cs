@@ -132,6 +132,13 @@ namespace API.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SuspendedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
 
@@ -248,6 +255,30 @@ namespace API.Migrations
                     b.ToTable("Messages");
                 });
 
+            modelBuilder.Entity("API.Models.ModerationKeyword", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Term")
+                        .IsUnique();
+
+                    b.ToTable("ModerationKeywords");
+                });
+
             modelBuilder.Entity("API.Models.Need", b =>
                 {
                     b.Property<int>("Id")
@@ -258,6 +289,9 @@ namespace API.Migrations
 
                     b.Property<string>("Address")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("integer");
@@ -276,6 +310,9 @@ namespace API.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("FlaggedTerms")
+                        .HasColumnType("text");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
 
@@ -289,6 +326,22 @@ namespace API.Migrations
                     b.Property<decimal?>("MinBudget")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("NeedsReview")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RejectionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("RejectionReason")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReviewedById")
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -314,6 +367,9 @@ namespace API.Migrations
                     b.HasIndex("Latitude", "Longitude")
                         .HasDatabaseName("IX_Needs_Location")
                         .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
+
+                    b.HasIndex("Status", "UpdatedAt")
+                        .HasDatabaseName("IX_Needs_Status_UpdatedAt");
 
                     b.HasIndex("CategoryId", "Status", "CreatedAt")
                         .HasDatabaseName("IX_Needs_CategoryId_Status_CreatedAt");
@@ -511,6 +567,68 @@ namespace API.Migrations
                         .HasDatabaseName("IX_RefreshTokens_UserId_IsRevoked_ExpiryDate");
 
                     b.ToTable("RefreshTokens");
+                });
+
+            modelBuilder.Entity("API.Models.Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Reason")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReporterId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ResolvedById")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TargetUserId")
+                        .HasDatabaseName("IX_Reports_TargetUserId");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("IX_Reports_Status_CreatedAt");
+
+                    b.HasIndex("ReporterId", "TargetType", "TargetId")
+                        .HasDatabaseName("IX_Reports_Reporter_Target");
+
+                    b.ToTable("Reports");
                 });
 
             modelBuilder.Entity("API.Models.Review", b =>
@@ -728,6 +846,36 @@ namespace API.Migrations
                         .HasDatabaseName("IX_UserBehaviors_UserId_ActionType_CreatedAt");
 
                     b.ToTable("UserBehaviors");
+                });
+
+            modelBuilder.Entity("API.Models.UserBlock", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BlockedId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BlockerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedId");
+
+                    b.HasIndex("BlockerId", "BlockedId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserBlocks_BlockerId_BlockedId");
+
+                    b.ToTable("UserBlocks");
                 });
 
             modelBuilder.Entity("API.Models.UserVerification", b =>
@@ -1035,6 +1183,17 @@ namespace API.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("API.Models.Report", b =>
+                {
+                    b.HasOne("API.Models.ApplicationUser", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Reporter");
+                });
+
             modelBuilder.Entity("API.Models.Review", b =>
                 {
                     b.HasOne("API.Models.Offer", "Offer")
@@ -1107,6 +1266,25 @@ namespace API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("API.Models.UserBlock", b =>
+                {
+                    b.HasOne("API.Models.ApplicationUser", "Blocked")
+                        .WithMany()
+                        .HasForeignKey("BlockedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API.Models.ApplicationUser", "Blocker")
+                        .WithMany()
+                        .HasForeignKey("BlockerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Blocked");
+
+                    b.Navigation("Blocker");
                 });
 
             modelBuilder.Entity("API.Models.UserVerification", b =>

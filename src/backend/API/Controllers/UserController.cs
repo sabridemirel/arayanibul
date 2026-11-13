@@ -1,6 +1,7 @@
 using API.Interfaces;
 using API.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -13,11 +14,13 @@ public class UserController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly ILogger<UserController> _logger;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public UserController(IUserService userService, ILogger<UserController> logger)
+    public UserController(IUserService userService, ILogger<UserController> logger, UserManager<ApplicationUser> userManager)
     {
         _userService = userService;
         _logger = logger;
+        _userManager = userManager;
     }
 
     [HttpGet("profile")]
@@ -53,6 +56,10 @@ public class UserController : ControllerBase
             UpdatedAt = user.UpdatedAt,
             IsGuest = user.IsGuest
         };
+
+        var roles = (await _userManager.GetRolesAsync(user)).ToArray();
+        userProfile.Roles = roles;
+        userProfile.IsAdmin = roles.Contains(AppRoles.Admin);
 
         return Ok(userProfile);
     }

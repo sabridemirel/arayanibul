@@ -127,6 +127,12 @@ public class NeedResponse
     public List<NeedImageResponse> Images { get; set; } = new();
     public int OfferCount { get; set; }
     public double? DistanceKm { get; set; }
+
+    // Moderation (only set for the owner / admins; null fields are omitted from JSON)
+    public NeedRejectionReason? RejectionReason { get; set; }
+    public string? RejectionReasonText { get; set; }
+    public string? RejectionNote { get; set; }
+    public DateTime? ApprovedAt { get; set; }
 }
 
 public class NeedImageResponse

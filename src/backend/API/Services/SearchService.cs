@@ -38,7 +38,8 @@ public class SearchService : ISearchService
             }
             else
             {
-                query = query.Where(n => n.Status != NeedStatus.Cancelled);
+                // Never expose unmoderated/rejected/cancelled needs publicly
+                query = query.Where(n => n.Status == NeedStatus.Active || n.Status == NeedStatus.Expired);
             }
 
             // Apply category filter
@@ -163,7 +164,7 @@ public class SearchService : ISearchService
                 {
                     Text = categoryName,
                     Type = "category",
-                    Count = await _context.Needs.CountAsync(n => n.CategoryId == _context.Categories
+                    Count = await _context.Needs.CountAsync(n => n.Status == NeedStatus.Active && n.CategoryId == _context.Categories
                         .Where(c => c.NameTr == categoryName || c.Name == categoryName)
                         .Select(c => c.Id)
                         .FirstOrDefault())
@@ -197,7 +198,7 @@ public class SearchService : ISearchService
             if (query.Length > 3)
             {
                 var locationMatches = await _context.Needs
-                    .Where(n => n.Address != null && n.Address.ToLower().Contains(queryLower))
+                    .Where(n => n.Status == NeedStatus.Active && n.Address != null && n.Address.ToLower().Contains(queryLower))
                     .GroupBy(n => n.Address!.ToLower())
                     .Select(g => new { Address = g.Key, Count = g.Count() })
                     .OrderByDescending(x => x.Count)
