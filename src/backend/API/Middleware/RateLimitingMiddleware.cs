@@ -44,47 +44,36 @@ public class RateLimitingMiddleware
         // Get rate limit for this endpoint
         var limit = GetRateLimitForEndpoint(endpoint);
         
-        var clientInfo = _clients.AddOrUpdate(clientId, 
-            new ClientRequestInfo 
-            { 
-                LastRequest = now, 
-                RequestCount = 1,
-                EndpointCounts = new Dictionary<string, EndpointRequestInfo>
-                {
-                    { endpoint, new EndpointRequestInfo { Count = 1, LastRequest = now } }
-                }
-            },
-            (key, existing) =>
+        // One client often sends several requests at once (app startup, page loads); its counters
+        // are plain objects, so every read/write of them happens under a per-client lock.
+        var clientInfo = _clients.GetOrAdd(clientId, _ => new ClientRequestInfo());
+        int endpointCount;
+        lock (clientInfo)
+        {
+            CleanupOldEndpointData(clientInfo, now);
+
+            if (!clientInfo.EndpointCounts.TryGetValue(endpoint, out var endpointInfo))
             {
-                // Clean up old endpoint data
-                CleanupOldEndpointData(existing, now);
-                
-                if (!existing.EndpointCounts.ContainsKey(endpoint))
-                {
-                    existing.EndpointCounts[endpoint] = new EndpointRequestInfo { Count = 1, LastRequest = now };
-                }
-                else
-                {
-                    var endpointInfo = existing.EndpointCounts[endpoint];
-                    if (now - endpointInfo.LastRequest > limit.TimeWindow)
-                    {
-                        endpointInfo.Count = 1;
-                        endpointInfo.LastRequest = now;
-                    }
-                    else
-                    {
-                        endpointInfo.Count++;
-                    }
-                }
-                
-                existing.LastRequest = now;
-                existing.RequestCount++;
-                return existing;
-            });
+                endpointInfo = new EndpointRequestInfo { Count = 1, LastRequest = now };
+                clientInfo.EndpointCounts[endpoint] = endpointInfo;
+            }
+            else if (now - endpointInfo.LastRequest > limit.TimeWindow)
+            {
+                endpointInfo.Count = 1;
+                endpointInfo.LastRequest = now;
+            }
+            else
+            {
+                endpointInfo.Count++;
+            }
+
+            clientInfo.LastRequest = now;
+            clientInfo.RequestCount++;
+            endpointCount = endpointInfo.Count;
+        }
 
         // Check endpoint-specific rate limit
-        if (clientInfo.EndpointCounts.TryGetValue(endpoint, out var endpointRequestInfo) && 
-            endpointRequestInfo.Count > limit.RequestLimit)
+        if (endpointCount > limit.RequestLimit)
         {
             await HandleRateLimitExceeded(context, clientId, endpoint, limit);
             return;
@@ -94,7 +83,7 @@ public class RateLimitingMiddleware
         DetectSuspiciousActivity(clientId, context, now);
 
         // Add rate limit headers
-        AddRateLimitHeaders(context, endpointRequestInfo?.Count ?? 0, limit);
+        AddRateLimitHeaders(context, endpointCount, limit);
 
         await _next(context);
     }
@@ -171,37 +160,46 @@ public class RateLimitingMiddleware
 
     private void DetectSuspiciousActivity(string clientId, HttpContext context, DateTime now)
     {
-        var suspiciousActivity = _suspiciousClients.GetOrAdd(clientId, new SuspiciousActivity());
-
-        // Check for rapid sequential requests. A single page load already fires several requests in
-        // parallel (profile, chat hub, unread count, lists), and IPs can be shared, so only sustained
-        // hammering (well beyond normal bursts) leads to a short block.
-        if (suspiciousActivity.LastRequestTime.HasValue && 
-            (now - suspiciousActivity.LastRequestTime.Value).TotalMilliseconds < 100)
-        {
-            suspiciousActivity.RapidRequestCount++;
-            if (suspiciousActivity.RapidRequestCount > 100)
-            {
-                BlockClient(clientId, TimeSpan.FromMinutes(1), "Rapid sequential requests detected");
-            }
-        }
-        else
-        {
-            suspiciousActivity.RapidRequestCount = 0;
-        }
-
-        // Check for suspicious user agents
+        var suspiciousActivity = _suspiciousClients.GetOrAdd(clientId, _ => new SuspiciousActivity());
         var userAgent = context.Request.Headers["User-Agent"].ToString();
-        if (IsSuspiciousUserAgent(userAgent))
+        var block = (Duration: TimeSpan.Zero, Reason: "");
+
+        lock (suspiciousActivity)
         {
-            suspiciousActivity.SuspiciousUserAgentCount++;
-            if (suspiciousActivity.SuspiciousUserAgentCount > 3)
+            // Check for rapid sequential requests. A single page load already fires several requests in
+            // parallel (profile, chat hub, unread count, lists), and IPs can be shared, so only sustained
+            // hammering (well beyond normal bursts) leads to a short block.
+            if (suspiciousActivity.LastRequestTime.HasValue && 
+                (now - suspiciousActivity.LastRequestTime.Value).TotalMilliseconds < 100)
             {
-                BlockClient(clientId, TimeSpan.FromMinutes(15), "Suspicious user agent detected");
+                suspiciousActivity.RapidRequestCount++;
+                if (suspiciousActivity.RapidRequestCount > 100)
+                {
+                    block = (TimeSpan.FromMinutes(1), "Rapid sequential requests detected");
+                }
             }
+            else
+            {
+                suspiciousActivity.RapidRequestCount = 0;
+            }
+
+            // Check for suspicious user agents
+            if (IsSuspiciousUserAgent(userAgent))
+            {
+                suspiciousActivity.SuspiciousUserAgentCount++;
+                if (suspiciousActivity.SuspiciousUserAgentCount > 3)
+                {
+                    block = (TimeSpan.FromMinutes(15), "Suspicious user agent detected");
+                }
+            }
+
+            suspiciousActivity.LastRequestTime = now;
         }
 
-        suspiciousActivity.LastRequestTime = now;
+        if (block.Duration > TimeSpan.Zero)
+        {
+            BlockClient(clientId, block.Duration, block.Reason);
+        }
     }
 
     private bool IsSuspiciousUserAgent(string userAgent)

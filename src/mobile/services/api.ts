@@ -6,6 +6,7 @@ import { Platform } from 'react-native';
 // authService here: it imports this module.
 import secureStorageService from './secureStorageService';
 import biometricAuthService from './biometricAuthService';
+import { toImageUrls } from './imageUrls';
 
 // API URL: set EXPO_PUBLIC_API_URL (e.g. https://api.example.com/api) for any deployed build.
 // Without it, fall back to the local Docker API (Android emulator reaches the host via 10.0.2.2).
@@ -419,6 +420,7 @@ export const normalizeNeed = (n: Raw): Need => {
   if (!n || typeof n !== 'object') return n as Need;
   return {
     ...n,
+    images: toImageUrls(n.images),
     category: n.category ?? (n.categoryName
       ? { id: n.categoryId, name: n.categoryName, nameTr: n.categoryName }
       : undefined),
@@ -441,6 +443,7 @@ export const normalizeOffer = (o: Raw): Offer => {
     : undefined);
   return {
     ...o,
+    images: toImageUrls(o.images),
     need: o.need ? normalizeNeed(o.need) : (o.needId ? { id: o.needId, title: o.needTitle } : undefined),
     provider,
     user: o.user ?? provider,
