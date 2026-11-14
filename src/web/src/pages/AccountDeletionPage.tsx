@@ -61,7 +61,6 @@ const AccountDeletionPage: React.FC = () => (
         boyunca saklanır ve süre sonunda imha edilir:
       </p>
       <ul>
-        <li>Güvenli ödeme ve fatura kayıtları: ticaret ve vergi mevzuatı gereği 10 yıla kadar,</li>
         <li>Erişim (log) kayıtları: 5651 sayılı Kanun kapsamında mevzuatta öngörülen süre boyunca.</li>
       </ul>
       <p>

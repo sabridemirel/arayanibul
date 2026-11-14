@@ -50,13 +50,8 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
           bu sağlayıcıların ilettiği kullanıcı kimliği.
         </li>
         <li>
-          <strong>İşlem bilgileri:</strong> güvenli ödeme işlemlerinin tutarı, durumu ve tarihi.
-          Kart bilgileriniz Arayanibul tarafından saklanmaz; doğrudan lisanslı ödeme kuruluşu
-          tarafından işlenir.
-        </li>
-        <li>
-          <strong>Cihaz ve kullanım bilgileri:</strong> IP adresi, cihaz ve tarayıcı türü, anlık
-          bildirim (push) anahtarı, erişim kayıtları ve hata kayıtları.
+          <strong>Cihaz ve kullanım bilgileri:</strong> IP adresi, cihaz ve tarayıcı türü, erişim
+          kayıtları ve hata kayıtları.
         </li>
       </ul>
     </LegalSection>
@@ -65,7 +60,6 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
       <ul>
         <li>Üyelik hesabınızın oluşturulması, kimliğinizin doğrulanması ve hesabınızın yönetimi,</li>
         <li>İlan verme, teklif verme, mesajlaşma ve değerlendirme hizmetlerinin sunulması,</li>
-        <li>Güvenli ödeme sürecinin yürütülmesi, ödemenin emanette tutulması, satıcıya aktarılması veya iade edilmesi,</li>
         <li>Yeni teklif, mesaj ve ilan durumu gibi konularda bildirim gönderilmesi,</li>
         <li>Şifre sıfırlama gibi hesap güvenliği işlemlerinin yürütülmesi,</li>
         <li>Dolandırıcılık, kötüye kullanım ve kural ihlallerinin önlenmesi, platform güvenliğinin sağlanması,</li>
@@ -80,7 +74,7 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
       <ul>
         <li>
           <strong>Sözleşmenin kurulması ve ifası (md.5/2-c):</strong> üyelik, ilan, teklif,
-          mesajlaşma ve güvenli ödeme hizmetlerinin sunulması.
+          mesajlaşma ve değerlendirme hizmetlerinin sunulması.
         </li>
         <li>
           <strong>Hukuki yükümlülüğün yerine getirilmesi (md.5/2-ç):</strong> 5651 sayılı Kanun
@@ -112,10 +106,8 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
         </li>
         <li>
           <strong>Hizmet sağlayıcılar:</strong> barındırma hizmeti (<LegalValue k="hostingProvider" />),
-          e-posta gönderim hizmeti (<LegalValue k="emailProvider" />), ödeme hizmeti
-          (<LegalValue k="paymentProvider" />), anlık bildirim hizmetleri (Google Firebase Cloud
-          Messaging, Apple Push Notification Service) ve sosyal giriş sağlayıcıları (Google,
-          Facebook, Apple).
+          e-posta gönderim hizmeti (<LegalValue k="emailProvider" />) ve sosyal giriş
+          sağlayıcıları (Google, Facebook, Apple).
         </li>
         <li>
           <strong>Yetkili kamu kurum ve kuruluşları:</strong> mevzuatın gerektirdiği hâllerde ve
@@ -126,7 +118,7 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
 
     <LegalSection nested={nested} title="6. Yurt Dışına Aktarım">
       <p>
-        Barındırma, e-posta gönderimi, anlık bildirim ve sosyal giriş hizmetlerini sağlayan
+        Barındırma, e-posta gönderimi ve sosyal giriş hizmetlerini sağlayan
         şirketlerin bir kısmının sunucuları yurt dışında (<LegalValue k="hostingCountry" /> ve
         diğer ülkeler) bulunmaktadır. Bu aktarımlar KVKK md.9 uyarınca; yeterlilik kararı
         bulunması hâlinde bu karara dayanılarak, bulunmaması hâlinde ise Kişisel Verileri Koruma
@@ -138,7 +130,7 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
     <LegalSection nested={nested} title="7. Toplama Yöntemi">
       <p>
         Kişisel verileriniz; web sitesi ve mobil uygulama üzerindeki formlar, Google, Facebook veya
-        Apple ile giriş, mesajlaşma ekranları, ödeme altyapısı ve çerezler ile benzeri teknolojiler
+        Apple ile giriş, mesajlaşma ekranları ve çerezler ile benzeri teknolojiler
         aracılığıyla elektronik ortamda, otomatik veya kısmen otomatik yollarla toplanır.
       </p>
     </LegalSection>
@@ -147,8 +139,7 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
       <p>
         Kişisel verileriniz, işleme amacının gerektirdiği süre boyunca ve hesabınız açık kaldığı
         sürece saklanır. Hesabınızı sildiğinizde verileriniz silinir veya anonim hâle getirilir.
-        Ancak mevzuat gereği tutulması zorunlu kayıtlar (örneğin ödeme ve fatura kayıtları için
-        10 yıla kadar, 5651 sayılı Kanun kapsamındaki erişim kayıtları için mevzuatta öngörülen
+        Ancak mevzuat gereği tutulması zorunlu kayıtlar (örneğin 5651 sayılı Kanun kapsamındaki erişim kayıtları için mevzuatta öngörülen
         süre) bu süreler boyunca saklanır ve süre sonunda imha edilir. Misafir hesaplar belirli
         bir süre kullanılmadığında otomatik olarak silinir.
       </p>

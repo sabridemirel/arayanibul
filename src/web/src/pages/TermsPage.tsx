@@ -23,7 +23,7 @@ const TermsPage: React.FC = () => (
       <p>
         Arayanibul bir ters ilan platformudur: alıcılar ("arayan") ihtiyaç duydukları ürün veya
         hizmeti ilan eder, satıcılar bu ilanlara teklif verir. Arayan kullanıcı tekliflerden
-        birini kabul edebilir, satıcıyla mesajlaşabilir ve güvenli ödeme ile ödeme yapabilir.
+        birini kabul edebilir ve satıcıyla mesajlaşabilir.
       </p>
       <p>
         Arayanibul, kullanıcılar arasındaki alışverişin tarafı değildir; yalnızca tarafları bir
@@ -63,13 +63,12 @@ const TermsPage: React.FC = () => (
       </p>
     </LegalSection>
 
-    <LegalSection title="4. Güvenli Ödeme">
+    <LegalSection title="4. Ödemeler">
       <p>
-        Güvenli ödeme ile yapılan ödemeler, lisanslı ödeme kuruluşu{' '}
-        (<LegalValue k="paymentProvider" />) aracılığıyla alınır ve işlem tamamlanana kadar
-        emanette tutulur. Arayan kullanıcı ürünü veya hizmeti teslim aldığını onayladığında ödeme
-        satıcıya aktarılır. Uyuşmazlık veya iptal hâlinde ödeme, ilgili kurallar çerçevesinde
-        iade edilebilir. Platform dışında yapılan ödemelerden Arayanibul sorumlu değildir.
+        Arayanibul şu anda platform üzerinden ödeme almamaktadır. Ürün veya hizmetin bedeli,
+        alıcı ile satıcı arasında doğrudan ödenir; Arayanibul bu ödemelerin tarafı değildir ve
+        bunlardan doğan uyuşmazlıklardan sorumlu tutulamaz. Platform üzerinden ödeme hizmeti
+        sunulmaya başlanırsa bu koşullar güncellenir ve kullanıcılara bildirilir.
       </p>
     </LegalSection>
 

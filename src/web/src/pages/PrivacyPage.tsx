@@ -35,12 +35,8 @@ const PrivacyPage: React.FC = () => (
           değerlendirmeler.
         </li>
         <li>
-          <strong>Ödeme bilgileri:</strong> güvenli ödeme işlemlerinin tutarı ve durumu. Kart
-          bilgileriniz bizim sunucularımızda saklanmaz; lisanslı ödeme kuruluşu tarafından işlenir.
-        </li>
-        <li>
-          <strong>Teknik bilgiler:</strong> IP adresi, cihaz ve tarayıcı bilgisi, anlık bildirim
-          anahtarı, erişim ve hata kayıtları.
+          <strong>Teknik bilgiler:</strong> IP adresi, cihaz ve tarayıcı bilgisi, erişim ve hata
+          kayıtları.
         </li>
       </ul>
     </LegalSection>
@@ -50,7 +46,6 @@ const PrivacyPage: React.FC = () => (
         <li>Hesabınızı oluşturmak ve güvenle giriş yapmanızı sağlamak,</li>
         <li>İlanlarınızı yayınlamak, teklifleri size ve satıcılara iletmek,</li>
         <li>Alıcı ile satıcı arasında mesajlaşmayı sağlamak,</li>
-        <li>Güvenli ödeme sürecini yürütmek ve ödemenizi işlem tamamlanana kadar emanette tutmak,</li>
         <li>Yeni teklif ve mesajlar için bildirim göndermek,</li>
         <li>Dolandırıcılığı ve kötüye kullanımı önlemek,</li>
         <li>Yasal yükümlülüklerimizi yerine getirmek.</li>
@@ -84,7 +79,7 @@ const PrivacyPage: React.FC = () => (
         silebilirsiniz; ayrıntılar için{' '}
         <Link to="/account-deletion" className={linkClass}>Hesap Silme</Link> sayfasına bakın.
         Hesap silindiğinde verileriniz silinir veya anonim hâle getirilir; yalnızca mevzuat
-        gereği saklanması zorunlu kayıtlar (ödeme kayıtları, erişim kayıtları gibi) yasal süre
+        gereği saklanması zorunlu kayıtlar (erişim kayıtları gibi) yasal süre
         boyunca tutulur.
       </p>
     </LegalSection>

@@ -26,11 +26,11 @@ export const LEGAL = {
   /** Metinlerin yürürlük / son güncelleme tarihi (ör. 1 Aralık 2026) */
   effectiveDate: '[YÜRÜRLÜK TARİHİ]',
   /** Sunucu / veritabanı barındırma hizmet sağlayıcısı */
-  hostingProvider: '[BARINDIRMA HİZMET SAĞLAYICISI]',
+  hostingProvider: 'Hetzner Online GmbH',
   /** Sunucuların bulunduğu ülke */
-  hostingCountry: '[SUNUCU ÜLKESİ]',
+  hostingCountry: 'Almanya',
   /** İşlemsel e-posta (şifre sıfırlama vb.) gönderim sağlayıcısı */
-  emailProvider: '[E-POSTA HİZMET SAĞLAYICISI]',
+  emailProvider: 'Brevo (Sendinblue SAS)',
   /** Güvenli ödeme altyapısını sağlayan lisanslı ödeme kuruluşu */
   paymentProvider: '[ÖDEME HİZMET SAĞLAYICISI]',
   /** Uyuşmazlıklarda yetkili mahkeme ve icra daireleri */
