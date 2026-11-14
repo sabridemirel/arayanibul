@@ -17,3 +17,13 @@
 		header_up X-Forwarded-For {client_ip}
 	}
 }
+
+# Web app (static SPA built with VITE_API_URL=https://{$API_DOMAIN}/api)
+{$WEB_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy web:80
+}
+
+www.{$WEB_DOMAIN} {
+	redir https://{$WEB_DOMAIN}{uri} permanent
+}

@@ -3,10 +3,9 @@
 Mimari:
 
 ```
-Kullanıcı ──► Cloudflare (DNS, HTTPS, CDN)
-               ├── arayanibul.com      → Cloudflare Pages (web, statik)
-               └── api.arayanibul.com  → Hetzner sunucu
-                                          └── Caddy (HTTPS) → API (.NET) → PostgreSQL
+Kullanıcı ──► Hetzner sunucu ── Caddy (HTTPS, Let's Encrypt)
+                                 ├── arayanibul.com      → web (nginx, statik SPA)
+                                 └── api.arayanibul.com  → API (.NET) → PostgreSQL
 ```
 
 Mobil uygulamalar API'ye **alan adıyla** (`https://api.<alan-adı>/api`) bağlanır; sunucu değişse bile
@@ -88,24 +87,17 @@ kayıt olup yönetici olamasın diye):
 
 Bu yüzden SMTP (e-posta) ayarları yönetici hesabı açılmadan önce yapılmış olmalı.
 
-## 4. Web (Cloudflare Pages)
+## 4. Web
 
-Cloudflare → Workers & Pages → **Create → Pages → Connect to Git** → repoyu seçin:
+Web uygulaması aynı sunucuda, `web` servisi (nginx) olarak çalışır ve Caddy üzerinden
+`https://<WEB_DOMAIN>` adresinde yayınlanır (`www.` kalıcı olarak köke yönlenir). Derleme sırasında
+`VITE_API_URL=https://<API_DOMAIN>/api` kullanılır; `docker compose ... up -d --build` web'i de derler.
 
-| Ayar | Değer |
-|---|---|
-| Production branch | `main` |
-| Root directory | `src/web` |
-| Build command | `npm ci && npm run build` |
-| Build output | `dist` |
-| Environment variables | `VITE_API_URL=https://api.<alan-adı>/api`, `NODE_VERSION=22` |
+DNS: kök (`@`) ve `www` için A kaydı → sunucu IP'si.
 
-Sonra **Custom domains** → `<alan-adı>` ve `www.<alan-adı>` ekleyin. `main`'e her push'ta web
-otomatik yayınlanır. (SPA yönlendirmesi ve güvenlik başlıkları `src/web/public/_redirects` ve
-`_headers` dosyalarında.)
-
-> Not: `.github/workflows/deploy-web.yml` eski S3/CloudFront dağıtımıdır; Pages'e geçince
-> silinebilir veya devre dışı bırakılabilir.
+> İleride CDN istenirse web Cloudflare Pages'e alınabilir (`src/web/public/_redirects` ve `_headers` hazır);
+> o durumda kök alan adının DNS'i Cloudflare'e taşınmalıdır.
+> `.github/workflows/deploy-web.yml` eski S3/CloudFront dağıtımıdır ve yalnızca elle çalışır.
 
 ## 5. Yedekleme
 
