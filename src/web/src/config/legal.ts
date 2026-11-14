@@ -7,34 +7,24 @@
  * metinlerin tamamı bir hukukçu tarafından gözden geçirilmelidir.
  */
 export const LEGAL = {
-  /** Veri sorumlusu / hizmet sağlayıcı şirketin tam ticari unvanı */
-  companyName: '[ŞİRKET UNVANI]',
-  /** Şirketin tebligata elverişli açık adresi */
-  address: '[ADRES]',
-  /** MERSİS numarası */
-  mersisNo: '[MERSİS NO]',
-  /** Vergi dairesi ve vergi numarası */
-  taxInfo: '[VERGİ DAİRESİ / VERGİ NO]',
-  /** Kayıtlı elektronik posta (KEP) adresi */
-  kepAddress: '[KEP ADRESİ]',
+  /** Veri sorumlusu / hizmet sağlayıcı (gerçek kişi) */
+  companyName: 'Sabri Demirel',
+  /** Tebligata elverişli açık adres */
+  address: 'Yenişehir Mah. Osmanlı Bulvarı No:4A D.53 Pendik/İstanbul',
   /** KVKK başvurularının iletileceği e-posta adresi */
-  kvkkEmail: '[KVKK BAŞVURU E-POSTASI]',
+  kvkkEmail: 'destek@arayanibul.com',
   /** Genel destek / iletişim e-posta adresi */
-  supportEmail: '[DESTEK E-POSTASI]',
-  /** Müşteri hizmetleri telefonu (yoksa iletişim sayfasından kaldırılabilir) */
-  phone: '[TELEFON]',
+  supportEmail: 'destek@arayanibul.com',
   /** Metinlerin yürürlük / son güncelleme tarihi (ör. 1 Aralık 2026) */
-  effectiveDate: '[YÜRÜRLÜK TARİHİ]',
+  effectiveDate: '14 Kasım 2026',
   /** Sunucu / veritabanı barındırma hizmet sağlayıcısı */
   hostingProvider: 'Hetzner Online GmbH',
   /** Sunucuların bulunduğu ülke */
   hostingCountry: 'Almanya',
   /** İşlemsel e-posta (şifre sıfırlama vb.) gönderim sağlayıcısı */
   emailProvider: 'Brevo (Sendinblue SAS)',
-  /** Güvenli ödeme altyapısını sağlayan lisanslı ödeme kuruluşu */
-  paymentProvider: '[ÖDEME HİZMET SAĞLAYICISI]',
   /** Uyuşmazlıklarda yetkili mahkeme ve icra daireleri */
-  jurisdiction: '[YETKİLİ MAHKEME VE İCRA DAİRELERİ]',
+  jurisdiction: 'İstanbul Anadolu Mahkemeleri ve İcra Daireleri',
 } as const;
 
 export type LegalKey = keyof typeof LEGAL;

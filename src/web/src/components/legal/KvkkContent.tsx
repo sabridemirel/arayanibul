@@ -20,8 +20,6 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
       </p>
       <ul>
         <li>Adres: <LegalValue k="address" /></li>
-        <li>MERSİS No: <LegalValue k="mersisNo" /></li>
-        <li>KEP adresi: <LegalValue k="kepAddress" /></li>
         <li>KVKK başvuru e-postası: <LegalEmail k="kvkkEmail" subject="KVKK Başvurusu" /></li>
       </ul>
     </LegalSection>
@@ -170,9 +168,6 @@ const KvkkContent: React.FC<KvkkContentProps> = ({ nested = false }) => (
         <li>
           Arayanibul'a kayıtlı e-posta adresinizden <LegalEmail k="kvkkEmail" subject="KVKK Başvurusu" />{' '}
           adresine e-posta göndererek,
-        </li>
-        <li>
-          <LegalValue k="kepAddress" /> adresine güvenli elektronik imzalı olarak KEP ile,
         </li>
         <li>
           Islak imzalı dilekçe ile <LegalValue k="address" /> adresine şahsen veya noter aracılığıyla

@@ -142,10 +142,8 @@ const TermsPage: React.FC = () => (
 
     <LegalSection title="13. İletişim">
       <ul>
-        <li>Unvan: <LegalValue k="companyName" /></li>
+        <li>Hizmet sağlayıcı: <LegalValue k="companyName" /></li>
         <li>Adres: <LegalValue k="address" /></li>
-        <li>MERSİS No: <LegalValue k="mersisNo" /></li>
-        <li>Vergi bilgileri: <LegalValue k="taxInfo" /></li>
         <li>E-posta: <LegalEmail k="supportEmail" /></li>
       </ul>
     </LegalSection>

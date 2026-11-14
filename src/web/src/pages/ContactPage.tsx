@@ -63,12 +63,9 @@ const ContactPage: React.FC = () => {
         <div className="flex items-start gap-4 p-4 rounded-lg bg-background border border-border">
           <BuildingOfficeIcon className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
           <div className="text-sm text-text-secondary space-y-1">
-            <h2 className="font-semibold text-text text-base mb-1">Şirket Bilgileri</h2>
+            <h2 className="font-semibold text-text text-base mb-1">Hizmet Sağlayıcı</h2>
             <p><LegalValue k="companyName" /></p>
             <p>Adres: <LegalValue k="address" /></p>
-            <p>Telefon: <LegalValue k="phone" /></p>
-            <p>MERSİS No: <LegalValue k="mersisNo" /></p>
-            <p>KEP: <LegalValue k="kepAddress" /></p>
           </div>
         </div>
       </div>
