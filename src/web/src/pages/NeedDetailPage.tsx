@@ -349,8 +349,9 @@ const NeedDetailPage: React.FC = () => {
   const hasActiveOffer = !!myOffer && (myOffer.status === 'Pending' || myOffer.status === 'Accepted');
   const canCreateOffer = isAuthenticated && !isGuest && user && need && user.id !== need.userId && need.status === 'Active' && !hasActiveOffer;
 
+  const needOwnerId = need?.userId;
   useEffect(() => {
-    if (!needId || !isAuthenticated || isGuest || !need || isOwner) {
+    if (!needId || !isAuthenticated || isGuest || !needOwnerId || isOwner) {
       setMyOffer(null);
       return;
     }
@@ -359,7 +360,7 @@ const NeedDetailPage: React.FC = () => {
       .then(offer => { if (!cancelled) setMyOffer(offer); })
       .catch(() => { if (!cancelled) setMyOffer(null); });
     return () => { cancelled = true; };
-  }, [needId, isAuthenticated, isGuest, need, isOwner]);
+  }, [needId, isAuthenticated, isGuest, needOwnerId, isOwner]);
 
   const loadNeedDetail = useCallback(async () => {
     if (!needId) {

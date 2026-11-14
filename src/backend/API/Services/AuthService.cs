@@ -285,12 +285,18 @@ public class AuthService : IAuthService
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var refreshTokenExpiryDays = int.Parse(jwtSettings["RefreshTokenExpiryInDays"] ?? "30");
         
-        // Revoke existing active refresh tokens for the user
-        var existingTokens = await _context.RefreshTokens
+        // Each device keeps its own session: a refresh only revokes the token it used (see
+        // RefreshTokenAsync). Revoking every other active token here signed the user out of
+        // their other devices (phone + web) on each login or 15-minute refresh. Cap the number
+        // of concurrent sessions instead, dropping the oldest.
+        const int maxActiveSessions = 10;
+        var oldTokens = await _context.RefreshTokens
             .Where(rt => rt.UserId == user.Id && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow)
+            .OrderByDescending(rt => rt.CreatedAt)
+            .Skip(maxActiveSessions - 1)
             .ToListAsync();
-        
-        foreach (var token in existingTokens)
+
+        foreach (var token in oldTokens)
         {
             token.IsRevoked = true;
         }
