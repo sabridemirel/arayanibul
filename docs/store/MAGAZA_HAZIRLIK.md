@@ -33,7 +33,7 @@ kontrol listesini içerir. Karakter sınırları parantez içinde verilmiştir.
 
 **Ad (30):** ArayanıBUL
 
-**Alt başlık (30):** İhtiyacını yaz, teklifler gelsin
+**Alt başlık (30):** İhtiyacını yaz, teklif al
 
 **Tanıtım metni (170):**
 Aradığınızı yazın, satıcılar size teklif göndersin. Teklifleri karşılaştırın, satıcıyla
@@ -172,11 +172,12 @@ en az 12 test kullanıcısıyla 14 gün kapalı test şartı vardır), sonra **�
 
 ## Yayın öncesi kontrol listesi
 
-- [ ] Yasal sayfalardaki şirket bilgileri dolduruldu ve canlıya alındı
-- [ ] App Store Connect'te uygulama kaydı açıldı (Apple ID numarası EAS'a eklendi)
-- [ ] iOS derlemesi TestFlight'a yüklendi ve gerçek iPhone'da denendi
-- [ ] Demo inceleme hesabı oluşturuldu (onaylı ilanı ve teklifi var)
-- [ ] App Privacy formu ve yaş derecelendirmesi dolduruldu
-- [ ] Ekran görüntüleri yüklendi
+- [x] Yasal sayfalar dolduruldu ve canlıya alındı (şahıs: Sabri Demirel, destek@arayanibul.com)
+- [x] App Store Connect uygulama kaydı (Apple ID 6834834670), yalnızca Türkiye, ücretsiz
+- [x] iOS derlemesi TestFlight'ta (1.0.0 / 3) — gerçek iPhone'da henüz denenmedi
+- [x] Demo inceleme hesapları: inceleme@ / inceleme.satici@arayanibul.com (şifre: ~/.appstoreconnect/review-accounts.txt); örnek ilan #5 + teklif
+- [x] App Privacy formu ve yaş derecelendirmesi dolduruldu
+- [x] Ekran görüntüleri yüklendi
+- [x] 14 Kasım 2026: incelemeye gönderildi (onaylanınca otomatik yayın)
 - [ ] Play Console hesabı onaylandı; Android derlemesi dahili teste yüklendi
 - [ ] Sohbette paylaşılan anahtarlar (Hetzner, GitHub, Brevo) yenilendi
