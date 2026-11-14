@@ -1,4 +1,5 @@
 import { registerRootComponent } from 'expo';
+import './utils/turkishAlertDefaults';
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
