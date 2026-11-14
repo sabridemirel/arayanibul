@@ -182,3 +182,9 @@ en az 12 test kullanıcısıyla 14 gün kapalı test şartı vardır), sonra **�
 - [x] 14 Kasım 2026: Apple onayladı, 1.0.0 yayında — https://apps.apple.com/app/id6834834670
 - [ ] Play Console hesabı onaylandı; Android derlemesi dahili teste yüklendi
 - [ ] Sohbette paylaşılan anahtarlar (Hetzner, GitHub, Brevo) yenilendi
+
+## Sonraki toplu güncelleme (1.0.1) için
+
+- [x] iOS dil etiketi: `CFBundleDevelopmentRegion: 'tr'` + `CFBundleLocalizations: ['tr']` eklendi (mağazada "EN" görünüyordu; yeni derlemeyle düzelir)
+- [ ] `app.config.ts` içinde `version` 1.0.1 yapılacak
+- [ ] İsteğe bağlı: birincil kategori (şu an Alışveriş) yeniden değerlendirilecek

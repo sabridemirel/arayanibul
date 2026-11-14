@@ -89,6 +89,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       NSPhotoLibraryUsageDescription: 'İlanlarınıza fotoğraf eklemek için fotoğraf arşivinize erişim gerekiyor.',
       NSLocationWhenInUseUsageDescription: 'Yakınınızdaki ilanları gösterebilmek için konumunuz kullanılır.',
       ITSAppUsesNonExemptEncryption: false,
+      // App Store "Dil" bilgisi buradan okunur; uygulama yalnızca Türkçe.
+      CFBundleDevelopmentRegion: 'tr',
+      CFBundleLocalizations: ['tr'],
     },
   },
   android: {
