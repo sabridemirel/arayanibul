@@ -204,8 +204,10 @@ public class RateLimitingMiddleware
 
     private bool IsSuspiciousUserAgent(string userAgent)
     {
+        // No User-Agent is normal for native apps: the iOS app's SignalR (chat) connection sends
+        // none, and blocking on it locked whole IPs out for 15 minutes.
         if (string.IsNullOrWhiteSpace(userAgent))
-            return true;
+            return false;
 
         var suspiciousPatterns = new[]
         {

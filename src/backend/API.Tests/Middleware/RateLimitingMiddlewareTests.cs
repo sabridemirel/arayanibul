@@ -38,3 +38,32 @@ public class RateLimitingMiddlewareTests
         await act.Should().NotThrowAsync();
     }
 }
+
+public class RateLimitingUserAgentTests
+{
+    // Regression: the iOS app's SignalR connection sends no User-Agent. Treating that as a bot
+    // blocked the whole IP for 15 minutes after a few requests (every iPhone user on chat).
+    [Fact]
+    public async Task RequestsWithoutUserAgent_AreNotBlocked()
+    {
+        var middleware = new RateLimitingMiddleware(
+            _ => Task.CompletedTask,
+            NullLogger<RateLimitingMiddleware>.Instance,
+            new RateLimitOptions { DefaultRequestLimit = 1000, DefaultTimeWindow = TimeSpan.FromMinutes(1) });
+        var ip = IPAddress.Parse($"10.{Random.Shared.Next(255)}.{Random.Shared.Next(255)}.{Random.Shared.Next(1, 255)}");
+
+        var statuses = new List<int>();
+        for (var i = 0; i < 10; i++)
+        {
+            var context = new DefaultHttpContext();
+            context.Connection.RemoteIpAddress = ip;
+            context.Request.Method = "GET";
+            context.Request.Path = "/chathub/negotiate";
+            context.Response.Body = new MemoryStream();
+            await middleware.InvokeAsync(context);
+            statuses.Add(context.Response.StatusCode);
+        }
+
+        statuses.Should().AllSatisfy(s => s.Should().Be(StatusCodes.Status200OK));
+    }
+}

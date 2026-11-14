@@ -300,7 +300,7 @@ public class SecurityMonitoringMiddleware
 
         // Check for suspicious User-Agent
         var userAgent = headers["User-Agent"].ToString();
-        if (string.IsNullOrEmpty(userAgent) || IsSuspiciousUserAgent(userAgent))
+        if (!string.IsNullOrEmpty(userAgent) && IsSuspiciousUserAgent(userAgent))
         {
             threats.Add("Suspicious User-Agent");
         }
