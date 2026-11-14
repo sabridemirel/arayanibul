@@ -34,6 +34,14 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6834834670",
+        "appleTeamId": "WXMTCABZ3P",
+        "ascApiKeyPath": "/Users/sabri/.appstoreconnect/AuthKey_9TBGGVB29Q.p8",
+        "ascApiKeyId": "9TBGGVB29Q",
+        "ascApiKeyIssuerId": "d10547d1-48ef-4e5b-91a9-c673ff33344e"
+      }
+    }
   }
 }
