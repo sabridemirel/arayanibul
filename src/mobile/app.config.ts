@@ -65,7 +65,7 @@ if (FACEBOOK_APP_ID && FACEBOOK_CLIENT_TOKEN) {
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Arayanibul',
+  name: 'ArayanıBUL',
   slug: 'arayanibul',
   owner: 'sabridemirel',
   version: '1.0.0',
