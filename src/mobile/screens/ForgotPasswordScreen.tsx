@@ -70,7 +70,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <View style={styles.iconCircle}>
-              <MaterialIcons name={sentMessage ? 'mark-email-read' : 'lock-reset'} size={36} color="#007bff" />
+              <MaterialIcons name={sentMessage ? 'mark-email-read' : 'lock-reset'} size={36} color="#7B2CBF" />
             </View>
             <Text style={styles.title}>Şifremi Unuttum</Text>
             <Text style={styles.subtitle}>

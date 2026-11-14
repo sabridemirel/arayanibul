@@ -210,8 +210,8 @@ export const ReviewHistoryScreen: React.FC = () => {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={['#007AFF']}
-              tintColor="#007AFF"
+              colors={['#7B2CBF']}
+              tintColor="#7B2CBF"
             />
           }
           ListEmptyComponent={renderEmptyState}
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTabButton: {
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#7B2CBF',
   },
   tabButtonText: {
     fontSize: 16,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   activeTabButtonText: {
-    color: '#007AFF',
+    color: '#7B2CBF',
     fontWeight: '600',
   },
   listContainer: {

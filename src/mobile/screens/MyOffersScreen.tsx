@@ -22,6 +22,7 @@ import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
+import MascotEmptyState from '../components/brand/MascotEmptyState';
 
 type MyOffersScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MyOffers'>;
 
@@ -367,25 +368,19 @@ const MyOffersScreen: React.FC = () => {
           }
         >
           {filteredOffers.length === 0 ? (
-            <Card style={styles.emptyCard}>
-              <MaterialIcons name="local-offer" size={48} color={colors.textSecondary} />
-              <Text style={styles.emptyTitle}>
-                {selectedFilter === 'all' ? 'Henüz teklif yok' : `${filterOptions.find(f => f.key === selectedFilter)?.label} teklif yok`}
-              </Text>
-              <Text style={styles.emptyDescription}>
-                {selectedFilter === 'all' 
-                  ? 'Henüz hiç teklif vermediniz. İhtiyaçlara göz atın ve teklif verin.'
-                  : 'Bu durumda teklif bulunmuyor.'
-                }
-              </Text>
-              {selectedFilter === 'all' && (
-                <Button
-                  title="İhtiyaçlara Göz At"
-                  onPress={() => navigation.navigate('Home')}
-                  style={styles.emptyButton}
-                />
-              )}
-            </Card>
+            selectedFilter === 'all' ? (
+              <MascotEmptyState
+                title="Henüz teklif vermediniz"
+                message="İlanlara göz atın; aradığınız ürün ya da hizmet sizdeyse teklif verin."
+                actionTitle="İlanlara Göz At"
+                onAction={() => navigation.navigate('Home')}
+              />
+            ) : (
+              <MascotEmptyState
+                title={`${filterOptions.find(f => f.key === selectedFilter)?.label} teklif yok`}
+                message="Bu durumda teklifiniz bulunmuyor."
+              />
+            )
           ) : (
             <>
               <View style={styles.statsContainer}>

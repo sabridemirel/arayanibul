@@ -21,7 +21,8 @@ import { Need, Category, NeedFilters } from '../types';
 import NeedCard from '../src/components/NeedCard';
 import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
-import Header from '../components/ui/Header';
+import BrandHeader from '../components/brand/BrandHeader';
+import MascotEmptyState from '../components/brand/MascotEmptyState';
 import AuthPromptModal from '../components/ui/AuthPromptModal';
 import ConversionBanner from '../components/ui/ConversionBanner';
 import GuestWelcomeCard from '../components/ui/GuestWelcomeCard';
@@ -203,10 +204,6 @@ const HomeScreen: React.FC = () => {
     });
   };
 
-  const handleSearchPress = () => {
-    navigation.navigate('Search');
-  };
-
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'Urgent':
@@ -277,27 +274,6 @@ const HomeScreen: React.FC = () => {
     return count;
   };
 
-  const renderFilterButton = () => {
-    const activeCount = getActiveFilterCount();
-
-    return (
-      <TouchableOpacity
-        onPress={() => setShowFilters(!showFilters)}
-        style={styles.filterButton}
-        accessibilityRole="button"
-        accessibilityLabel={activeCount > 0 ? `Filtreler (${activeCount} aktif filtre)` : 'Filtreler'}
-        accessibilityHint="Filtreleme seçeneklerini açmak için dokunun"
-      >
-        <MaterialIcons name="filter-list" size={24} color={colors.primaryDark} />
-        {activeCount > 0 && (
-          <View style={styles.filterBadge} accessible={false}>
-            <Text style={styles.filterBadgeText} accessible={false}>{activeCount}</Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
   const renderAuthButton = () => {
     if (user?.isGuest) {
       return (
@@ -308,7 +284,7 @@ const HomeScreen: React.FC = () => {
           accessibilityLabel="Giriş Yap"
           accessibilityHint="Giriş yapmak veya kayıt olmak için dokunun"
         >
-          <MaterialIcons name="login" size={24} color={colors.primaryDark} />
+          <MaterialIcons name="login" size={24} color="#ffffff" />
         </TouchableOpacity>
       );
     } else {
@@ -320,7 +296,7 @@ const HomeScreen: React.FC = () => {
           accessibilityLabel="Profil"
           accessibilityHint="Profil sayfanıza gitmek için dokunun"
         >
-          <MaterialIcons name="account-circle" size={24} color={colors.primaryDark} />
+          <MaterialIcons name="account-circle" size={26} color="#ffffff" />
         </TouchableOpacity>
       );
     }
@@ -338,7 +314,7 @@ const HomeScreen: React.FC = () => {
         accessibilityLabel={unreadCount > 0 ? `Mesajlar, ${unreadCount} okunmamış` : 'Mesajlar'}
         accessibilityHint="Mesajlarınızı görmek için dokunun"
       >
-        <MaterialIcons name="chat-bubble-outline" size={24} color={colors.primaryDark} />
+        <MaterialIcons name="chat-bubble-outline" size={24} color="#ffffff" />
         {unreadCount > 0 && (
           <View style={styles.messagesBadge}>
             <Text style={styles.messagesBadgeText}>{badgeText}</Text>
@@ -350,7 +326,6 @@ const HomeScreen: React.FC = () => {
 
   const renderHeaderRightComponent = () => (
     <View style={styles.headerRightContainer}>
-      {renderFilterButton()}
       {renderMessagesButton()}
       {renderAuthButton()}
     </View>
@@ -420,50 +395,19 @@ const HomeScreen: React.FC = () => {
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <View style={styles.emptyIllustration}>
-        <LinearGradient
-          colors={[colors.primaryLight, colors.secondaryOrangeLight]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.emptyCircle}
-        >
-          <MaterialIcons
-            name={searchQuery ? "search-off" : "inventory-2"}
-            size={80}
-            color={colors.primary}
-          />
-        </LinearGradient>
-      </View>
-      <Text style={styles.emptyTitle} allowFontScaling={true}>
-        {searchQuery ? 'Sonuç Bulunamadı' : 'Henüz İhtiyaç Yok'}
-      </Text>
-      <Text style={styles.emptyDescription} allowFontScaling={true}>
-        {searchQuery
-          ? 'Arama kriterlerinizi değiştirerek tekrar deneyin.'
-          : 'İlk ihtiyacı siz paylaşın ve teklifler almaya başlayın!'}
-      </Text>
-      {!searchQuery && (
-        <LinearGradient
-          colors={[colors.primary, colors.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.emptyButton}
-        >
-          <TouchableOpacity
-            onPress={handleCreateNeed}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="İhtiyaç oluştur"
-            accessibilityHint="İlk ihtiyacınızı paylaşmak için dokunun"
-            style={styles.emptyButtonInner}
-          >
-            <MaterialIcons name="add-circle" size={20} color={colors.onPrimary} />
-            <Text style={styles.emptyButtonText} allowFontScaling={true} accessible={false}>İlan Ver</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      )}
-    </View>
+    searchQuery ? (
+      <MascotEmptyState
+        title="Sonuç bulunamadı"
+        message="Arama kriterlerinizi değiştirerek tekrar deneyin."
+      />
+    ) : (
+      <MascotEmptyState
+        title="Henüz ilan yok"
+        message="İlk ilanı siz verin; satıcılar size teklif göndersin."
+        actionTitle="İlan Ver"
+        onAction={handleCreateNeed}
+      />
+    )
   );
 
   const renderGuestContent = () => {
@@ -505,12 +449,7 @@ const HomeScreen: React.FC = () => {
   if (loading && !refreshing) {
     return (
       <View style={styles.container}>
-        <Header
-          title="İhtiyaçlar"
-          showSearch
-          onSearchPress={handleSearchPress}
-          rightComponent={renderHeaderRightComponent()}
-        />
+        <BrandHeader actions={renderHeaderRightComponent()} />
         <Loading text="İhtiyaçlar yükleniyor..." />
       </View>
     );
@@ -519,12 +458,7 @@ const HomeScreen: React.FC = () => {
   if (error) {
     return (
       <View style={styles.container}>
-        <Header
-          title="İhtiyaçlar"
-          showSearch
-          onSearchPress={handleSearchPress}
-          rightComponent={renderHeaderRightComponent()}
-        />
+        <BrandHeader actions={renderHeaderRightComponent()} />
         <ErrorMessage
           message={error}
           onRetry={() => loadNeeds()}
@@ -536,13 +470,9 @@ const HomeScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header
-        title="İhtiyaçlar"
-        showSearch
-        onSearchPress={handleSearchPress}
-        rightComponent={renderHeaderRightComponent()}
-      />
-      {renderSearchBar()}
+      <BrandHeader actions={renderHeaderRightComponent()}>
+        {renderSearchBar()}
+      </BrandHeader>
 
       <ResultsBar
         totalCount={totalCount}
@@ -576,7 +506,7 @@ const HomeScreen: React.FC = () => {
       />
 
       <LinearGradient
-        colors={[colors.primary, colors.primaryDark]}
+        colors={[colors.secondaryOrange, colors.secondaryOrangeDark]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.fab}
@@ -585,11 +515,11 @@ const HomeScreen: React.FC = () => {
           onPress={handleCreateNeed}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel="Yeni ihtiyaç oluştur"
-          accessibilityHint="Yeni bir ihtiyaç ilanı eklemek için dokunun"
+          accessibilityLabel="İlan Ver"
+          accessibilityHint="Yeni bir ihtiyaç ilanı vermek için dokunun"
           style={styles.fabInner}
         >
-          <MaterialIcons name="add" size={24} color={colors.onPrimary} />
+          <MaterialIcons name="add" size={30} color="#ffffff" />
         </TouchableOpacity>
       </LinearGradient>
 
@@ -698,9 +628,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   searchContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
+    // Sits inside the purple brand band
   },
   searchCard: {
     flexDirection: 'row',
@@ -819,11 +747,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: spacing.lg,
     right: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     elevation: 6,
-    shadowColor: '#000',
+    shadowColor: colors.secondaryOrangeDark,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

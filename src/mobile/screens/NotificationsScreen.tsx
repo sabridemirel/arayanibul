@@ -15,6 +15,7 @@ import { useNotifications, InAppNotification } from '../contexts/NotificationCon
 import { notificationAPI, NotificationItem } from '../services/api';
 import { NotificationData } from '../services/notificationService';
 import { Loading, ErrorMessage } from '../components/ui';
+import MascotEmptyState from '../components/brand/MascotEmptyState';
 
 interface NotificationsScreenProps {
   navigation: any;
@@ -291,15 +292,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <MaterialIcons name="notifications-none" size={64} color={theme.colors.textSecondary} />
-      <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>
-        Henüz bildiriminiz yok
-      </Text>
-      <Text style={[styles.emptyStateSubtext, { color: theme.colors.textSecondary }]}>
-        Yeni teklifler ve mesajlar burada görünecek
-      </Text>
-    </View>
+    <MascotEmptyState
+      title="Henüz bildiriminiz yok"
+      message="İlanlarınıza gelen teklifler ve yeni mesajlar burada görünür."
+    />
   );
 
   if (isLoading) {

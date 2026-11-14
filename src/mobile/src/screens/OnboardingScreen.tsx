@@ -92,27 +92,15 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation, onCompl
     { id: '2', component: OnboardingSlide2 },
   ];
 
-  const renderItem = ({ item, index }: { item: typeof slides[0]; index: number }) => {
-    const Component = item.component;
-
-    if (index === 0) {
-      return (
-        <View style={styles.slide}>
-          <Component onNext={handleNext} onSkip={handleSkip} />
-        </View>
-      );
-    } else {
-      return (
-        <View style={styles.slide}>
-          <Component
-            onGetStarted={handleGetStarted}
-            onBack={handleBack}
-            onSkip={handleSkip}
-          />
-        </View>
-      );
-    }
-  };
+  const renderItem = ({ index }: { item: typeof slides[0]; index: number }) => (
+    <View style={styles.slide}>
+      {index === 0 ? (
+        <OnboardingSlide1 onNext={handleNext} onSkip={handleSkip} />
+      ) : (
+        <OnboardingSlide2 onGetStarted={handleGetStarted} onBack={handleBack} onSkip={handleSkip} />
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -137,7 +125,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation, onCompl
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#7B2CBF',
   },
   slide: {
     width: SCREEN_WIDTH,

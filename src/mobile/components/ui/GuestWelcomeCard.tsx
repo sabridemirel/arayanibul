@@ -3,9 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
+  Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../../theme';
+import { fonts } from '../../theme/fonts';
 import Button from './Button';
 import Card from './Card';
 
@@ -22,7 +24,12 @@ const GuestWelcomeCard: React.FC<GuestWelcomeCardProps> = ({
     <Card style={styles.container}>
       <View style={styles.header}>
         <View style={styles.iconContainer}>
-          <MaterialIcons name="waving-hand" size={32} color={colors.primary} />
+          <Image
+            source={require('../../assets/images/mascot.png')}
+            style={styles.mascot}
+            resizeMode="contain"
+            accessible={false}
+          />
         </View>
         <Text style={styles.title}>Arayanibul'a Hoş Geldiniz!</Text>
       </View>
@@ -72,11 +79,23 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   iconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.secondaryOrange,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
     marginBottom: spacing.md,
   },
+  mascot: {
+    width: 72,
+    height: 90,
+    marginBottom: -10,
+  },
   title: {
+    fontFamily: fonts.display,
     fontSize: typography.h2.fontSize,
-    fontWeight: typography.h2.fontWeight as any,
     color: colors.text,
     textAlign: 'center',
   },

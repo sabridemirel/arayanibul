@@ -9,12 +9,15 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { fonts } from '../theme/fonts';
+import { useBrandStatusBar } from '../hooks/useBrandStatusBar';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { Button, Card, Loading, ErrorMessage, NotificationBadge, UserRatingDisplay } from '../components/ui';
-import { colors, spacing, borderRadius, typography } from '../theme';
+import { colors, spacing } from '../theme';
 import { User } from '../types';
 import { withProfileAuth } from '../hoc/withAuthPrompt';
 import { userAPI, UserStats } from '../services/api';
@@ -40,6 +43,8 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
   const { user: currentUser, logout, deleteAccount } = useAuth();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const { unreadCount } = useNotifications();
+  const insets = useSafeAreaInsets();
+  useBrandStatusBar();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,108 +153,148 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   };
 
-  const renderProfileImage = () => {
-    const imageSource = displayUser?.profileImageUrl
-      ? { uri: displayUser.profileImageUrl }
-      : require('../assets/images/icon.png'); // Default avatar
+  const initials = `${displayUser?.firstName?.[0] ?? ''}${displayUser?.lastName?.[0] ?? ''}`.toLocaleUpperCase('tr-TR') || '?';
 
-    return (
-      <View style={styles.profileImageContainer}>
-        <Image source={imageSource} style={styles.profileImage} />
-      </View>
-    );
-  };
+  const renderAvatar = () => (
+    <View style={styles.avatar}>
+      {displayUser?.profileImageUrl ? (
+        <Image source={{ uri: displayUser.profileImageUrl }} style={styles.avatarImage} />
+      ) : (
+        <Text style={styles.avatarInitials} accessible={false}>{initials}</Text>
+      )}
+    </View>
+  );
 
-  const renderUserInfo = () => {
+  const renderStat = (value: number | undefined, label: string, route: string) => (
+    <TouchableOpacity
+      style={styles.stat}
+      onPress={() => navigation.navigate(route)}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${value ?? 0} adet`}
+    >
+      <Text style={styles.statNumber}>{statsLoading || statsError ? '–' : value ?? 0}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+
+  const renderHero = () => {
     if (!displayUser) return null;
-
     return (
-      <View style={styles.userInfo}>
-        <Text style={styles.userName} allowFontScaling={true}>
-          {displayUser.firstName} {displayUser.lastName}
-        </Text>
-        <Text style={styles.userEmail} allowFontScaling={true}>{displayUser.email}</Text>
-        
-        {displayUser.rating !== undefined && (
-          <UserRatingDisplay
-            rating={displayUser.rating}
-            reviewCount={displayUser.reviewCount || 0}
-            size="large"
-            onPress={() => navigation.navigate('ReviewHistory', { userId: displayUser.id })}
-            style={styles.ratingContainer}
-          />
-        )}
-
-        {displayUser.isGuest && (
-          <View style={styles.guestBadge}>
-            <MaterialIcons name="person-outline" size={16} color={colors.textSecondary} />
-            <Text style={styles.guestText}>Misafir Kullanıcı</Text>
+      <LinearGradient colors={colors.primaryGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, { paddingTop: insets.top + spacing.xs }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleBackPress}
+          accessibilityRole="button"
+          accessibilityLabel="Geri git"
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+        </TouchableOpacity>
+        <View style={styles.heroBody}>
+          {renderAvatar()}
+          <Text style={styles.userName} accessibilityRole="header">
+            {displayUser.firstName} {displayUser.lastName}
+          </Text>
+          {isOwnProfile && displayUser.email ? <Text style={styles.userEmail}>{displayUser.email}</Text> : null}
+          {displayUser.rating !== undefined && displayUser.rating > 0 && (
+            <UserRatingDisplay
+              rating={displayUser.rating}
+              reviewCount={displayUser.reviewCount || 0}
+              size="large"
+              onPress={() => navigation.navigate('ReviewHistory', { userId: displayUser.id })}
+              style={styles.ratingContainer}
+            />
+          )}
+          {displayUser.isGuest && (
+            <View style={styles.guestBadge}>
+              <MaterialIcons name="person-outline" size={16} color="#ffffff" />
+              <Text style={styles.guestText}>Misafir Kullanıcı</Text>
+            </View>
+          )}
+        </View>
+        {isOwnProfile && !displayUser.isGuest && (
+          <View style={styles.statsRow}>
+            {renderStat(stats?.needsCount, 'İlanlarım', 'MyNeeds')}
+            <View style={styles.statDivider} />
+            {renderStat(stats?.offersGivenCount, 'Tekliflerim', 'MyOffers')}
           </View>
         )}
-      </View>
+      </LinearGradient>
     );
   };
 
-  const renderActions = () => {
+  const renderMenuRow = (
+    icon: keyof typeof MaterialIcons.glyphMap,
+    label: string,
+    onPress: () => void,
+    options: { subtitle?: string; badge?: number; last?: boolean } = {}
+  ) => (
+    <TouchableOpacity
+      key={label}
+      style={[styles.menuRow, !options.last && styles.menuRowDivider]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={options.subtitle ? `${label}, ${options.subtitle}` : label}
+    >
+      <View style={styles.menuIcon}>
+        <MaterialIcons name={icon} size={20} color={colors.primary} />
+      </View>
+      <View style={styles.menuText}>
+        <Text style={styles.menuLabel}>{label}</Text>
+        {options.subtitle ? <Text style={styles.menuSubtitle}>{options.subtitle}</Text> : null}
+      </View>
+      {options.badge ? <NotificationBadge count={options.badge} size="small" /> : null}
+      <MaterialIcons name="chevron-right" size={22} color={colors.textSecondary} />
+    </TouchableOpacity>
+  );
+
+  const renderMenu = () => {
+    if (!isOwnProfile) return null;
+    const isGuest = !!displayUser?.isGuest;
+    const rows = [
+      renderMenuRow('notifications-none', 'Bildirimler', () => navigation.navigate('Notifications'), {
+        subtitle: unreadCount > 0 ? `${unreadCount} okunmamış bildirim` : 'Tüm bildirimler okundu',
+        badge: unreadCount,
+      }),
+      renderMenuRow('edit', 'Profili Düzenle', handleEditProfile),
+      ...(!isGuest
+        ? [
+            renderMenuRow('list-alt', 'İlanlarım', () => navigation.navigate('MyNeeds')),
+            renderMenuRow('local-offer', 'Tekliflerim', () => navigation.navigate('MyOffers')),
+            renderMenuRow('star-border', 'Değerlendirmelerim', () => navigation.navigate('ReviewHistory')),
+            renderMenuRow('block', 'Engellenen Kullanıcılar', () => navigation.navigate('BlockedUsers'), { last: true }),
+          ]
+        : []),
+    ];
+    return (
+      <>
+        <Text style={styles.sectionTitle}>Hesabım</Text>
+        <Card style={styles.menuCard}>{rows}</Card>
+      </>
+    );
+  };
+
+  const renderLegalAndAccount = () => {
     if (!isOwnProfile) return null;
 
     return (
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={() => navigation.navigate('Notifications')}
-          accessibilityRole="button"
-          accessibilityLabel={`Bildirimler${unreadCount > 0 ? `, ${unreadCount} okunmamış bildirim` : ', tüm bildirimler okundu'}`}
-          accessibilityHint="Bildirimler sayfasını açmak için dokunun"
-        >
-          <View style={styles.notificationContent} accessible={false}>
-            <MaterialIcons name="notifications" size={24} color={colors.primary} />
-            <View style={styles.notificationTextContainer}>
-              <Text style={styles.notificationTitle} allowFontScaling={true} accessible={false}>Bildirimler</Text>
-              <Text style={styles.notificationSubtitle} allowFontScaling={true} accessible={false}>
-                {unreadCount > 0 ? `${unreadCount} okunmamış bildirim` : 'Tüm bildirimler okundu'}
-              </Text>
-            </View>
-            {unreadCount > 0 && (
-              <NotificationBadge count={unreadCount} size="small" />
-            )}
-          </View>
-          <MaterialIcons name="chevron-right" size={24} color={colors.textSecondary} />
-        </TouchableOpacity>
-
-        <Button
-          title="Profili Düzenle"
-          onPress={handleEditProfile}
-          icon="edit"
-          fullWidth
-          style={styles.editButton}
-        />
-        
-        <Button
-          title="Tekliflerim"
-          onPress={() => navigation.navigate('MyOffers')}
-          icon="local-offer"
-          fullWidth
-          style={styles.editButton}
-        />
-        
-        <Button
-          title="Değerlendirmelerim"
-          onPress={() => navigation.navigate('ReviewHistory')}
-          icon="star"
-          fullWidth
-          style={styles.editButton}
-        />
-        
-        {!displayUser?.isGuest && (
-          <Button
-            title="Engellenen Kullanıcılar"
-            onPress={() => navigation.navigate('BlockedUsers')}
-            icon="block"
-            fullWidth
-            style={styles.editButton}
-          />
-        )}
+      <View>
+        <Text style={styles.sectionTitle}>Yasal Bilgiler ve Destek</Text>
+        <Card style={styles.menuCard}>
+          {LEGAL_LINKS.map(({ page, label, icon }, index) => (
+            <TouchableOpacity
+              key={page}
+              style={[styles.menuRow, index < LEGAL_LINKS.length - 1 && styles.menuRowDivider]}
+              onPress={() => openWebPage(page)}
+              accessibilityRole="link"
+            >
+              <View style={styles.menuIcon}>
+                <MaterialIcons name={icon} size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.menuLabel, styles.menuText]}>{label}</Text>
+              <MaterialIcons name="open-in-new" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </Card>
 
         <Button
           title="Çıkış Yap"
@@ -259,103 +304,20 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           fullWidth
           style={styles.logoutButton}
         />
-      </View>
-    );
-  };
-
-  const renderLegalAndAccount = () => {
-    if (!isOwnProfile) return null;
-
-    return (
-      <View style={styles.legalSection}>
-        <Text style={styles.sectionTitle}>Yasal Bilgiler ve Destek</Text>
-        <Card style={styles.legalCard}>
-          {LEGAL_LINKS.map(({ page, label, icon }, index) => (
-            <TouchableOpacity
-              key={page}
-              style={[styles.legalRow, index < LEGAL_LINKS.length - 1 && styles.legalRowDivider]}
-              onPress={() => openWebPage(page)}
-              accessibilityRole="link"
-            >
-              <MaterialIcons name={icon} size={20} color={colors.textSecondary} />
-              <Text style={styles.legalRowText}>{label}</Text>
-              <MaterialIcons name="open-in-new" size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
-          ))}
-        </Card>
 
         {!displayUser?.isGuest && (
-          <Button
-            title="Hesabımı Sil"
+          <TouchableOpacity
+            style={styles.deleteAccount}
             onPress={handleDeleteAccount}
-            variant="danger"
-            icon="delete-forever"
-            loading={deletingAccount}
             disabled={deletingAccount}
-            fullWidth
-            style={styles.deleteAccountButton}
+            accessibilityRole="button"
             accessibilityHint="Hesabınızı kalıcı olarak silmek için onay ister"
-          />
+          >
+            <MaterialIcons name="delete-forever" size={18} color={colors.error} />
+            <Text style={styles.deleteAccountText}>{deletingAccount ? 'Hesap siliniyor...' : 'Hesabımı Sil'}</Text>
+          </TouchableOpacity>
         )}
       </View>
-    );
-  };
-
-  const renderStats = () => {
-    if (!isOwnProfile) return null;
-
-    if (statsLoading) {
-      return (
-        <Card style={styles.statsCard}>
-          <Text style={styles.statsTitle}>İstatistikler</Text>
-          <Loading size="small" />
-        </Card>
-      );
-    }
-
-    if (statsError) {
-      return (
-        <Card style={styles.statsCard}>
-          <Text style={styles.statsTitle}>İstatistikler</Text>
-          <Text style={styles.statsError}>{statsError}</Text>
-          <Button
-            title="Tekrar Dene"
-            onPress={loadUserStats}
-            variant="outline"
-            size="small"
-            style={styles.retryButton}
-          />
-        </Card>
-      );
-    }
-
-    return (
-      <Card style={styles.statsCard}>
-        <Text style={styles.statsTitle}>İstatistikler</Text>
-        <View style={styles.statsRow}>
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={() => navigation.navigate('MyNeeds')}
-            accessibilityRole="button"
-            accessibilityLabel={`İhtiyaçlarım, ${stats?.needsCount ?? 0} adet`}
-            accessibilityHint="İhtiyaçlarım sayfasına gitmek için dokunun"
-          >
-            <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.needsCount ?? 0}</Text>
-            <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>İhtiyaçlar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={() => navigation.navigate('MyOffers')}
-            accessibilityRole="button"
-            accessibilityLabel={`Tekliflerim, ${stats?.offersGivenCount ?? 0} adet`}
-            accessibilityHint="Tekliflerim sayfasına gitmek için dokunun"
-          >
-            <Text style={styles.statNumber} allowFontScaling={true} accessible={false}>{stats?.offersGivenCount ?? 0}</Text>
-            <Text style={styles.statLabel} allowFontScaling={true} accessible={false}>Teklifler</Text>
-          </TouchableOpacity>
-        </View>
-
-      </Card>
     );
   };
 
@@ -381,243 +343,125 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  const handleBackPress = () => {
+  function handleBackPress() {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
       navigation.navigate('Home');
     }
-  };
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={handleBackPress}
-        accessibilityRole="button"
-        accessibilityLabel="Geri git"
-        accessibilityHint="Önceki sayfaya dönmek için dokunun"
-      >
-        <MaterialIcons name="arrow-back" size={24} color="#7B2CBF" />
-      </TouchableOpacity>
+    <View style={styles.screen}>
       <ScrollView
-        style={styles.container}
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            enabled={!isOwnProfile}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#ffffff" colors={[colors.primary]} />
         }
       >
-        <View style={styles.header}>
-          {renderProfileImage()}
-          {renderUserInfo()}
+        {renderHero()}
+        <View style={styles.body}>
+          {renderMenu()}
+          {renderLegalAndAccount()}
         </View>
-
-        {renderActions()}
-        {renderStats()}
-        {renderLegalAndAccount()}
       </ScrollView>
-    </SafeAreaView>
+      {/* Keeps the light status bar icons readable once the purple band scrolls away */}
+      <View style={[styles.statusBarScrim, { height: insets.top }]} pointerEvents="none" />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
+  screen: { flex: 1, backgroundColor: colors.background },
+  statusBarScrim: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.primaryGradient[0] },
+  content: { paddingBottom: spacing.xl },
+  hero: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
-  backButton: {
-    width: 44,
-    height: 44,
+  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  heroBody: { alignItems: 'center', marginTop: -spacing.sm },
+  avatar: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: '#ffffff',
+    borderWidth: 3,
+    borderColor: colors.secondaryOrange,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  profileImageContainer: {
-    position: 'relative',
-    marginBottom: spacing.lg,
-  },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: colors.border,
-  },
-  editImageButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.surface,
-  },
-  userInfo: {
-    alignItems: 'center',
-  },
-  userName: {
-    fontSize: typography.h2.fontSize,
-    fontWeight: typography.h2.fontWeight as any,
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  userEmail: {
-    fontSize: typography.body.fontSize,
-    color: colors.textSecondary,
+    overflow: 'hidden',
     marginBottom: spacing.sm,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: colors.text,
-    marginLeft: spacing.xs,
-  },
+  avatarImage: { width: '100%', height: '100%' },
+  avatarInitials: { fontFamily: fonts.display, fontSize: 34, color: colors.primary },
+  userName: { fontFamily: fonts.display, fontSize: 24, color: '#ffffff', textAlign: 'center' },
+  userEmail: { fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  ratingContainer: { marginTop: spacing.sm },
   guestBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light,
+    gap: 4,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  guestText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginLeft: spacing.xs,
-  },
-  actions: {
-    marginBottom: spacing.xl,
-  },
-  notificationButton: {
+  guestText: { fontSize: 13, color: '#ffffff' },
+  statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.md,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  notificationContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  notificationTextContainer: {
-    marginLeft: spacing.md,
-    flex: 1,
-  },
-  notificationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  notificationSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  editButton: {
-    marginBottom: spacing.md,
-  },
-  logoutButton: {
-    borderColor: colors.error,
-  },
-  legalSection: {
     marginTop: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: 16,
+    paddingVertical: spacing.sm,
   },
+  stat: { flex: 1, alignItems: 'center', paddingVertical: spacing.xs },
+  statDivider: { width: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.25)' },
+  statNumber: { fontFamily: fonts.display, fontSize: 24, color: '#ffffff' },
+  statLabel: { fontSize: 13, color: 'rgba(255,255,255,0.85)' },
+  body: { paddingHorizontal: spacing.md, paddingTop: spacing.lg },
   sectionTitle: {
-    fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight as any,
+    fontFamily: fonts.heading,
+    fontSize: 16,
     color: colors.text,
     marginBottom: spacing.sm,
+    marginLeft: spacing.xs,
   },
-  legalCard: {
-    paddingVertical: 0,
-  },
-  legalRow: {
+  menuCard: { padding: 0, marginBottom: spacing.lg, overflow: 'hidden' },
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    paddingVertical: spacing.md,
-    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    minHeight: 56,
   },
-  legalRowDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  legalRowText: {
-    flex: 1,
-    fontSize: typography.body.fontSize,
-    color: colors.text,
-  },
-  deleteAccountButton: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  statsCard: {
-    marginBottom: spacing.lg,
-  },
-  statsTitle: {
-    fontSize: typography.h3.fontSize,
-    fontWeight: typography.h3.fontWeight as any,
-    color: colors.text,
-    marginBottom: spacing.md,
-    textAlign: 'center',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
+  menuRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  menuIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: spacing.xs,
+  menuText: { flex: 1 },
+  menuLabel: { fontSize: 16, color: colors.text },
+  menuSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  logoutButton: { marginBottom: spacing.md },
+  deleteAccount: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: spacing.md,
+    minHeight: 44,
   },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  statsError: {
-    fontSize: 14,
-    color: colors.error,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  retryButton: {
-    marginTop: spacing.sm,
-  },
+  deleteAccountText: { fontSize: 15, color: colors.error, fontWeight: '600' },
 });
 
 export default withProfileAuth(ProfileScreen);

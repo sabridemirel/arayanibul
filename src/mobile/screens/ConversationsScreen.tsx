@@ -20,6 +20,7 @@ import { colors, spacing, typography, borderRadius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
 import { withConversationsAuth } from '../hoc/withAuthPrompt';
+import MascotEmptyState from '../components/brand/MascotEmptyState';
 
 type RootStackParamList = {
   Chat: { offerId: number; otherUserId?: string };
@@ -221,13 +222,12 @@ const ConversationsScreen: React.FC = () => {
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <MaterialIcons name="chat-bubble-outline" size={64} color={colors.textSecondary} />
-      <Text style={styles.emptyTitle}>Henüz mesajınız yok</Text>
-      <Text style={styles.emptySubtitle}>
-        İlanlara teklif verin ya da ilanlarınıza gelen tekliflere yazın; konuşmalarınız burada görünür.
-      </Text>
-    </View>
+    <MascotEmptyState
+      title="Henüz mesajınız yok"
+      message="İlanlara teklif verin ya da ilanlarınıza gelen tekliflere yazın; konuşmalarınız burada görünür."
+      actionTitle="İlanlara Göz At"
+      onAction={() => navigation.navigate('Home' as never)}
+    />
   );
 
   const renderHeader = () => (

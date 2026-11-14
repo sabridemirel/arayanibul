@@ -74,7 +74,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   splash: {
     image: './assets/images/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#E6F4FE',
+    backgroundColor: '#7B2CBF',
   },
   assetBundlePatterns: ['**/*'],
   ios: {
@@ -93,7 +93,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     package: 'com.arayanibul.app',
     versionCode: 1,
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
+      backgroundColor: '#7B2CBF',
       foregroundImage: './assets/images/android-icon-foreground.png',
       backgroundImage: './assets/images/android-icon-background.png',
       monochromeImage: './assets/images/android-icon-monochrome.png',

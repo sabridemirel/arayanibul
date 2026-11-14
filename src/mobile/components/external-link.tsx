@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     // Add your link styles here
   },
   linkText: {
-    color: '#007bff',
+    color: '#7B2CBF',
     textDecorationLine: 'underline',
   },
 });

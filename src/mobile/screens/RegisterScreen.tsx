@@ -7,7 +7,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -17,6 +16,8 @@ import { useForm } from '../hooks/useForm';
 import { RegisterData } from '../services/api';
 import SocialLoginButtons from '../components/SocialLoginButtons';
 import LegalLinks, { RegisterConsentText } from '../components/LegalLinks';
+import AuthHero from '../components/brand/AuthHero';
+import { colors } from '../theme';
 
 interface Props {
   navigation: any;
@@ -136,15 +137,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.header}>
-          <Image
-            source={require('../assets/images/logo.jpg')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.title}>Hesap Oluştur</Text>
-          <Text style={styles.subtitle}>Yeni hesabınızı oluşturun</Text>
-        </View>
+        <AuthHero title="Hesap Oluştur" subtitle="Yeni hesabınızı oluşturun" />
 
         {error && (
           <View style={styles.errorBanner}>
@@ -285,7 +278,6 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     padding: 20,
   },
   header: {
@@ -348,7 +340,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   linkText: {
-    color: '#007bff',
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   consentLink: {
-    color: '#007bff',
+    color: '#7B2CBF',
     fontWeight: '600',
   },
 });

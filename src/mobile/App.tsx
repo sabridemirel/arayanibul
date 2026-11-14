@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar, View, Text, StyleSheet } from 'react-native';
+import { StatusBar, View, Image, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
+import { Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -103,12 +104,11 @@ function AppContent() {
   );
 }
 
-// Loading component
+// Same look as the native splash screen, so the hand-over is seamless
 function LoadingScreen() {
   return (
-    <View style={styles.loadingContainer}>
-      <Text style={styles.loadingText}>🎉 Arayanibul</Text>
-      <Text style={styles.loadingSubtext}>Yükleniyor...</Text>
+    <View style={styles.loadingContainer} accessibilityLabel="Yükleniyor">
+      <Image source={require('./assets/images/splash.png')} style={styles.loadingImage} resizeMode="contain" />
     </View>
   );
 }
@@ -121,10 +121,7 @@ export default function App() {
     async function prepare() {
       try {
         // Pre-load fonts, make any API calls you need to do here
-        await Font.loadAsync({
-          // Load any custom fonts here if needed
-          // For now, we just ensure the system is ready for vector icons
-        });
+        await Font.loadAsync({ Nunito_700Bold, Nunito_800ExtraBold });
 
         // Check if user has seen onboarding
         const onboardingCompleted = await AsyncStorage.getItem('@arayanibul_onboarding_completed');
@@ -185,17 +182,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#7B2CBF',
   },
-  loadingText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 10,
-  },
-  loadingSubtext: {
-    fontSize: 16,
-    color: '#666',
+  loadingImage: {
+    width: '100%',
+    aspectRatio: 1,
   },
 });
 

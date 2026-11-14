@@ -23,6 +23,7 @@ import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import { getNeedStatusColor, getNeedStatusText, isNeedEditable } from '../utils/needStatus';
+import MascotEmptyState from '../components/brand/MascotEmptyState';
 
 type MyNeedsScreenNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -357,26 +358,19 @@ const MyNeedsScreen: React.FC = () => {
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <MaterialIcons name="list-alt" size={64} color={colors.textSecondary} />
-      <Text style={styles.emptyTitle}>
-        {selectedStatus === 'All' ? 'Henüz ihtiyaç yok' : `${statusOptions.find(s => s.key === selectedStatus)?.label} ihtiyaç yok`}
-      </Text>
-      <Text style={styles.emptyDescription}>
-        {selectedStatus === 'All' 
-          ? 'İlk ihtiyacınızı oluşturmak için aşağıdaki butona tıklayın.'
-          : 'Bu durumda hiç ihtiyacınız bulunmuyor.'
-        }
-      </Text>
-      {selectedStatus === 'All' && (
-        <Button
-          title="İlan Ver"
-          onPress={handleCreateNeed}
-          icon="add"
-          style={styles.emptyActionButton}
-        />
-      )}
-    </View>
+    selectedStatus === 'All' ? (
+      <MascotEmptyState
+        title="Henüz ilanınız yok"
+        message="Ne aradığınızı yazın, satıcılar size teklif göndersin."
+        actionTitle="İlan Ver"
+        onAction={handleCreateNeed}
+      />
+    ) : (
+      <MascotEmptyState
+        title={`${statusOptions.find(s => s.key === selectedStatus)?.label} ilan yok`}
+        message="Bu durumda ilanınız bulunmuyor."
+      />
+    )
   );
 
   if (!user) {
