@@ -28,22 +28,21 @@ const GuestWelcomeCard: React.FC<GuestWelcomeCardProps> = ({
       </View>
       
       <Text style={styles.description}>
-        İhtiyaçlarınızı paylaşın, en iyi teklifleri alın. 
-        Binlerce kullanıcı zaten ihtiyaçlarını karşılıyor.
+        İhtiyacınızı yazın, satıcılar size teklif versin. Misafir olarak ilanlara göz atabilirsiniz.
       </Text>
       
       <View style={styles.features}>
         <View style={styles.featureItem}>
           <MaterialIcons name="search" size={20} color={colors.success} />
-          <Text style={styles.featureText}>İhtiyaçları keşfedin</Text>
+          <Text style={styles.featureText}>İlanlara göz atın</Text>
         </View>
         <View style={styles.featureItem}>
           <MaterialIcons name="local-offer" size={20} color={colors.success} />
-          <Text style={styles.featureText}>Teklifler görüntüleyin</Text>
+          <Text style={styles.featureText}>Üye olup ücretsiz ilan verin</Text>
         </View>
         <View style={styles.featureItem}>
-          <MaterialIcons name="people" size={20} color={colors.success} />
-          <Text style={styles.featureText}>Güvenilir kullanıcılar</Text>
+          <MaterialIcons name="chat" size={20} color={colors.success} />
+          <Text style={styles.featureText}>Teklif alın, satıcılarla mesajlaşın</Text>
         </View>
       </View>
       
@@ -55,7 +54,7 @@ const GuestWelcomeCard: React.FC<GuestWelcomeCardProps> = ({
         />
         
         <Text style={styles.guestNote}>
-          Misafir olarak gezmeye devam edebilir, istediğiniz zaman üye olabilirsiniz
+          Misafir olarak yalnızca ilanları görüntüleyebilirsiniz. İlan ve teklif vermek için üye olun.
         </Text>
       </View>
     </Card>

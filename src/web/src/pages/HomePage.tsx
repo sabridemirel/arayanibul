@@ -386,7 +386,7 @@ const HomePage: React.FC = () => {
             </h2>
             <p className="text-white/80 mb-8 max-w-2xl mx-auto">
               Hemen ücretsiz kayıt olun ve ihtiyacınızı dünyaya duyurun.
-              Binlerce satıcı sizin için en iyi teklifi sunmak için bekliyor!
+              Satıcılar ilanınızı görsün, size teklif versin.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

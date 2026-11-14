@@ -10,7 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Need } from '../types';
+import { Need } from '../../types';
 import { colors, spacing } from '../../theme';
 import { getCategoryColor, getCategoryTextColor, getCategoryColorWithOpacity } from '../../utils/categoryUtils';
 
@@ -91,7 +91,10 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
 
-    if (diffInHours < 1) return 'Az önce';
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      return diffInMinutes < 1 ? 'Az önce' : `${diffInMinutes} dk önce`;
+    }
     if (diffInHours < 24) return `${diffInHours}s önce`;
 
     const diffInDays = Math.floor(diffInHours / 24);
@@ -135,7 +138,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
             style={[styles.urgencyBadge, { backgroundColor: urgencyConfig.color }]}
             accessible={false} // Parent TouchableOpacity handles accessibility
           >
-            <MaterialIcons name={urgencyConfig.icon} size={16} color="#ffffff" />
+            <MaterialIcons name={urgencyConfig.icon} size={14} color="#ffffff" />
             <Text style={styles.urgencyText} allowFontScaling={true} accessible={false}>
               {urgencyConfig.text}
             </Text>
@@ -290,10 +293,10 @@ const styles = StyleSheet.create({
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 24,
-    gap: 5,
+    gap: 4,
     zIndex: 10,
 
     // Enhanced badge shadow
@@ -348,6 +351,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 24,
     marginBottom: 6,
+    // Leave room for the urgency badge pinned to the card's top-right corner
+    paddingRight: 96,
   },
   description: {
     fontSize: 14,

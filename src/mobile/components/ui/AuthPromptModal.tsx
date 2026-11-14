@@ -40,7 +40,7 @@ interface PromptConfig {
 const promptConfigs: Record<AuthPromptContext, PromptConfig> = {
   create_need: {
     icon: 'add-circle-outline',
-    title: 'İhtiyaç Oluştur',
+    title: 'İlan Ver',
     message: 'İhtiyaçlarınızı paylaşın ve en iyi teklifleri alın',
     benefits: [
       'Ücretsiz ihtiyaç paylaşımı',
@@ -83,8 +83,8 @@ const promptConfigs: Record<AuthPromptContext, PromptConfig> = {
     message: 'Kişiselleştirilmiş deneyim için giriş yapın',
     benefits: [
       'Kişisel profil sayfası',
-      'İşlem geçmişi',
-      'Favoriler listesi',
+      'İlanlarınızı ve tekliflerinizi takip etme',
+      'Satıcılarla mesajlaşma',
       'Bildirim ayarları'
     ],
     primaryAction: 'Kayıt Ol',
@@ -95,7 +95,6 @@ const promptConfigs: Record<AuthPromptContext, PromptConfig> = {
     title: 'Favorilere Ekle',
     message: 'Beğendiğiniz ihtiyaçları kaydedin',
     benefits: [
-      'Favoriler listesi',
       'Hızlı erişim',
       'Durum bildirimleri',
       'Kişisel öneriler'
@@ -203,7 +202,7 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
 
           {/* Social proof */}
           <Text style={styles.socialProof}>
-            1000+ kullanıcı Arayanibul'da ihtiyaçlarını karşılıyor
+            Üyelik ücretsizdir.
           </Text>
         </View>
       </View>

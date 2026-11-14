@@ -238,7 +238,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 1) {
-      return 'Az önce';
+      const diffInMinutes = Math.floor(diffInHours * 60);
+      return diffInMinutes < 1 ? 'Az önce' : `${diffInMinutes} dk önce`;
     } else if (diffInHours < 24) {
       return `${Math.floor(diffInHours)} saat önce`;
     } else if (diffInHours < 48) {

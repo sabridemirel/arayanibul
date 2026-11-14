@@ -528,7 +528,7 @@ const CreateNeedScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>İhtiyaç Oluştur</Text>
+          <Text style={styles.headerTitle}>İlan Ver</Text>
           <View style={{ width: 24 }} />
         </View>
         <Loading text="Kategoriler yükleniyor..." />
@@ -545,7 +545,7 @@ const CreateNeedScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>İhtiyaç Oluştur</Text>
+          <Text style={styles.headerTitle}>İlan Ver</Text>
           <View style={{ width: 24 }} />
         </View>
       )}
@@ -638,7 +638,7 @@ const CreateNeedScreen: React.FC = () => {
         <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Konum</Text>
           <Text style={styles.sectionDescription}>
-            Konum belirtmek isteğe bağlıdır. Yakınınızdaki sağlayıcıları bulmanıza yardımcı olur.
+            Konum belirtmek isteğe bağlıdır. Yakınınızdaki satıcıların ilanınızı bulmasına yardımcı olur.
           </Text>
 
           <Input
@@ -689,7 +689,7 @@ const CreateNeedScreen: React.FC = () => {
             />
           ) : (
             <Button
-              title="İhtiyacı Oluştur"
+              title="İlan Ver"
               onPress={handleSubmit}
               loading={loading}
               disabled={loading}

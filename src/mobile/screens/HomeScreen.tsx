@@ -252,7 +252,10 @@ const HomeScreen: React.FC = () => {
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Az önce';
+    if (diffInHours < 1) {
+      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+      return diffInMinutes < 1 ? 'Az önce' : `${diffInMinutes} dk önce`;
+    }
     if (diffInHours < 24) return `${diffInHours} saat önce`;
     
     const diffInDays = Math.floor(diffInHours / 24);
@@ -456,7 +459,7 @@ const HomeScreen: React.FC = () => {
             style={styles.emptyButtonInner}
           >
             <MaterialIcons name="add-circle" size={20} color={colors.onPrimary} />
-            <Text style={styles.emptyButtonText} allowFontScaling={true} accessible={false}>İhtiyaç Oluştur</Text>
+            <Text style={styles.emptyButtonText} allowFontScaling={true} accessible={false}>İlan Ver</Text>
           </TouchableOpacity>
         </LinearGradient>
       )}

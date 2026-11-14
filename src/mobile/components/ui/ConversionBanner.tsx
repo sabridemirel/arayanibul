@@ -49,7 +49,7 @@ const getBannerConfig = (type: ConversionBannerType, viewCount = 0): BannerConfi
       return {
         icon: 'featured-play-list',
         title: 'Daha Fazla Özellik',
-        message: 'Favoriler, bildirimler ve kişisel öneriler için üye olun',
+        message: 'İlan verin, teklif alın ve satıcılarla mesajlaşın',
         actionText: 'Keşfet',
         backgroundColor: colors.success + '20',
         textColor: colors.success,
@@ -58,8 +58,8 @@ const getBannerConfig = (type: ConversionBannerType, viewCount = 0): BannerConfi
     case 'social_proof':
       return {
         icon: 'people',
-        title: '1000+ Kullanıcı',
-        message: 'Arayanibul\'da ihtiyaçlarını karşılıyor. Siz de katılın!',
+        title: 'Ücretsiz Üyelik',
+        message: 'İhtiyacınızı yazın, satıcılar size teklif versin.',
         actionText: 'Katıl',
         backgroundColor: colors.warning + '20',
         textColor: colors.warning,
@@ -69,7 +69,7 @@ const getBannerConfig = (type: ConversionBannerType, viewCount = 0): BannerConfi
       return {
         icon: 'trending-up',
         title: 'Daha Fazlası İçin',
-        message: 'Üye olun ve sınırsız ihtiyaç görüntüleyin',
+        message: 'Üye olun, ilan verin ve teklif alın',
         actionText: 'Üye Ol',
         backgroundColor: colors.secondary + '20',
         textColor: colors.secondary,

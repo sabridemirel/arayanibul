@@ -297,6 +297,25 @@ const NeedDetailScreen: React.FC = () => {
             />
           )}
 
+          {need.images && need.images.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.gallery}
+              contentContainerStyle={styles.galleryContent}
+            >
+              {need.images.map((uri, index) => (
+                <Image
+                  key={uri}
+                  source={{ uri }}
+                  style={[styles.galleryImage, need.images!.length === 1 && styles.galleryImageSingle]}
+                  resizeMode="cover"
+                  accessibilityLabel={`İlan görseli ${index + 1}`}
+                />
+              ))}
+            </ScrollView>
+          )}
+
           <Text style={styles.needDescription} allowFontScaling={true}>{need.description}</Text>
 
           <View style={styles.needInfo}>
@@ -380,6 +399,17 @@ const NeedDetailScreen: React.FC = () => {
             title="Teklif Ver"
             onPress={handleCreateOffer}
             icon="local-offer"
+            fullWidth
+          />
+        </View>
+      )}
+
+      {user?.isGuest && need.status === 'Active' && (
+        <View style={styles.actionContainer}>
+          <Button
+            title="Teklif Vermek İçin Üye Olun"
+            onPress={() => navigation.navigate('Register')}
+            icon="person-add"
             fullWidth
           />
         </View>
@@ -474,6 +504,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.surface,
+  },
+  gallery: {
+    marginBottom: spacing.md,
+    marginHorizontal: -spacing.xs,
+  },
+  galleryContent: {
+    paddingHorizontal: spacing.xs,
+    gap: spacing.sm,
+  },
+  galleryImage: {
+    width: 220,
+    height: 165,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+  },
+  galleryImageSingle: {
+    width: 300,
+    height: 200,
   },
   needDescription: {
     fontSize: typography.body.fontSize,
