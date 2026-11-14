@@ -126,7 +126,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
   const getStatusText = (status: string) => {
     switch (status) {
       case 'Pending':
-        return 'Bekleyen';
+        return 'Beklemede';
       case 'Accepted':
         return 'Kabul Edildi';
       case 'Rejected':

@@ -140,7 +140,7 @@ const MyOffersScreen: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'Pending':
-        return 'Bekleyen';
+        return 'Beklemede';
       case 'Accepted':
         return 'Kabul Edildi';
       case 'Rejected':

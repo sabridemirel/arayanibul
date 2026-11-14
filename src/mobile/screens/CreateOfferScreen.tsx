@@ -360,7 +360,7 @@ const CreateOfferScreen: React.FC = () => {
         {/* Submit Button */}
         <View style={styles.submitContainer}>
           <Button
-            title={submitting ? "Gönderiliyor..." : "Teklif Gönder"}
+            title={submitting ? "Gönderiliyor..." : "Teklif Ver"}
             onPress={handleSubmit}
             disabled={submitting}
             loading={submitting}

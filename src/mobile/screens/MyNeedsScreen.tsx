@@ -383,7 +383,7 @@ const MyNeedsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>İhtiyaçlarım</Text>
+          <Text style={styles.headerTitle}>İlanlarım</Text>
         </View>
         <ErrorMessage 
           message="Bu sayfayı görüntülemek için giriş yapmanız gerekiyor." 
@@ -396,7 +396,7 @@ const MyNeedsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>İhtiyaçlarım</Text>
+          <Text style={styles.headerTitle}>İlanlarım</Text>
         </View>
         <Loading text="İhtiyaçlarınız yükleniyor..." />
       </SafeAreaView>
@@ -407,7 +407,7 @@ const MyNeedsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>İhtiyaçlarım</Text>
+          <Text style={styles.headerTitle}>İlanlarım</Text>
         </View>
         <ErrorMessage 
           message={error} 
@@ -423,7 +423,7 @@ const MyNeedsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>İhtiyaçlarım</Text>
+        <Text style={styles.headerTitle}>İlanlarım</Text>
         <TouchableOpacity
           onPress={handleCreateNeed}
           style={styles.headerButton}

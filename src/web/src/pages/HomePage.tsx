@@ -244,7 +244,7 @@ const HomePage: React.FC = () => {
                   <span className="text-2xl font-bold text-white">2</span>
                 </div>
                 <h3 className="text-lg font-semibold text-text mb-2">
-                  Teklifleri Alin
+                  Teklifleri Alın
                 </h3>
                 <p className="text-text-secondary">
                   Satıcılar ilanınızı görüp size en uygun tekliflerini sunar.

@@ -430,6 +430,10 @@ const NeedDetailPage: React.FC = () => {
     try {
       await offerAPI.acceptOffer(offerId);
       loadOffers();
+      // Accepting moves the need to "Devam Ediyor"; refresh it so the status badge updates
+      if (needId) {
+        needAPI.getNeedById(needId).then(setNeed).catch(() => {});
+      }
     } catch (err: unknown) {
       const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
         || 'Teklif kabul edilirken hata oluştu';
