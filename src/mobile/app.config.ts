@@ -12,7 +12,8 @@ const GOOGLE_IOS_CLIENT_ID = env('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID');
 const FACEBOOK_APP_ID = env('EXPO_PUBLIC_FACEBOOK_APP_ID');
 const FACEBOOK_CLIENT_TOKEN = env('EXPO_PUBLIC_FACEBOOK_CLIENT_TOKEN');
 const FACEBOOK_DISPLAY_NAME = env('EXPO_PUBLIC_FACEBOOK_DISPLAY_NAME') ?? 'Arayanibul';
-const EAS_PROJECT_ID = env('EAS_PROJECT_ID');
+// Expo project @sabridemirel/arayanibul (not a secret); env var kept for overrides
+const EAS_PROJECT_ID = env('EAS_PROJECT_ID') ?? 'dae55300-a0af-49f7-b63a-100ee8975574';
 
 // iOS URL scheme for Google Sign-In = the reversed iOS client ID:
 // "123-abc.apps.googleusercontent.com" -> "com.googleusercontent.apps.123-abc"
@@ -66,6 +67,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'Arayanibul',
   slug: 'arayanibul',
+  owner: 'sabridemirel',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
@@ -78,7 +80,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ['**/*'],
   ios: {
-    supportsTablet: true,
+    supportsTablet: false,
     bundleIdentifier: 'com.arayanibul.app',
     buildNumber: '1',
     usesAppleSignIn: true,
