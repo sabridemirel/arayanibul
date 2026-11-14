@@ -132,6 +132,8 @@ const NeedDetailScreen: React.FC = () => {
       await offerAPI.acceptOffer(offerId);
       Alert.alert('Başarılı', 'Teklif kabul edildi!');
       loadOffers(); // Refresh offers
+      // Accepting moves the need to "Devam Ediyor"; refresh it so the status badge updates
+      needAPI.getNeedById(needId).then(setNeed).catch(() => {});
     } catch (err: any) {
       Alert.alert('Hata', err.response?.data?.message || 'Teklif kabul edilirken hata oluştu');
     }

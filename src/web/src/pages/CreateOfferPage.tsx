@@ -62,8 +62,8 @@ const CreateOfferPage: React.FC = () => {
     // Description validation
     if (!values.description.trim()) {
       errors.description = 'Mesaj gereklidir';
-    } else if (values.description.trim().length < 20) {
-      errors.description = 'Mesaj en az 20 karakter olmalıdır';
+    } else if (values.description.trim().length < 50) {
+      errors.description = 'Mesaj en az 50 karakter olmalıdır';
     }
 
     // Delivery days validation
@@ -276,7 +276,7 @@ const CreateOfferPage: React.FC = () => {
             {/* Delivery Days Input */}
             <div>
               <Input
-                label="Teslimat Süresi (Gun) *"
+                label="Teslimat Süresi (Gün) *"
                 type="number"
                 name="deliveryDays"
                 placeholder="Örneğin: 7"
@@ -326,7 +326,7 @@ const CreateOfferPage: React.FC = () => {
                 {touched.description && formErrors.description ? (
                   <p className="text-sm text-error">{formErrors.description}</p>
                 ) : (
-                  <p className="text-xs text-text-secondary">En az 20 karakter</p>
+                  <p className="text-xs text-text-secondary">En az 50 karakter</p>
                 )}
                 <p className="text-xs text-text-secondary">
                   {values.description.length}/1000
@@ -339,7 +339,7 @@ const CreateOfferPage: React.FC = () => {
               <h4 className="text-sm font-semibold text-primary mb-2">Önemli Bilgiler</h4>
               <ul className="text-xs text-text-secondary space-y-1">
                 <li>- Teklifiniz gönderildikten sonra alıcı tarafından görüntülenecektir</li>
-                <li>- Teklif kabul edildiğinde mesajlaşma başlayacaktır</li>
+                <li>- Teklif verdikten sonra alıcıyla hemen mesajlaşabilirsiniz</li>
                 <li>- Teklif fiyatınız ve teslimat süreniz bağlayıcıdır</li>
                 <li>- Uygunsuz teklifler sistem tarafından kaldırılabilir</li>
               </ul>

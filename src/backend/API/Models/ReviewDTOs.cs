@@ -10,20 +10,20 @@ public class CreateReviewRequest
     public int? OfferId { get; set; }
     
     [Required]
-    [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5")]
+    [Range(1, 5, ErrorMessage = "Puan 1 ile 5 arasında olmalıdır.")]
     public int Rating { get; set; }
     
-    [MaxLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
+    [MaxLength(1000, ErrorMessage = "Yorum en fazla 1000 karakter olabilir.")]
     public string? Comment { get; set; }
 }
 
 public class UpdateReviewRequest
 {
     [Required]
-    [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5")]
+    [Range(1, 5, ErrorMessage = "Puan 1 ile 5 arasında olmalıdır.")]
     public int Rating { get; set; }
     
-    [MaxLength(1000, ErrorMessage = "Comment cannot exceed 1000 characters")]
+    [MaxLength(1000, ErrorMessage = "Yorum en fazla 1000 karakter olabilir.")]
     public string? Comment { get; set; }
 }
 

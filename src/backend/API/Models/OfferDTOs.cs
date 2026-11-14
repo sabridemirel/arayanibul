@@ -8,17 +8,17 @@ public class CreateOfferRequest
     public int NeedId { get; set; }
     
     [Required]
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Teklif tutarı 0'dan büyük olmalıdır.")]
     public decimal Price { get; set; }
     
     public string Currency { get; set; } = "TRY";
     
     [Required]
-    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Description must be between 50 and 2000 characters")]
+    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Teklif açıklaması 50 ile 2000 karakter arasında olmalıdır.")]
     public string Description { get; set; } = string.Empty;
     
     [Required]
-    [Range(1, 365, ErrorMessage = "Delivery days must be between 1 and 365")]
+    [Range(1, 365, ErrorMessage = "Teslimat süresi 1 ile 365 gün arasında olmalıdır.")]
     public int DeliveryDays { get; set; }
     
     public List<string>? ImageUrls { get; set; }
@@ -26,15 +26,15 @@ public class CreateOfferRequest
 
 public class UpdateOfferRequest
 {
-    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Teklif tutarı 0'dan büyük olmalıdır.")]
     public decimal? Price { get; set; }
     
     public string? Currency { get; set; }
     
-    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Description must be between 50 and 2000 characters")]
+    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Teklif açıklaması 50 ile 2000 karakter arasında olmalıdır.")]
     public string? Description { get; set; }
     
-    [Range(1, 365, ErrorMessage = "Delivery days must be between 1 and 365")]
+    [Range(1, 365, ErrorMessage = "Teslimat süresi 1 ile 365 gün arasında olmalıdır.")]
     public int? DeliveryDays { get; set; }
     
     public OfferStatus? Status { get; set; }

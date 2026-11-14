@@ -355,7 +355,7 @@ const CreateOfferScreen: React.FC = () => {
             </View>
             <Text style={styles.termsText}>
               • Teklifiniz gönderildikten sonra alıcı tarafından görüntülenecektir{'\n'}
-              • Teklif kabul edildiğinde mesajlaşma başlayacaktır{'\n'}
+              • Teklif verdikten sonra alıcıyla hemen mesajlaşabilirsiniz{'\n'}
               • Teklif fiyatınız ve teslimat süreniz bağlayıcıdır{'\n'}
               • Uygunsuz teklifler sistem tarafından kaldırılabilir
             </Text>

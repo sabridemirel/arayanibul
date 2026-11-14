@@ -191,7 +191,9 @@ const Input: React.FC<InputProps> = ({
           textAlignVertical={multiline ? 'top' : 'center'}
           allowFontScaling={true}
           // Accessibility props
-          accessibilityLabel={label || textInputProps.placeholder}
+          // Without a visible label VoiceOver already reads the placeholder; repeating it as the
+          // label made it read twice ("Mesajınızı yazın... Mesajınızı yazın...")
+          accessibilityLabel={label}
           accessibilityHint={error || undefined}
           {...textInputProps}
         />
