@@ -1,3 +1,4 @@
+using API.Filters;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
@@ -22,6 +23,7 @@ public class ReviewController : ControllerBase
     /// </summary>
     [HttpPost]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult<ReviewResponse>> CreateReview([FromBody] CreateReviewRequest request)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -112,6 +114,7 @@ public class ReviewController : ControllerBase
     /// </summary>
     [HttpPut("{id}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult<ReviewResponse>> UpdateReview(int id, [FromBody] UpdateReviewRequest request)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -127,6 +130,7 @@ public class ReviewController : ControllerBase
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> DeleteReview(int id)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

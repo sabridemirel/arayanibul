@@ -1,3 +1,4 @@
+using API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -31,6 +32,7 @@ public class NeedController : ControllerBase
     /// </summary>
     [HttpPost]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult<NeedResponse>> CreateNeed([FromBody] CreateNeedRequest request)
     {
         try
@@ -139,6 +141,7 @@ public class NeedController : ControllerBase
     /// </summary>
     [HttpPut("{id}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult<NeedResponse>> UpdateNeed(int id, [FromBody] UpdateNeedRequest request)
     {
         try
@@ -177,6 +180,7 @@ public class NeedController : ControllerBase
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> DeleteNeed(int id)
     {
         try
@@ -274,6 +278,7 @@ public class NeedController : ControllerBase
     /// </summary>
     [HttpPost("{id}/images")]
     [Authorize]
+    [RegisteredUserOnly]
     [ApiExplorerSettings(IgnoreApi = true)]  // Swagger'dan exclude et
     public async Task<ActionResult<List<string>>> UploadNeedImages(int id, [FromForm] List<IFormFile> images)
     {
@@ -353,6 +358,7 @@ public class NeedController : ControllerBase
     /// </summary>
     [HttpDelete("{id}/images/{imageId}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> DeleteNeedImage(int id, int imageId)
     {
         try
@@ -406,6 +412,7 @@ public class NeedController : ControllerBase
     /// </summary>
     [HttpPost("{id}/expire")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> ExpireNeed(int id)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

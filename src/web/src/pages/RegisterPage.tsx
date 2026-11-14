@@ -19,14 +19,14 @@ interface RegisterFormValues {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { register, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { register, isAuthenticated, isGuest, isLoading, error, clearError } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isGuest) {
       navigate('/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isGuest, navigate]);
 
   const validate = (values: RegisterFormValues) => {
     const errors: Partial<Record<keyof RegisterFormValues, string>> = {};
@@ -113,6 +113,13 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <Card padding="lg" className="!bg-white/95 backdrop-blur-sm !shadow-2xl shadow-purple-900/50">
+          {isGuest && (
+            <p className="mb-4 rounded-lg bg-purple-50 px-4 py-3 text-sm text-purple-900">
+              Misafir olarak yalnızca ilanları görüntüleyebilirsiniz. İlan vermek, teklif vermek ve
+              mesajlaşmak için ücretsiz hesap oluşturun.
+            </p>
+          )}
+
           {/* Error Message */}
           {error && (
             <ErrorMessage

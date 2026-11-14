@@ -12,14 +12,14 @@ interface LoginFormValues {
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, guestContinue, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { login, guestContinue, isAuthenticated, isGuest, isLoading, error, clearError } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isGuest) {
       navigate('/');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isGuest, navigate]);
 
   const validate = (values: LoginFormValues) => {
     const errors: Partial<Record<keyof LoginFormValues, string>> = {};

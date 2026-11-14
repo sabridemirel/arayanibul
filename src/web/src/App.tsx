@@ -39,7 +39,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAuth?: boolean;
   requireGuest?: boolean;
-  /** Registered users only: guest accounts are redirected to the home page */
+  /** Registered users only: guests are sent to sign-up (they can only browse) */
   requireMember?: boolean;
 }
 
@@ -64,10 +64,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireMember && isGuest) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/register" replace state={{ guestNotice: true }} />;
   }
 
-  if (requireGuest && isAuthenticated) {
+  // Guests may still open login/register to get a real account
+  if (requireGuest && isAuthenticated && !isGuest) {
     return <Navigate to="/" replace />;
   }
 
@@ -113,7 +114,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/create-need"
         element={
-          <ProtectedRoute requireAuth>
+          <ProtectedRoute requireAuth requireMember>
             <CreateNeedPage />
           </ProtectedRoute>
         }
@@ -165,7 +166,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/needs/create"
         element={
-          <ProtectedRoute requireAuth>
+          <ProtectedRoute requireAuth requireMember>
             <CreateNeedPage />
           </ProtectedRoute>
         }
@@ -174,7 +175,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/needs/:id/edit"
         element={
-          <ProtectedRoute requireAuth>
+          <ProtectedRoute requireAuth requireMember>
             <EditNeedPage />
           </ProtectedRoute>
         }
@@ -182,7 +183,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/offers/create/:needId"
         element={
-          <ProtectedRoute requireAuth>
+          <ProtectedRoute requireAuth requireMember>
             <CreateOfferPage />
           </ProtectedRoute>
         }

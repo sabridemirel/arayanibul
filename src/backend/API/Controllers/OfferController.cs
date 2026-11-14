@@ -1,3 +1,4 @@
+using API.Filters;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -25,6 +26,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPost]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult<OfferResponse>> CreateOffer([FromBody] CreateOfferRequest request)
     {
         try
@@ -85,6 +87,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPut("{id}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult<OfferResponse>> UpdateOffer(int id, [FromBody] UpdateOfferRequest request)
     {
         try
@@ -122,6 +125,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> DeleteOffer(int id)
     {
         try
@@ -209,6 +213,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPost("{id}/accept")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> AcceptOffer(int id)
     {
         try
@@ -246,6 +251,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPost("{id}/reject")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> RejectOffer(int id, [FromBody] RejectOfferRequest? request = null)
     {
         try
@@ -283,6 +289,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPost("{id}/withdraw")]
     [Authorize]
+    [RegisteredUserOnly]
     public async Task<ActionResult> WithdrawOffer(int id)
     {
         try
@@ -357,6 +364,7 @@ public class OfferController : ControllerBase
     /// </summary>
     [HttpPost("{id}/images")]
     [Authorize]
+    [RegisteredUserOnly]
     [ApiExplorerSettings(IgnoreApi = true)]  // Swagger'dan exclude et
     public async Task<ActionResult<List<string>>> UploadOfferImages(int id, [FromForm] List<IFormFile> images)
     {

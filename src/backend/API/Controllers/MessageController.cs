@@ -1,3 +1,4 @@
+using API.Filters;
 using API.Interfaces;
 using API.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -22,6 +23,7 @@ public class MessageController : ControllerBase
     /// Send a message in a conversation
     /// </summary>
     [HttpPost("send")]
+    [RegisteredUserOnly]
     public async Task<ActionResult<MessageDto>> SendMessage([FromBody] SendMessageRequest request)
     {
         try
