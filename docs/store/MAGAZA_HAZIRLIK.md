@@ -179,5 +179,6 @@ en az 12 test kullanıcısıyla 14 gün kapalı test şartı vardır), sonra **�
 - [x] App Privacy formu ve yaş derecelendirmesi dolduruldu
 - [x] Ekran görüntüleri yüklendi
 - [x] 14 Kasım 2026: incelemeye gönderildi (onaylanınca otomatik yayın)
+- [x] 14 Kasım 2026: Apple onayladı, 1.0.0 yayında — https://apps.apple.com/app/id6834834670
 - [ ] Play Console hesabı onaylandı; Android derlemesi dahili teste yüklendi
 - [ ] Sohbette paylaşılan anahtarlar (Hetzner, GitHub, Brevo) yenilendi
