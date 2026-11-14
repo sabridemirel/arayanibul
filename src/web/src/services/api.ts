@@ -109,7 +109,10 @@ const performRefresh = async (): Promise<boolean> => {
     storeSession(newToken, data.refreshToken, data.user);
     return true;
   } catch (err) {
-    if (axios.isAxiosError(err) && err.response) {
+    // Only 400/401 mean the refresh token was rejected. Anything else (rate limit, 5xx while the
+    // API restarts) says nothing about the session, so keep it and let the caller retry later.
+    const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+    if (status === 400 || status === 401) {
       // Another tab may have rotated the token meanwhile (rotation revokes ours): use its session
       const current = localStorage.getItem('refreshToken');
       return !!current && current !== refreshToken && !!localStorage.getItem('authToken');

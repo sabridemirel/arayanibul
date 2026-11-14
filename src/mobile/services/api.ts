@@ -114,8 +114,10 @@ const performRefresh = async (): Promise<boolean> => {
     } catch {}
     return true;
   } catch (error) {
-    if (axios.isAxiosError(error) && error.response) return false;
-    // Network error / timeout: session state unknown, let the caller retry later
+    // Only 400/401 mean the refresh token was rejected. Anything else (rate limit, 5xx while the
+    // API restarts) says nothing about the session, so keep it and let the caller retry later.
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    if (status === 400 || status === 401) return false;
     throw error;
   }
 };
