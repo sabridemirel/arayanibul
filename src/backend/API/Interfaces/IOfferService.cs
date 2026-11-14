@@ -12,6 +12,8 @@ public interface IOfferService
     
     // Offer retrieval methods
     Task<PagedResult<OfferResponse>> GetOffersForNeedAsync(int needId, int page = 1, int pageSize = 20);
+    /// <summary>The provider's most recent offer on a need, or null if they have none</summary>
+    Task<OfferResponse?> GetMyOfferForNeedAsync(int needId, string providerId);
     Task<PagedResult<OfferResponse>> GetProviderOffersAsync(string providerId, OfferStatus? status = null, int page = 1, int pageSize = 20);
     Task<PagedResult<OfferResponse>> GetBuyerOffersAsync(string buyerId, OfferStatus? status = null, int page = 1, int pageSize = 20);
     Task<PagedResult<OfferResponse>> GetOffersAsync(OfferFilterRequest filter);

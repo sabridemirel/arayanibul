@@ -325,6 +325,20 @@ public class OfferService : IOfferService
         };
     }
 
+    public async Task<OfferResponse?> GetMyOfferForNeedAsync(int needId, string providerId)
+    {
+        var offer = await _context.Offers
+            .Include(o => o.Need)
+            .Include(o => o.Provider)
+            .Include(o => o.Images)
+            .Include(o => o.Messages)
+            .Where(o => o.NeedId == needId && o.ProviderId == providerId)
+            .OrderByDescending(o => o.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        return offer == null ? null : MapToOfferResponse(offer, providerId);
+    }
+
     public async Task<PagedResult<OfferResponse>> GetProviderOffersAsync(string providerId, OfferStatus? status = null, int page = 1, int pageSize = 20)
     {
         var query = _context.Offers

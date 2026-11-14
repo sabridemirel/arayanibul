@@ -167,6 +167,23 @@ public class OfferController : ControllerBase
     /// <summary>
     /// Sağlayıcının tekliflerini getir
     /// </summary>
+    /// <summary>
+    /// Giriş yapan satıcının bu ilana verdiği en son teklif (yoksa 204)
+    /// </summary>
+    [HttpGet("need/{needId}/mine")]
+    [Authorize]
+    public async Task<ActionResult<OfferResponse>> GetMyOfferForNeed(int needId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized("Kullanıcı kimliği bulunamadı.");
+        }
+
+        var offer = await _offerService.GetMyOfferForNeedAsync(needId, userId);
+        return offer == null ? NoContent() : Ok(offer);
+    }
+
     [HttpGet("provider")]
     [Authorize]
     public async Task<ActionResult<PagedResult<OfferResponse>>> GetProviderOffers([FromQuery] OfferStatus? status = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)

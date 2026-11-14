@@ -555,6 +555,10 @@ export const offerAPI = {
   getMyOffers: (): Promise<Offer[]> =>
     api.get('/offer/provider').then(res => normalizeList(res.data, normalizeOffer)),
 
+  /** The signed-in seller's latest offer on a need, or null (API answers 204) */
+  getMyOfferForNeed: (needId: number): Promise<Offer | null> =>
+    api.get(`/offer/need/${needId}/mine`).then(res => (res.status === 204 || !res.data ? null : normalizeOffer(res.data))),
+
   acceptOffer: (offerId: number): Promise<void> =>
     api.post(`/offer/${offerId}/accept`).then(res => res.data),
 

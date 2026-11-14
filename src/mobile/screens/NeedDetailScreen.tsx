@@ -44,6 +44,16 @@ const NeedDetailScreen: React.FC = () => {
   const [offersLoading, setOffersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
+  const [myOffer, setMyOffer] = useState<Offer | null>(null);
+
+  // The seller's own offer on this need: shown instead of "Teklif Ver" while it is pending/accepted
+  const loadMyOffer = useCallback((ownerId?: string) => {
+    if (!user || user.isGuest || user.id === ownerId) {
+      setMyOffer(null);
+      return;
+    }
+    offerAPI.getMyOfferForNeed(needId).then(setMyOffer).catch(() => setMyOffer(null));
+  }, [user, needId]);
 
   useEffect(() => {
     loadNeedDetail();
@@ -59,9 +69,12 @@ const NeedDetailScreen: React.FC = () => {
       }
       needAPI
         .getNeedById(needId)
-        .then(setNeed)
+        .then(n => {
+          setNeed(n);
+          loadMyOffer(n.userId); // e.g. back from the offer form
+        })
         .catch(err => console.error('İlan yenilenirken hata:', err));
-    }, [needId])
+    }, [needId, loadMyOffer])
   );
 
   const loadNeedDetail = async () => {
@@ -76,6 +89,7 @@ const NeedDetailScreen: React.FC = () => {
       if (user && needData.userId === user.id) {
         loadOffers();
       }
+      loadMyOffer(needData.userId);
     } catch (err: any) {
       setError(err.response?.data?.message || 'İhtiyaç detayları yüklenirken hata oluştu');
     } finally {
@@ -240,7 +254,8 @@ const NeedDetailScreen: React.FC = () => {
   }
 
   const isOwner = user && user.id === need.userId;
-  const canCreateOffer = user && !user.isGuest && user.id !== need.userId && need.status === 'Active';
+  const hasActiveOffer = !!myOffer && (myOffer.status === 'Pending' || myOffer.status === 'Accepted');
+  const canCreateOffer = user && !user.isGuest && user.id !== need.userId && need.status === 'Active' && !hasActiveOffer;
   // Reporting needs a full account and is not offered on your own need
   const canReport = !!user && !user.isGuest && user.id !== need.userId;
   // Rejected needs get their edit button inside the moderation notice
@@ -395,8 +410,35 @@ const NeedDetailScreen: React.FC = () => {
       </ScrollView>
 
       {/* Action Button */}
+      {hasActiveOffer && myOffer && (
+        <View style={styles.actionContainer}>
+          <View style={styles.myOfferRow}>
+            <Text style={styles.myOfferTitle}>
+              Teklifiniz: {myOffer.price.toLocaleString('tr-TR')} {myOffer.currency === 'TRY' ? 'TL' : myOffer.currency}
+            </Text>
+            <Text style={[styles.myOfferStatus, myOffer.status === 'Accepted' && styles.myOfferStatusAccepted]}>
+              {myOffer.status === 'Accepted' ? 'Kabul Edildi' : 'Beklemede'}
+            </Text>
+          </View>
+          <Text style={styles.myOfferHint}>
+            {myOffer.status === 'Accepted'
+              ? 'Alıcı teklifinizi kabul etti. Ayrıntıları mesajlaşarak netleştirebilirsiniz.'
+              : 'Teklifiniz alıcıya iletildi. Bu arada alıcıyla mesajlaşabilirsiniz.'}
+          </Text>
+          <Button
+            title="Mesajlaş"
+            onPress={() => navigation.navigate('Chat', { offerId: myOffer.id })}
+            icon="message"
+            fullWidth
+          />
+        </View>
+      )}
+
       {canCreateOffer && (
         <View style={styles.actionContainer}>
+          {myOffer?.status === 'Rejected' && (
+            <Text style={styles.myOfferHint}>Önceki teklifiniz reddedildi. Yeni bir teklif verebilirsiniz.</Text>
+          )}
           <Button
             title="Teklif Ver"
             onPress={handleCreateOffer}
@@ -579,6 +621,30 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  myOfferRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  myOfferTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  myOfferStatus: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.secondaryOrangeDark,
+  },
+  myOfferStatusAccepted: {
+    color: colors.success,
+  },
+  myOfferHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
   },
 });
 

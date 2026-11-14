@@ -344,7 +344,22 @@ const NeedDetailPage: React.FC = () => {
   const isOwner = user && need && user.id === need.userId;
   const isUnderModeration = need?.status === 'PendingReview' || need?.status === 'Rejected';
   const canReport = isAuthenticated && !isGuest && !!need && !isOwner;
-  const canCreateOffer = isAuthenticated && !isGuest && user && need && user.id !== need.userId && need.status === 'Active';
+  const [myOffer, setMyOffer] = useState<Offer | null>(null);
+  // A pending or accepted offer replaces the "Teklif Ver" button (the API rejects a second pending one)
+  const hasActiveOffer = !!myOffer && (myOffer.status === 'Pending' || myOffer.status === 'Accepted');
+  const canCreateOffer = isAuthenticated && !isGuest && user && need && user.id !== need.userId && need.status === 'Active' && !hasActiveOffer;
+
+  useEffect(() => {
+    if (!needId || !isAuthenticated || isGuest || !need || isOwner) {
+      setMyOffer(null);
+      return;
+    }
+    let cancelled = false;
+    offerAPI.getMyOfferForNeed(needId)
+      .then(offer => { if (!cancelled) setMyOffer(offer); })
+      .catch(() => { if (!cancelled) setMyOffer(null); });
+    return () => { cancelled = true; };
+  }, [needId, isAuthenticated, isGuest, need, isOwner]);
 
   const loadNeedDetail = useCallback(async () => {
     if (!needId) {
@@ -687,8 +702,39 @@ const NeedDetailPage: React.FC = () => {
                 <div className="sticky top-24">
                   {/* Action Card */}
                   <Card padding="lg" className="mb-6">
-                    {canCreateOffer ? (
+                    {hasActiveOffer && myOffer ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-semibold text-text-primary">Teklifiniz</p>
+                          <Badge variant={myOffer.status === 'Accepted' ? 'success' : 'warning'}>
+                            {myOffer.status === 'Accepted' ? 'Kabul Edildi' : 'Beklemede'}
+                          </Badge>
+                        </div>
+                        <p className="text-2xl font-bold text-primary mb-1">
+                          {myOffer.price.toLocaleString('tr-TR')} {myOffer.currency === 'TRY' ? 'TL' : myOffer.currency}
+                        </p>
+                        <p className="text-text-secondary text-sm mb-4">
+                          {myOffer.status === 'Accepted'
+                            ? 'Alıcı teklifinizi kabul etti. Ayrıntıları mesajlaşarak netleştirebilirsiniz.'
+                            : 'Teklifiniz alıcıya iletildi. Bu arada alıcıyla mesajlaşabilirsiniz.'}
+                        </p>
+                        <Button variant="primary" size="lg" fullWidth onClick={() => navigate(`/messages/${myOffer.id}`)}>
+                          Mesajlaş
+                        </Button>
+                        <Link
+                          to="/my-offers"
+                          className="block text-center text-primary hover:text-primary-dark text-sm mt-3"
+                        >
+                          Tekliflerim
+                        </Link>
+                      </div>
+                    ) : canCreateOffer ? (
                       <>
+                        {myOffer?.status === 'Rejected' && (
+                          <p className="text-text-secondary text-sm text-center mb-3">
+                            Önceki teklifiniz reddedildi. Yeni bir teklif verebilirsiniz.
+                          </p>
+                        )}
                         <Button
                           variant="primary"
                           size="lg"
