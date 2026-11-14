@@ -313,6 +313,24 @@ class AuthService {
     }
   }
 
+  /** Cached user, or the user fetched with the stored token; clears tokens when that fails. */
+  async restoreCurrentUser(): Promise<User | null> {
+    const cached = await this.getCurrentUser();
+    if (cached) return cached;
+    try {
+      const user = await authAPI.getCurrentUser();
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      return user;
+    } catch (error: any) {
+      // Only a rejected token means the session is gone; keep tokens when offline
+      const status = error?.response?.status;
+      if (status === 401 || status === 403 || status === 404) {
+        await secureStorageService.clearAuthTokens();
+      }
+      return null;
+    }
+  }
+
   async getAuthToken(): Promise<string | null> {
     try {
       const tokens = await secureStorageService.getAuthTokens();

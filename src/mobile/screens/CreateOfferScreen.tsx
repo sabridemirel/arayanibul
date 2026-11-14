@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -102,8 +102,13 @@ const CreateOfferScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const scrollRef = useRef<ScrollView>(null);
+
   const handleSubmit = async () => {
     if (!validateForm()) {
+      // Errors are shown next to the fields above the submit button: bring them into view
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      Alert.alert('Eksik Bilgi', 'Lütfen kırmızı ile işaretli alanları doldurun.');
       return;
     }
 
@@ -227,7 +232,7 @@ const CreateOfferScreen: React.FC = () => {
         style={styles.content} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
           {/* Need Summary */}
           <Card style={styles.needSummary}>
             <View style={styles.needHeader}>

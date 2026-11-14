@@ -84,8 +84,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Check if user is already authenticated
       const authenticated = await authService.isAuthenticated();
-      if (authenticated) {
-        const currentUser = await authService.getCurrentUser();
+      // Tokens live in the iOS Keychain, which survives an uninstall, while the cached user
+      // (AsyncStorage) does not. Without a user the app would sit in a half-signed-in state,
+      // so reload the user from the API, or drop the stale tokens and start as a guest.
+      const currentUser = authenticated ? await authService.restoreCurrentUser() : null;
+      if (currentUser) {
         setUser(currentUser);
         setIsAuthenticated(true);
 

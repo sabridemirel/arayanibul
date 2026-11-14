@@ -77,6 +77,9 @@ const Input: React.FC<InputProps> = ({
     fontSize: typography.body.fontSize,
     color: colors.text,
     paddingVertical: spacing.sm,
+    // A multiline box is drawn several lines tall; make the text field fill it so a tap
+    // anywhere in the box focuses it (otherwise only the first line is tappable).
+    ...(multiline ? { alignSelf: 'stretch' as const, minHeight: numberOfLines * 24 + 8 } : {}),
   });
 
   const getLabelStyle = (): TextStyle => ({

@@ -42,7 +42,7 @@ const OnboardingSlide3: React.FC<OnboardingSlide3Props> = ({
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityRole="button"
         accessibilityLabel="Kayıt ekranına geç"
-        accessibilityHint="Onboarding'i atla ve giriş ekranına git"
+        accessibilityHint="Tanıtımı geç ve giriş ekranına git"
       >
         <Text style={styles.skipButtonText} allowFontScaling={true}>Atla</Text>
       </TouchableOpacity>

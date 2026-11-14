@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -222,8 +222,13 @@ const CreateNeedScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const scrollRef = useRef<ScrollView>(null);
+
   const handleSubmit = async () => {
     if (!validateForm()) {
+      // Errors are shown next to the fields, mostly above the submit button: bring them into view
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      Alert.alert('Eksik Bilgi', 'Lütfen kırmızı ile işaretli alanları doldurun.');
       return;
     }
 
@@ -550,7 +555,7 @@ const CreateNeedScreen: React.FC = () => {
         </View>
       )}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={scrollRef} style={styles.content} showsVerticalScrollIndicator={false}>
         {isEdit && existingNeed ? <NeedModerationNotice need={existingNeed} /> : null}
 
         <Card style={styles.formCard}>

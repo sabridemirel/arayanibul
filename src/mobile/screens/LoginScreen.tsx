@@ -144,6 +144,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={(text) => setValue('password', text)}
             onBlur={() => setFieldTouched('password')}
             secureTextEntry={true}
+            textContentType="password"
+            autoComplete="current-password"
             autoCapitalize="none"
             leftIcon="lock"
             showPasswordToggle={true}

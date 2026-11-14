@@ -95,10 +95,10 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
       const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
       return diffInMinutes < 1 ? 'Az önce' : `${diffInMinutes} dk önce`;
     }
-    if (diffInHours < 24) return `${diffInHours}s önce`;
+    if (diffInHours < 24) return `${diffInHours} sa önce`;
 
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}g önce`;
+    if (diffInDays < 7) return `${diffInDays} gün önce`;
 
     return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
   };
@@ -462,7 +462,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
-    backgroundColor: colors.background,
+    // Same white as the card so the strip reads as part of it, not the page behind
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

@@ -45,7 +45,7 @@ const OnboardingSlide2: React.FC<OnboardingSlide2Props> = ({
           onPress={onSkip}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
-          accessibilityLabel="Onboarding'i atla"
+          accessibilityLabel="Tanıtımı geç"
           accessibilityHint="Direkt giriş ekranına gitmek için dokunun"
         >
           <Text style={styles.skipButtonText} allowFontScaling={true}>Geç</Text>

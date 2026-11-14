@@ -195,6 +195,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={(text) => setValue('password', text)}
             onBlur={() => setFieldTouched('password')}
             secureTextEntry={true}
+            textContentType="newPassword"
+            autoComplete="password-new"
+            passwordRules="minlength: 6; required: lower; required: digit;"
             autoCapitalize="none"
             leftIcon="lock"
             showPasswordToggle={true}
@@ -207,6 +210,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             onChangeText={(text) => setValue('confirmPassword', text)}
             onBlur={() => setFieldTouched('confirmPassword')}
             secureTextEntry={true}
+            textContentType="newPassword"
+            autoComplete="password-new"
+            passwordRules="minlength: 6; required: lower; required: digit;"
             autoCapitalize="none"
             leftIcon="lock"
             showPasswordToggle={true}
