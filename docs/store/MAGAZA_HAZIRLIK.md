@@ -180,7 +180,9 @@ en az 12 test kullanıcısıyla 14 gün kapalı test şartı vardır), sonra **�
 - [x] Ekran görüntüleri yüklendi
 - [x] 14 Kasım 2026: incelemeye gönderildi (onaylanınca otomatik yayın)
 - [x] 14 Kasım 2026: Apple onayladı, 1.0.0 yayında — https://apps.apple.com/app/id6834834670
-- [ ] Play Console hesabı onaylandı; Android derlemesi dahili teste yüklendi
+- [x] 16 Kasım 2026: Play Console hesabı onaylandı; uygulama oluşturuldu, mağaza girişi ve uygulama içeriği formları dolduruldu; 1.0.1 (6) dahili teste yayınlandı
+- [ ] Kapalı test: en az 12 test kullanıcısı, 14 gün kesintisiz → sonra üretim erişimi başvurusu
+- [ ] iOS sonraki sürüm: App Privacy formuna arama geçmişi eklenecek; konum "kullanıcıya bağlı" olarak güncellenecek (Play beyanıyla tutarlı olsun)
 - [ ] Sohbette paylaşılan anahtarlar (Hetzner, GitHub, Brevo) yenilendi
 
 ## 1.0.1 (16 Kasım 2026 incelemeye gönderildi; derleme 4)
