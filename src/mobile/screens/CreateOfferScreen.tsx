@@ -78,7 +78,7 @@ const CreateOfferScreen: React.FC = () => {
     } else if (isNaN(priceNum) || priceNum <= 0) {
       newErrors.price = 'Geçerli bir fiyat giriniz';
     } else if (need?.maxBudget && priceNum > need.maxBudget) {
-      newErrors.price = `Maksimum bütçe ${need.maxBudget.toLocaleString()} TL`;
+      newErrors.price = `Maksimum bütçe ${need.maxBudget.toLocaleString('tr-TR')} TL`;
     }
 
     // Description validation
@@ -147,13 +147,13 @@ const CreateOfferScreen: React.FC = () => {
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
     if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
     if (minBudget && maxBudget) {
-      return `${minBudget.toLocaleString()} - ${maxBudget.toLocaleString()} ${currency}`;
+      return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currency}`;
     }
     if (minBudget) {
-      return `${minBudget.toLocaleString()} ${currency} ve üzeri`;
+      return `${minBudget.toLocaleString('tr-TR')} ${currency} ve üzeri`;
     }
     if (maxBudget) {
-      return `${maxBudget.toLocaleString()} ${currency} ve altı`;
+      return `${maxBudget.toLocaleString('tr-TR')} ${currency} ve altı`;
     }
     return '';
   };
@@ -292,7 +292,7 @@ const CreateOfferScreen: React.FC = () => {
               )}
               {need.maxBudget && (
                 <Text style={styles.helperText}>
-                  Maksimum bütçe: {need.maxBudget.toLocaleString()} TL
+                  Maksimum bütçe: {need.maxBudget.toLocaleString('tr-TR')} TL
                 </Text>
               )}
             </View>

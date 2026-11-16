@@ -205,7 +205,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
         </View>
         <View style={styles.priceContainer}>
           <Text style={styles.offerPrice}>
-            {offer.price.toLocaleString()} {offer.currency}
+            {offer.price.toLocaleString('tr-TR')} {offer.currency}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(offer.status) }]}>
             <Text style={styles.statusText}>
@@ -313,7 +313,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
               </View>
               <View style={styles.comparisonCell}>
                 <Text style={styles.comparisonCellText}>
-                  {offer.price.toLocaleString()} TL
+                  {offer.price.toLocaleString('tr-TR')} TL
                 </Text>
               </View>
               <View style={styles.comparisonCell}>

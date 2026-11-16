@@ -236,7 +236,7 @@ const MyOffersScreen: React.FC = () => {
             </View>
           </View>
           <Text style={styles.offerPrice}>
-            {offer.price.toLocaleString()} {offer.currency}
+            {offer.price.toLocaleString('tr-TR')} {offer.currency}
           </Text>
         </View>
 
