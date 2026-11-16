@@ -116,8 +116,19 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'ACCESS_FINE_LOCATION',
       'CAMERA',
       'READ_EXTERNAL_STORAGE',
-      'WRITE_EXTERNAL_STORAGE',
       'NOTIFICATIONS',
+    ],
+    // No ads, analytics or tracking: strip the advertising-ID permissions that the (unused)
+    // Facebook SDK and other libraries merge into the manifest, plus permissions the app never uses.
+    blockedPermissions: [
+      'com.google.android.gms.permission.AD_ID',
+      'android.permission.ACCESS_ADSERVICES_AD_ID',
+      'android.permission.ACCESS_ADSERVICES_ATTRIBUTION',
+      'android.permission.ACCESS_ADSERVICES_CUSTOM_AUDIENCE',
+      'android.permission.ACCESS_ADSERVICES_TOPICS',
+      'com.google.android.gms.permission.ACTIVITY_RECOGNITION',
+      'android.permission.SYSTEM_ALERT_WINDOW',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
     ],
   },
   androidStatusBar: {
