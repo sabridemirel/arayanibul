@@ -31,6 +31,14 @@ const plugins: ExpoConfig['plugins'] = [
   'expo-secure-store',
   'expo-apple-authentication',
   [
+    'expo-image-picker',
+    {
+      photosPermission: 'İlanlarınıza fotoğraf eklemek için fotoğraf arşivinize erişim gerekiyor.',
+      cameraPermission: 'İlanlarınıza fotoğraf eklemek için kameranıza erişim gerekiyor.',
+      microphonePermission: false,
+    },
+  ],
+  [
     'expo-build-properties',
     {
       android: { usesCleartextTraffic: allowCleartext },

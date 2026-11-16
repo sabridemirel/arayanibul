@@ -1,8 +1,6 @@
 using API.Interfaces;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Jpeg;
-using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 
 namespace API.Services;
@@ -13,6 +11,9 @@ public class LocalFileStorageService : IFileStorageService
     private readonly ILogger<LocalFileStorageService> _logger;
     private readonly string _uploadsPath;
     private readonly string _baseUrl;
+
+    // Clients downscale to this size before upload; the server enforces it for older clients.
+    private const int MaxImageDimension = 2048;
 
     public LocalFileStorageService(IWebHostEnvironment environment, ILogger<LocalFileStorageService> logger, IConfiguration configuration)
     {
@@ -59,38 +60,30 @@ public class LocalFileStorageService : IFileStorageService
                 Directory.CreateDirectory(folderPath);
             }
 
-            // Generate unique filename
-            var fileExtension = Path.GetExtension(imageFile.FileName).ToLower();
-            var fileName = $"{Guid.NewGuid()}{fileExtension}";
+            // Every image is re-encoded as WebP regardless of the uploaded extension
+            var fileName = $"{Guid.NewGuid()}.webp";
             var filePath = Path.Combine(folderPath, fileName);
 
-            // Process and save image
             using var stream = imageFile.OpenReadStream();
             using var image = await Image.LoadAsync(stream);
-            
-            // Resize image if too large (max 1024x1024)
-            if (image.Width > 1024 || image.Height > 1024)
+
+            // Apply the camera's EXIF orientation, then drop all metadata (GPS location, device
+            // model, capture time) so photos never reveal where they were taken.
+            image.Mutate(x => x.AutoOrient());
+            image.Metadata.ExifProfile = null;
+            image.Metadata.XmpProfile = null;
+            image.Metadata.IptcProfile = null;
+
+            if (image.Width > MaxImageDimension || image.Height > MaxImageDimension)
             {
                 image.Mutate(x => x.Resize(new ResizeOptions
                 {
-                    Size = new Size(1024, 1024),
+                    Size = new Size(MaxImageDimension, MaxImageDimension),
                     Mode = ResizeMode.Max
                 }));
             }
 
-            // Save with appropriate format and quality
-            if (fileExtension == ".jpg" || fileExtension == ".jpeg")
-            {
-                await image.SaveAsJpegAsync(filePath, new JpegEncoder { Quality = 85 });
-            }
-            else if (fileExtension == ".png")
-            {
-                await image.SaveAsPngAsync(filePath, new PngEncoder());
-            }
-            else if (fileExtension == ".webp")
-            {
-                await image.SaveAsWebpAsync(filePath, new WebpEncoder { Quality = 85 });
-            }
+            await image.SaveAsWebpAsync(filePath, new WebpEncoder { Quality = 82 });
 
             // Return the URL
             return GetFileUrl(fileName, folder);

@@ -23,6 +23,7 @@ import type { Need, Offer } from '../services/api';
 import { Button, Card, Loading, Badge, ErrorMessage, Toast } from '../components/ui';
 import { Header, Footer } from '../components/layout';
 import ReportModal from '../components/ReportModal';
+import ImageLightbox from '../components/ImageLightbox';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import { NEED_STATUS_LABELS, NEED_STATUS_TONES, isNeedEditable } from '../services/moderation';
 import { useToast } from '../hooks/useToast';
@@ -82,6 +83,7 @@ interface OfferCardProps {
 }
 
 const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onReject, canMessage = false }) => {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -145,14 +147,29 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
         {offer.images && offer.images.length > 0 && (
           <div className="flex gap-2 mt-3 overflow-x-auto">
             {offer.images.map((image, index) => (
-              <img
+              <button
                 key={index}
-                src={image}
-                alt={`Teklif görseli ${index + 1}`}
-                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-              />
+                type="button"
+                onClick={() => setLightboxIndex(index)}
+                className="flex-shrink-0 rounded-lg cursor-zoom-in focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                aria-label={`Teklif görseli ${index + 1} tam ekran aç`}
+              >
+                <img
+                  src={image}
+                  alt={`Teklif görseli ${index + 1}`}
+                  className="w-16 h-16 rounded-lg object-cover"
+                />
+              </button>
             ))}
           </div>
+        )}
+        {lightboxIndex !== null && offer.images && (
+          <ImageLightbox
+            images={offer.images}
+            startIndex={lightboxIndex}
+            label="Teklif görseli"
+            onClose={() => setLightboxIndex(null)}
+          />
         )}
       </div>
 
@@ -206,6 +223,7 @@ interface ImageGalleryProps {
 
 const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -230,11 +248,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
     <div className="mb-6">
       {/* Main Image */}
       <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
-        <img
-          src={images[currentIndex]}
-          alt={`Görsel ${currentIndex + 1}`}
-          className="w-full h-full object-cover"
-        />
+        <button
+          type="button"
+          onClick={() => setLightboxOpen(true)}
+          className="block w-full h-full cursor-zoom-in focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label={`Görsel ${currentIndex + 1} tam ekran aç`}
+        >
+          <img
+            src={images[currentIndex]}
+            alt={`Görsel ${currentIndex + 1}`}
+            className="w-full h-full object-cover"
+          />
+        </button>
 
         {images.length > 1 && (
           <>
@@ -282,6 +307,15 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images }) => {
             </button>
           ))}
         </div>
+      )}
+
+      {lightboxOpen && (
+        <ImageLightbox
+          images={images}
+          startIndex={currentIndex}
+          label="İlan görseli"
+          onClose={() => setLightboxOpen(false)}
+        />
       )}
     </div>
   );

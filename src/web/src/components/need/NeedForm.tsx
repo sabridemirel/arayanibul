@@ -11,6 +11,7 @@ import {
 import { categoryAPI, resolveMediaUrl } from '../../services/api';
 import type { Category, NeedImage } from '../../services/api';
 import { Button, Card, Input, Loading, ErrorMessage } from '../ui';
+import { prepareImageForUpload, ImageDecodeError } from '../../utils/prepareImage';
 
 import type { NeedFormSubmitData, NeedFormValues, NeedUrgency } from './needFormTypes';
 
@@ -116,6 +117,7 @@ const NeedForm: React.FC<NeedFormProps> = ({
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isPreparingImages, setIsPreparingImages] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const selectedCategory = categories.find(c => c.id === formData.categoryId) ?? null;
@@ -230,22 +232,40 @@ const NeedForm: React.FC<NeedFormProps> = ({
     handleInputChange(field, parseBudget(value));
   };
 
-  // Image handling
-  const handleImageSelect = (files: FileList | null) => {
+  // Image handling: photos are downscaled in the browser before upload (see prepareImageForUpload)
+  const handleImageSelect = async (files: FileList | null) => {
     if (!files) return;
 
-    const validFiles: File[] = [];
-    const previews: string[] = [];
+    const remaining = MAX_IMAGES - totalImageCount;
+    const picked = Array.from(files).filter(file => file.type.startsWith('image/') || file.name.match(/\.(heic|heif)$/i));
+    if (picked.length === 0 || remaining <= 0) return;
 
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/') && totalImageCount + validFiles.length < MAX_IMAGES) {
-        validFiles.push(file);
-        previews.push(URL.createObjectURL(file));
+    setIsPreparingImages(true);
+    setErrors(prev => ({ ...prev, images: undefined }));
+    const prepared: File[] = [];
+    let failed = 0;
+    for (const file of picked.slice(0, remaining)) {
+      try {
+        prepared.push(await prepareImageForUpload(file));
+      } catch (err) {
+        if (!(err instanceof ImageDecodeError)) console.error('Image preparation failed', err);
+        failed += 1;
       }
-    });
+    }
+    setIsPreparingImages(false);
 
-    setImages(prev => [...prev, ...validFiles]);
-    setImagePreviews(prev => [...prev, ...previews]);
+    if (failed > 0) {
+      setErrors(prev => ({
+        ...prev,
+        images:
+          failed === 1
+            ? 'Bir fotoğraf açılamadı. JPG, PNG veya WebP formatında bir fotoğraf seçin.'
+            : `${failed} fotoğraf açılamadı. JPG, PNG veya WebP formatında fotoğraflar seçin.`,
+      }));
+    }
+
+    setImages(prev => [...prev, ...prepared]);
+    setImagePreviews(prev => [...prev, ...prepared.map(file => URL.createObjectURL(file))]);
   };
 
   const handleRemoveImage = (index: number) => {
@@ -272,7 +292,7 @@ const NeedForm: React.FC<NeedFormProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    handleImageSelect(e.dataTransfer.files);
+    void handleImageSelect(e.dataTransfer.files);
   };
 
   if (isCategoriesLoading) {
@@ -445,7 +465,9 @@ const NeedForm: React.FC<NeedFormProps> = ({
             veya <span className="text-primary">tıklayarak seçin</span>
           </p>
           <p className="text-xs text-text-secondary mt-2">
-            PNG, JPG, GIF (Maks. 5MB)
+            {isPreparingImages
+              ? 'Fotoğraflar hazırlanıyor…'
+              : 'JPG, PNG veya WebP. Büyük fotoğraflar otomatik küçültülür.'}
           </p>
         </div>
 
@@ -455,7 +477,7 @@ const NeedForm: React.FC<NeedFormProps> = ({
           accept="image/*"
           multiple
           onChange={(e) => {
-            handleImageSelect(e.target.files);
+            void handleImageSelect(e.target.files);
             e.target.value = '';
           }}
           className="hidden"
@@ -600,7 +622,7 @@ const NeedForm: React.FC<NeedFormProps> = ({
           size="lg"
           fullWidth
           isLoading={isSubmitting}
-          disabled={isSubmitting}
+          disabled={isSubmitting || isPreparingImages}
         >
           {submitLabel}
         </Button>

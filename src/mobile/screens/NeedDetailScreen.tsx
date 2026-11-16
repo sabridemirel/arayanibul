@@ -25,6 +25,7 @@ import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import ReportSheet from '../components/ReportSheet';
+import ImageViewerModal from '../components/ImageViewerModal';
 import { getNeedStatusColor, getNeedStatusText, isNeedEditable } from '../utils/needStatus';
 
 type NeedDetailScreenNavigationProp = StackNavigationProp<RootStackParamList, 'NeedDetail'>;
@@ -42,6 +43,7 @@ const NeedDetailScreen: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [offersLoading, setOffersLoading] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reportVisible, setReportVisible] = useState(false);
   const [myOffer, setMyOffer] = useState<Offer | null>(null);
@@ -322,16 +324,28 @@ const NeedDetailScreen: React.FC = () => {
               contentContainerStyle={styles.galleryContent}
             >
               {need.images.map((uri, index) => (
-                <Image
+                <TouchableOpacity
                   key={uri}
-                  source={{ uri }}
-                  style={[styles.galleryImage, need.images!.length === 1 && styles.galleryImageSingle]}
-                  resizeMode="cover"
-                  accessibilityLabel={`İlan görseli ${index + 1}`}
-                />
+                  activeOpacity={0.85}
+                  onPress={() => setViewerIndex(index)}
+                  accessibilityRole="imagebutton"
+                  accessibilityLabel={`İlan görseli ${index + 1}, büyütmek için dokunun`}
+                >
+                  <Image
+                    source={{ uri }}
+                    style={[styles.galleryImage, need.images!.length === 1 && styles.galleryImageSingle]}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
               ))}
             </ScrollView>
           )}
+          <ImageViewerModal
+            images={need.images ?? []}
+            startIndex={viewerIndex}
+            onClose={() => setViewerIndex(null)}
+            label="İlan görseli"
+          />
 
           <Text style={styles.needDescription} allowFontScaling={true}>{need.description}</Text>
 

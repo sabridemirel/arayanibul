@@ -186,5 +186,7 @@ en az 12 test kullanıcısıyla 14 gün kapalı test şartı vardır), sonra **�
 ## Sonraki toplu güncelleme (1.0.1) için
 
 - [x] iOS dil etiketi: `CFBundleDevelopmentRegion: 'tr'` + `CFBundleLocalizations: ['tr']` eklendi (mağazada "EN" görünüyordu; yeni derlemeyle düzelir)
+- [x] İlan formunda fotoğraf ekleme (kamera/galeri, en fazla 5; telefonda 2048 px'e küçültülür)
+- [x] İlan detayında tam ekran fotoğraf görüntüleyici (kaydırma; iOS'ta iki parmakla yakınlaştırma)
 - [ ] `app.config.ts` içinde `version` 1.0.1 yapılacak
 - [ ] İsteğe bağlı: birincil kategori (şu an Alışveriş) yeniden değerlendirilecek

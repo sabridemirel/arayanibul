@@ -494,6 +494,20 @@ export const needAPI = {
   
   deleteNeed: (id: number): Promise<void> =>
     api.delete(`/need/${id}`).then(res => res.data),
+
+  /** Uploads already-downscaled photos to a need (multipart, field "images") */
+  uploadNeedImages: (id: number, uris: string[]): Promise<string[]> => {
+    const formData = new FormData();
+    uris.forEach((uri, i) => {
+      formData.append('images', { uri, name: `foto-${i + 1}.jpg`, type: 'image/jpeg' } as unknown as Blob);
+    });
+    return api
+      .post(`/need/${id}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000,
+      })
+      .then(res => res.data);
+  },
 };
 
 export const offerAPI = {

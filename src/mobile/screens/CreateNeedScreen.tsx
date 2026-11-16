@@ -21,6 +21,8 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Loading from '../components/ui/Loading';
 import NeedModerationNotice from '../components/NeedModerationNotice';
+import ImagePickerField from '../components/ImagePickerField';
+import type { PickedImage } from '../utils/prepareImage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
 import { withCreateNeedAuth } from '../hoc/withAuthPrompt';
@@ -92,6 +94,7 @@ const CreateNeedScreen: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [photos, setPhotos] = useState<PickedImage[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   // Edit mode: the need being edited and the values it was loaded with
   const [existingNeed, setExistingNeed] = useState<Need | null>(null);
@@ -267,12 +270,21 @@ const CreateNeedScreen: React.FC = () => {
         requestData.address = formData.address.trim();
       }
 
-      await needAPI.createNeed(requestData);
+      const created = await needAPI.createNeed(requestData);
+
+      let photoNote = '';
+      if (photos.length > 0) {
+        try {
+          await needAPI.uploadNeedImages(created.id, photos.map(p => p.uri));
+        } catch {
+          photoNote = ' Fotoğraflar yüklenemedi; ilanınızı düzenleyerek web sitesinden tekrar ekleyebilirsiniz.';
+        }
+      }
 
       // New needs start in review; the owner can follow them from MyNeeds
       Alert.alert(
         'İlanınız Alındı',
-        'İlanınız alındı. İncelendikten sonra yayınlanacak.',
+        `İlanınız alındı. İncelendikten sonra yayınlanacak.${photoNote}`,
         [
           {
             text: 'İlanlarıma Git',
@@ -639,6 +651,16 @@ const CreateNeedScreen: React.FC = () => {
             />
           </View>
         </Card>
+
+        {!isEdit && (
+          <Card style={styles.formCard}>
+            <Text style={styles.sectionTitle}>Fotoğraflar</Text>
+            <Text style={styles.sectionDescription}>
+              İsteğe bağlı. Aradığınız şeyin fotoğrafı satıcıların doğru teklif vermesine yardımcı olur. En fazla 5 fotoğraf.
+            </Text>
+            <ImagePickerField images={photos} onChange={setPhotos} max={5} />
+          </Card>
+        )}
 
         <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Konum</Text>
