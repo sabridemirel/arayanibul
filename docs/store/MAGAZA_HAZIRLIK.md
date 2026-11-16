@@ -183,10 +183,12 @@ en az 12 test kullanıcısıyla 14 gün kapalı test şartı vardır), sonra **�
 - [ ] Play Console hesabı onaylandı; Android derlemesi dahili teste yüklendi
 - [ ] Sohbette paylaşılan anahtarlar (Hetzner, GitHub, Brevo) yenilendi
 
-## Sonraki toplu güncelleme (1.0.1) için
+## 1.0.1 (16 Kasım 2026 incelemeye gönderildi; derleme 4)
 
 - [x] iOS dil etiketi: `CFBundleDevelopmentRegion: 'tr'` + `CFBundleLocalizations: ['tr']` eklendi (mağazada "EN" görünüyordu; yeni derlemeyle düzelir)
 - [x] İlan formunda fotoğraf ekleme (kamera/galeri, en fazla 5; telefonda 2048 px'e küçültülür)
 - [x] İlan detayında tam ekran fotoğraf görüntüleyici (kaydırma; iOS'ta iki parmakla yakınlaştırma)
 - [x] `app.config.ts` içinde `version` 1.0.1
+- [x] Ekran görüntüleri: 03 fotoğraflı ilan detayı, 04 fotoğraf eklenen ilan formu (toplam 7)
+- [x] Android AAB 1.0.1 (derleme 4) EAS'te hazır; Play hesabı onaylanınca yüklenecek
 - [ ] İsteğe bağlı: birincil kategori (şu an Alışveriş) yeniden değerlendirilecek
