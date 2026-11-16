@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import AppDownloadBadges from '../AppDownloadBadges';
 
 const LEGAL_LINKS = [
   { to: '/privacy', label: 'Gizlilik Politikası' },
@@ -33,6 +34,7 @@ const Footer: React.FC = () => {
               Arayanibul, alıcıların ne aradıklarını ilan ettiği ve satıcıların teklif verdiği
               bir ters ilan platformudur. Ne arıyorsanız, onu bulan size gelsin!
             </p>
+            <AppDownloadBadges size="sm" className="mt-6" />
           </div>
 
           {/* Quick Links */}

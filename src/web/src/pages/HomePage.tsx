@@ -18,6 +18,7 @@ import { needAPI, categoryAPI } from '../services/api';
 import type { Need, Category } from '../services/api';
 import { Button, Card, Loading, Badge } from '../components/ui';
 import { Header, Footer } from '../components/layout';
+import AppDownloadBadges from '../components/AppDownloadBadges';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -375,6 +376,52 @@ const HomePage: React.FC = () => {
                 ))}
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Mobile App Section */}
+        <section className="py-16 bg-background" aria-labelledby="mobile-app-heading">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#5A189A] to-[#3c0764] px-6 pt-10 sm:px-12 lg:px-16 lg:pt-0">
+              <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
+                <div className="lg:py-16">
+                  <img
+                    src="/assets/app-icon.png"
+                    alt=""
+                    className="mb-6 h-16 w-16 rounded-2xl shadow-lg ring-1 ring-white/20"
+                  />
+                  <h2
+                    id="mobile-app-heading"
+                    className="text-3xl lg:text-4xl font-extrabold text-white mb-4 leading-tight"
+                  >
+                    ArayanıBUL artık iPhone'da
+                  </h2>
+                  <p className="text-white/75 text-lg mb-8 max-w-md leading-relaxed">
+                    İlan verin, gelen teklifleri karşılaştırın, satıcılarla mesajlaşın. Hepsi
+                    telefonunuzdan, aynı hesapla.
+                  </p>
+                  <AppDownloadBadges />
+                </div>
+
+                {/* Phone: rises from the bottom edge of the panel */}
+                <div className="relative mx-auto h-[360px] w-[250px] sm:h-[420px] sm:w-[280px] lg:h-[460px]">
+                  <div
+                    className="absolute -right-16 top-24 h-64 w-64 rounded-full bg-[#F59E0B] sm:-right-24 sm:h-80 sm:w-80"
+                    aria-hidden="true"
+                  />
+                  <div className="absolute inset-x-0 top-0 -rotate-[4deg] rounded-t-[2.6rem] border-[10px] border-b-0 border-[#1a0530] bg-[#1a0530] shadow-2xl lg:top-8">
+                    <img
+                      src="/assets/app-screen-home.webp"
+                      alt="ArayanıBUL iPhone uygulamasında ilan listesi"
+                      className="block w-full rounded-t-[2rem]"
+                      loading="lazy"
+                      width={540}
+                      height={1173}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
