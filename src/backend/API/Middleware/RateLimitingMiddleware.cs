@@ -161,7 +161,6 @@ public class RateLimitingMiddleware
     private void DetectSuspiciousActivity(string clientId, HttpContext context, DateTime now)
     {
         var suspiciousActivity = _suspiciousClients.GetOrAdd(clientId, _ => new SuspiciousActivity());
-        var userAgent = context.Request.Headers["User-Agent"].ToString();
         var block = (Duration: TimeSpan.Zero, Reason: "");
 
         lock (suspiciousActivity)
@@ -183,15 +182,9 @@ public class RateLimitingMiddleware
                 suspiciousActivity.RapidRequestCount = 0;
             }
 
-            // Check for suspicious user agents
-            if (IsSuspiciousUserAgent(userAgent))
-            {
-                suspiciousActivity.SuspiciousUserAgentCount++;
-                if (suspiciousActivity.SuspiciousUserAgentCount > 3)
-                {
-                    block = (TimeSpan.FromMinutes(15), "Suspicious user agent detected");
-                }
-            }
+            // User agents are not a blocking signal: the block is per IP, so one script or crawler
+            // (python, curl, Googlebot) would lock out every real user behind the same Wi-Fi or
+            // carrier NAT. Abusive clients are still stopped by the request limits above.
 
             suspiciousActivity.LastRequestTime = now;
         }
@@ -200,22 +193,6 @@ public class RateLimitingMiddleware
         {
             BlockClient(clientId, block.Duration, block.Reason);
         }
-    }
-
-    private bool IsSuspiciousUserAgent(string userAgent)
-    {
-        // No User-Agent is normal for native apps: the iOS app's SignalR (chat) connection sends
-        // none, and blocking on it locked whole IPs out for 15 minutes.
-        if (string.IsNullOrWhiteSpace(userAgent))
-            return false;
-
-        var suspiciousPatterns = new[]
-        {
-            "bot", "crawler", "spider", "scraper", "curl", "wget", "python", "java", "go-http-client"
-        };
-
-        return suspiciousPatterns.Any(pattern => 
-            userAgent.Contains(pattern, StringComparison.OrdinalIgnoreCase));
     }
 
     private void BlockClient(string clientId, TimeSpan duration, string reason)
@@ -297,7 +274,6 @@ public class RateLimitingMiddleware
     {
         public DateTime? LastRequestTime { get; set; }
         public int RapidRequestCount { get; set; }
-        public int SuspiciousUserAgentCount { get; set; }
         public DateTime? BlockedUntil { get; set; }
     }
 

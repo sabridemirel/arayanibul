@@ -66,4 +66,36 @@ public class RateLimitingUserAgentTests
 
         statuses.Should().AllSatisfy(s => s.Should().Be(StatusCodes.Status200OK));
     }
+
+    // Regression: a few requests with a tool user agent (python-urllib, curl) blocked the whole IP
+    // for 15 minutes, locking out every real user behind the same Wi-Fi / mobile carrier NAT.
+    [Theory]
+    [InlineData("Python-urllib/3.9")]
+    [InlineData("curl/8.7.1")]
+    [InlineData("Googlebot/2.1")]
+    public async Task ToolOrBotUserAgents_DoNotBlockTheIp(string userAgent)
+    {
+        var middleware = new RateLimitingMiddleware(
+            _ => Task.CompletedTask,
+            NullLogger<RateLimitingMiddleware>.Instance,
+            new RateLimitOptions { DefaultRequestLimit = 1000, DefaultTimeWindow = TimeSpan.FromMinutes(1) });
+        var ip = IPAddress.Parse($"10.{Random.Shared.Next(255)}.{Random.Shared.Next(255)}.{Random.Shared.Next(1, 255)}");
+
+        async Task<int> Send(string ua)
+        {
+            var context = new DefaultHttpContext();
+            context.Connection.RemoteIpAddress = ip;
+            context.Request.Method = "GET";
+            context.Request.Path = "/api/need";
+            context.Request.Headers.UserAgent = ua;
+            context.Response.Body = new MemoryStream();
+            await middleware.InvokeAsync(context);
+            return context.Response.StatusCode;
+        }
+
+        for (var i = 0; i < 10; i++) await Send(userAgent);
+
+        // A browser on the same IP must still get through
+        (await Send("Mozilla/5.0 (iPhone)")).Should().Be(StatusCodes.Status200OK);
+    }
 }
