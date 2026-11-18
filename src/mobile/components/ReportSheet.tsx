@@ -13,7 +13,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWindowInsets } from '../contexts/WindowInsetsContext';
 import Button from './ui/Button';
 import { reportAPI, ReportReason, ReportTargetType } from '../services/api';
 import { colors, spacing, typography, borderRadius } from '../theme';
@@ -42,7 +42,7 @@ interface ReportSheetProps {
 }
 
 const ReportSheet: React.FC<ReportSheetProps> = ({ visible, targetType, targetId, onClose }) => {
-  const insets = useSafeAreaInsets();
+  const insets = useWindowInsets();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);

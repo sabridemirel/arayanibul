@@ -13,7 +13,7 @@ import {
   NativeScrollEvent,
   StatusBar,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWindowInsets } from '../contexts/WindowInsetsContext';
 import { MaterialIcons } from '@expo/vector-icons';
 
 interface ImageViewerModalProps {
@@ -30,7 +30,7 @@ interface ImageViewerModalProps {
  */
 const ImageViewerModal: React.FC<ImageViewerModalProps> = ({ images, startIndex, onClose, label = 'Görsel' }) => {
   const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const insets = useWindowInsets();
   const [index, setIndex] = useState(startIndex ?? 0);
   const listRef = useRef<FlatList<string>>(null);
 

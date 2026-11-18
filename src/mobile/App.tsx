@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { StatusBar, View, Image, StyleSheet } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar, View, Image, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 import { Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { WindowInsetsProvider } from './contexts/WindowInsetsContext';
 
 // Import real screens
 import LoginScreen from './screens/LoginScreen';
@@ -96,11 +97,30 @@ function AppNavigator() {
 }
 
 function AppContent() {
+  const insets = useSafeAreaInsets();
+  // Android draws edge-to-edge, so the system navigation buttons sit on top of the app. Most
+  // screens never reserved room for them; laying the whole navigator out above the bar fixes
+  // them all at once. The nested SafeAreaProvider measures that smaller area, so screens inside
+  // see a bottom inset of 0 and nothing is padded twice. Modals are separate windows and read
+  // the real insets through useWindowInsets().
+  // iOS screens already handle the home indicator themselves.
+  if (Platform.OS !== 'android') {
+    return (
+      <WindowInsetsProvider value={insets}>
+        <StatusBar barStyle="dark-content" />
+        <AppNavigator />
+      </WindowInsetsProvider>
+    );
+  }
   return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <AppNavigator />
-    </>
+    <WindowInsetsProvider value={insets}>
+      <View style={[styles.appContent, { paddingBottom: insets.bottom }]}>
+        <StatusBar barStyle="dark-content" />
+        <SafeAreaProvider>
+          <AppNavigator />
+        </SafeAreaProvider>
+      </View>
+    </WindowInsetsProvider>
   );
 }
 
@@ -178,6 +198,10 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  appContent: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

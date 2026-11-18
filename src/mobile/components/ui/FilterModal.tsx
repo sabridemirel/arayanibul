@@ -15,7 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWindowInsets } from '../../contexts/WindowInsetsContext';
 import { colors, spacing, borderRadius } from '../../theme';
 import { NeedFilters, Category } from '../../types';
 import Button from './Button';
@@ -68,7 +68,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onClose,
   userLocation,
 }) => {
-  const insets = useSafeAreaInsets();
+  const insets = useWindowInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const [localFilters, setLocalFilters] = useState<NeedFilters>(filters);
 

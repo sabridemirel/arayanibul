@@ -11,7 +11,7 @@ import {
   Pressable,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useWindowInsets } from '../../contexts/WindowInsetsContext';
 import * as Haptics from 'expo-haptics';
 import { colors, spacing } from '../../theme';
 import { SortBy } from '../../services/api';
@@ -48,7 +48,7 @@ const SortBottomSheet: React.FC<SortBottomSheetProps> = ({
   onSelect,
   onClose,
 }) => {
-  const insets = useSafeAreaInsets();
+  const insets = useWindowInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 

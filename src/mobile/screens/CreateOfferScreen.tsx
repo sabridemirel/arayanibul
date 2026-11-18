@@ -38,6 +38,7 @@ const CreateOfferScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   // Form state
   const [price, setPrice] = useState('');
@@ -218,6 +219,9 @@ const CreateOfferScreen: React.FC = () => {
     );
   }
 
+  // The card shows three lines by default; longer descriptions get a toggle to read the rest
+  const isLongDescription = need.description.length > 110 || need.description.split('\n').length > 3;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -244,9 +248,25 @@ const CreateOfferScreen: React.FC = () => {
               </View>
             </View>
             
-            <Text style={styles.needDescription} numberOfLines={3}>
+            <Text
+              style={[styles.needDescription, isLongDescription && styles.needDescriptionWithToggle]}
+              numberOfLines={isLongDescription && !descriptionExpanded ? 3 : undefined}
+            >
               {need.description}
             </Text>
+            {isLongDescription && (
+              <TouchableOpacity
+                style={styles.descriptionToggle}
+                onPress={() => setDescriptionExpanded(expanded => !expanded)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: descriptionExpanded }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.descriptionToggleText}>
+                  {descriptionExpanded ? 'Daha Az Göster' : 'Devamını Göster'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.needInfo}>
               <View style={styles.infoRow}>
@@ -438,6 +458,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 22,
     marginBottom: spacing.md,
+  },
+  needDescriptionWithToggle: {
+    marginBottom: spacing.xs,
+  },
+  descriptionToggle: {
+    alignSelf: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  descriptionToggleText: {
+    fontSize: typography.body.fontSize,
+    fontWeight: '600',
+    color: colors.primary,
   },
   needInfo: {
     paddingTop: spacing.md,
