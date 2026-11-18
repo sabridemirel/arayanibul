@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 import { Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
+import * as InAppUpdates from 'expo-in-app-updates';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -98,6 +99,15 @@ function AppNavigator() {
 
 function AppContent() {
   const insets = useSafeAreaInsets();
+
+  // Android: when Google Play has a newer version, show Play's own full-screen update prompt
+  // right at launch instead of waiting for the background auto-update (which can take a day).
+  // The user can still back out; the prompt then comes back on the next launch.
+  // Only works for installs that came from Play, so failures (sideloaded/dev builds) are ignored.
+  useEffect(() => {
+    if (Platform.OS !== 'android' || __DEV__) return;
+    InAppUpdates.checkAndStartUpdate(true).catch(() => {});
+  }, []);
   // Android draws edge-to-edge, so the system navigation buttons sit on top of the app. Most
   // screens never reserved room for them; laying the whole navigator out above the bar fixes
   // them all at once. The nested SafeAreaProvider measures that smaller area, so screens inside
