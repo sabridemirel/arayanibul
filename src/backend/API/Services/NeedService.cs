@@ -21,6 +21,54 @@ public class NeedService : INeedService
 
     private bool ModerationEnabled => _moderation?.IsEnabled ?? false;
 
+    /// <summary>How long an urgent need stays in the "Acil İlanlar" showcase.</summary>
+    public const int UrgentShowcaseDays = 7;
+
+    /// <summary>A user may hold one showcase slot at a time (the slot is the future paid product).</summary>
+    private async Task EnsureUrgentSlotAvailableAsync(string userId, int? excludeNeedId = null)
+    {
+        var now = DateTime.UtcNow;
+        var hasActiveUrgent = await _context.Needs.AnyAsync(n =>
+            n.UserId == userId &&
+            n.Id != excludeNeedId &&
+            n.Urgency == UrgencyLevel.Urgent &&
+            n.UrgentUntil > now &&
+            // Closed needs free the slot; rejected / in-progress ones still hold it, since they
+            // can come back to the listing without their urgency changing.
+            n.Status != NeedStatus.Cancelled &&
+            n.Status != NeedStatus.Completed &&
+            n.Status != NeedStatus.Expired);
+
+        if (hasActiveUrgent)
+        {
+            // BusinessException: its text reaches clients in "message", which already-released
+            // app versions show as-is.
+            throw new BusinessException(
+                "Aynı anda yalnızca bir acil ilanınız olabilir. Bu ilanı normal olarak yayınlayabilir veya mevcut acil ilanınızın süresinin dolmasını bekleyebilirsiniz.");
+        }
+    }
+
+    /// <summary>Drops urgent needs whose showcase slot has ended back to Normal.</summary>
+    public async Task<int> ExpireUrgentShowcasesAsync()
+    {
+        var now = DateTime.UtcNow;
+        var expired = await _context.Needs
+            .Where(n => n.Urgency == UrgencyLevel.Urgent && n.UrgentUntil != null && n.UrgentUntil <= now)
+            .ToListAsync();
+
+        foreach (var need in expired)
+        {
+            need.Urgency = UrgencyLevel.Normal;
+            need.UrgentUntil = null;
+        }
+
+        if (expired.Count > 0)
+        {
+            await _context.SaveChangesAsync();
+        }
+        return expired.Count;
+    }
+
     private async Task<string?> GetFlaggedTermsAsync(string title, string description)
     {
         if (_moderation == null) return null;
@@ -59,6 +107,11 @@ public class NeedService : INeedService
             });
         }
 
+        if (request.Urgency == UrgencyLevel.Urgent)
+        {
+            await EnsureUrgentSlotAvailableAsync(userId);
+        }
+
         var need = new Need
         {
             Title = request.Title,
@@ -71,6 +124,7 @@ public class NeedService : INeedService
             Longitude = request.Longitude,
             Address = request.Address,
             Urgency = request.Urgency,
+            UrgentUntil = request.Urgency == UrgencyLevel.Urgent ? DateTime.UtcNow.AddDays(UrgentShowcaseDays) : null,
             Status = ModerationEnabled ? NeedStatus.PendingReview : NeedStatus.Active,
             NeedsReview = ModerationEnabled,
             FlaggedTerms = await GetFlaggedTermsAsync(request.Title, request.Description),
@@ -191,6 +245,7 @@ public class NeedService : INeedService
         var totalCount = await query.CountAsync();
 
         // Apply sorting
+        var showcaseNow = DateTime.UtcNow;
         query = filter.SortBy?.ToLower() switch
         {
             "title" => filter.SortDescending ? query.OrderByDescending(n => n.Title) : query.OrderBy(n => n.Title),
@@ -198,7 +253,11 @@ public class NeedService : INeedService
             "urgency" => filter.SortDescending ? query.OrderByDescending(n => n.Urgency) : query.OrderBy(n => n.Urgency),
             "updatedat" => filter.SortDescending ? query.OrderByDescending(n => n.UpdatedAt) : query.OrderBy(n => n.UpdatedAt),
             "offercount" => filter.SortDescending ? query.OrderByDescending(n => n.Offers.Count) : query.OrderBy(n => n.Offers.Count),
-            _ => filter.SortDescending ? query.OrderByDescending(n => n.CreatedAt) : query.OrderBy(n => n.CreatedAt)
+            // Default (newest first): needs holding an "Acil İlanlar" showcase slot are pinned to the top.
+            _ => filter.SortDescending
+                ? query.OrderByDescending(n => n.Urgency == UrgencyLevel.Urgent && n.UrgentUntil > showcaseNow)
+                       .ThenByDescending(n => n.CreatedAt)
+                : query.OrderBy(n => n.CreatedAt)
         };
 
         // Apply pagination
@@ -334,8 +393,17 @@ public class NeedService : INeedService
             need.Address = request.Address;
         }
 
-        if (request.Urgency.HasValue)
+        if (request.Urgency.HasValue && request.Urgency.Value != need.Urgency)
         {
+            if (request.Urgency.Value == UrgencyLevel.Urgent)
+            {
+                await EnsureUrgentSlotAvailableAsync(userId, need.Id);
+                need.UrgentUntil = DateTime.UtcNow.AddDays(UrgentShowcaseDays);
+            }
+            else
+            {
+                need.UrgentUntil = null;
+            }
             need.Urgency = request.Urgency.Value;
         }
 
@@ -357,6 +425,15 @@ public class NeedService : INeedService
             if (target == NeedStatus.Active && ModerationEnabled && need.NeedsReview)
             {
                 target = NeedStatus.PendingReview;
+            }
+
+            // Re-opening a closed need that still holds showcase time must not create a second slot.
+            var reopening = need.Status == NeedStatus.Cancelled || need.Status == NeedStatus.Completed ||
+                            need.Status == NeedStatus.Expired;
+            if (reopening && (target == NeedStatus.Active || target == NeedStatus.PendingReview) &&
+                need.Urgency == UrgencyLevel.Urgent && need.UrgentUntil > DateTime.UtcNow)
+            {
+                await EnsureUrgentSlotAvailableAsync(userId, need.Id);
             }
 
             need.Status = target;
@@ -522,6 +599,7 @@ public class NeedService : INeedService
             Longitude = need.Longitude,
             Address = need.Address,
             Urgency = need.Urgency,
+            UrgentUntil = need.UrgentUntil,
             Status = need.Status,
             CreatedAt = need.CreatedAt,
             UpdatedAt = need.UpdatedAt,

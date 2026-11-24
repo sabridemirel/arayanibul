@@ -2,23 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   MagnifyingGlassIcon,
-  PlusCircleIcon,
+  PlusIcon,
   ArrowRightIcon,
-  BuildingStorefrontIcon,
-  HomeModernIcon,
-  ComputerDesktopIcon,
-  WrenchScrewdriverIcon,
-  TruckIcon,
-  SparklesIcon,
   CheckCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
+import { FireIcon } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
-import { needAPI, categoryAPI } from '../services/api';
-import type { Need, Category } from '../services/api';
-import { Button, Card, Loading, Badge } from '../components/ui';
+import { needAPI } from '../services/api';
+import type { Need } from '../services/api';
 import { Header, Footer } from '../components/layout';
 import AppDownloadBadges from '../components/AppDownloadBadges';
+import NeedCard, { NeedCardSkeleton } from '../components/NeedCard';
+import { useCategories } from '../utils/categoryVisual';
+
+const RECENT_COUNT = 12;
+const URGENT_COUNT = 6;
+
+const HOW_IT_WORKS = [
+  { title: 'İlan verin', text: 'Ne aradığınızı ve bütçenizi yazın. İlan vermek ücretsiz.' },
+  { title: 'Teklifleri karşılaştırın', text: 'Satıcılar ilanınızı görür ve size teklif verir.' },
+  { title: 'Anlaşın', text: 'Size uygun teklifi seçin, satıcıyla mesajlaşıp anlaşın.' },
+];
+
+const isShowcased = (need: Need) =>
+  need.urgency === 'Urgent' && (!need.urgentUntil || new Date(need.urgentUntil) > new Date());
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,10 +37,13 @@ const HomePage: React.FC = () => {
     () => (location.state as { flash?: string } | null)?.flash ?? null
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [urgentNeeds, setUrgentNeeds] = useState<Need[]>([]);
   const [recentNeeds, setRecentNeeds] = useState<Need[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingNeeds, setIsLoadingNeeds] = useState(true);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const categories = useCategories();
+  const rootCategories = categories
+    .filter((category) => !category.parentCategoryId)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   // Drop the flash state so it does not reappear on refresh / back navigation
   useEffect(() => {
@@ -42,73 +53,39 @@ const HomePage: React.FC = () => {
   }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // "Son İlanlar": newest active needs (popular endpoint is often empty early on)
-        const needs = await needAPI.getNeeds({ page: 1, pageSize: 6 });
-        setRecentNeeds(needs.slice(0, 6));
-      } catch (error) {
-        console.error('Error fetching needs:', error);
-      } finally {
-        setIsLoadingNeeds(false);
-      }
+    const fetchNeeds = async () => {
+      // The showcase is optional: the page still works if this request fails.
+      const [urgentResult, recentResult] = await Promise.allSettled([
+        needAPI.getNeeds({ urgency: 'Urgent', page: 1, pageSize: URGENT_COUNT }),
+        needAPI.getNeeds({ page: 1, pageSize: RECENT_COUNT + URGENT_COUNT }),
+      ]);
 
-      try {
-        // Fetch categories
-        const cats = await categoryAPI.getCategories();
-        setCategories(cats.slice(0, 6));
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      } finally {
-        setIsLoadingCategories(false);
+      const urgent = urgentResult.status === 'fulfilled' ? urgentResult.value.filter(isShowcased) : [];
+      const urgentIds = new Set(urgent.map((need) => need.id));
+      setUrgentNeeds(urgent);
+
+      if (recentResult.status === 'fulfilled') {
+        // Needs already shown in the showcase are not repeated below it
+        setRecentNeeds(
+          recentResult.value.filter((need) => !urgentIds.has(need.id)).slice(0, RECENT_COUNT)
+        );
+      } else {
+        console.error('Error fetching needs:', recentResult.reason);
       }
+      setIsLoadingNeeds(false);
     };
 
-    fetchData();
+    fetchNeeds();
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/needs?search=${encodeURIComponent(searchQuery)}`);
-    }
+    const query = searchQuery.trim();
+    navigate(query ? `/needs?search=${encodeURIComponent(query)}` : '/needs');
   };
 
-  const getCategoryIcon = (index: number) => {
-    const icons = [
-      <BuildingStorefrontIcon className="h-8 w-8" />,
-      <HomeModernIcon className="h-8 w-8" />,
-      <ComputerDesktopIcon className="h-8 w-8" />,
-      <WrenchScrewdriverIcon className="h-8 w-8" />,
-      <TruckIcon className="h-8 w-8" />,
-      <SparklesIcon className="h-8 w-8" />,
-    ];
-    return icons[index % icons.length];
-  };
-
-  const getUrgencyBadge = (urgency: string) => {
-    switch (urgency) {
-      case 'Urgent':
-        return <Badge variant="error">Acil</Badge>;
-      case 'Normal':
-        return <Badge variant="warning">Normal</Badge>;
-      default:
-        return <Badge variant="warning">Normal</Badge>;
-    }
-  };
-
-  const formatBudget = (need: Need) => {
-    if (need.minBudget && need.maxBudget) {
-      return `${need.minBudget.toLocaleString('tr-TR')} - ${need.maxBudget.toLocaleString('tr-TR')} ${need.currency}`;
-    }
-    if (need.maxBudget) {
-      return `${need.maxBudget.toLocaleString('tr-TR')} ${need.currency}'ye kadar`;
-    }
-    if (need.minBudget) {
-      return `${need.minBudget.toLocaleString('tr-TR')} ${need.currency}'den başlayan`;
-    }
-    return 'Belirtilmemiş';
-  };
+  const createNeedPath = isAuthenticated ? '/create-need' : '/login';
+  const hasNoNeeds = !isLoadingNeeds && urgentNeeds.length === 0 && recentNeeds.length === 0;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -132,250 +109,191 @@ const HomePage: React.FC = () => {
           </div>
         )}
 
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-primary to-primary-dark py-16 lg:py-24">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              {/* Logo */}
-              <div className="mb-8">
-                <img
-                  src="/assets/logo.jpg"
-                  alt="Arayanibul Logo"
-                  className="h-32 sm:h-40 lg:h-48 mx-auto rounded-2xl shadow-2xl"
-                />
-              </div>
-              <p className="text-lg lg:text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-                Hizmet veya ürün mü sunuyorsunuz? Arayanları bulun, teklif verin!
-                Müşterileriniz sizi bekliyor.
-              </p>
+        {/* Search band */}
+        <section className="bg-gradient-to-br from-primary to-primary-dark">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+            <h1 className="text-2xl lg:text-3xl font-extrabold text-white">
+              Arayanı bulun, teklifinizi verin
+            </h1>
+            <p className="mt-1 text-white/80 max-w-2xl">
+              İnsanlar ne aradığını yazar, satıcılar teklif verir. İlan vermek ücretsiz.
+            </p>
 
-              {/* Search Bar */}
-              <form onSubmit={handleSearch} className="max-w-3xl mx-auto mb-8">
-                <div className="relative group">
-                  {/* Glow Effect on Focus */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-secondary-orange to-yellow-400 rounded-2xl blur-lg opacity-0 group-focus-within:opacity-30 transition-opacity duration-500"></div>
-
-                  {/* Main Search Container */}
-                  <div className="relative bg-white rounded-2xl shadow-2xl group-focus-within:shadow-[0_20px_60px_rgba(245,158,11,0.3)] transition-all duration-300">
-                    {/* Search Icon */}
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <MagnifyingGlassIcon className="h-7 w-7 text-secondary-orange group-focus-within:scale-110 transition-transform duration-200" />
-                    </div>
-
-                    {/* Input Field */}
-                    <input
-                      type="text"
-                      placeholder="Hangi hizmeti sunuyorsunuz? (örn: 'temizlik', 'nakliye')"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-16 pr-24 sm:pr-36 py-5 text-base sm:text-lg lg:text-xl border-0 rounded-2xl focus:outline-none placeholder:text-text-secondary/60 font-normal"
-                    />
-
-                    {/* Search Button */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <button
-                        type="submit"
-                        className="bg-gradient-to-r from-secondary-orange to-secondary-orangeDark text-white px-4 sm:px-8 py-3.5 rounded-xl font-semibold text-sm sm:text-base shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-1 sm:gap-2"
-                      >
-                        <span className="hidden sm:inline">Ara</span>
-                        <MagnifyingGlassIcon className="h-5 w-5 sm:h-5 sm:w-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Popular Searches */}
-                  <div className="mt-4 flex flex-wrap items-center gap-2 justify-center">
-                    <span className="text-white/70 text-sm">Popüler ihtiyaçlar:</span>
-                    {['Tadilat', 'Temizlik', 'Nakliye', 'Mobilya'].map((term) => (
-                      <button
-                        key={term}
-                        type="button"
-                        onClick={() => setSearchQuery(term)}
-                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 backdrop-blur-sm text-white text-sm rounded-full border border-white/20 hover:border-white/40 transition-all duration-200"
-                      >
-                        {term}
-                      </button>
-                    ))}
-                  </div>
+            <div className="mt-5 flex flex-col gap-3 md:flex-row">
+              <form onSubmit={handleSearch} className="flex flex-1 rounded-xl bg-white p-1.5 shadow-lg" role="search">
+                <label htmlFor="home-search" className="sr-only">
+                  İlanlarda arayın
+                </label>
+                <div className="flex flex-1 items-center gap-2 pl-3">
+                  <MagnifyingGlassIcon className="h-5 w-5 shrink-0 text-text-secondary" aria-hidden="true" />
+                  <input
+                    id="home-search"
+                    type="search"
+                    placeholder="İlanlarda arayın: temizlik, laptop, nakliye…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full min-w-0 border-0 bg-transparent py-2.5 text-base text-text placeholder:text-text-secondary focus:outline-none"
+                  />
                 </div>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-white transition-colors hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                >
+                  Ara
+                </button>
               </form>
 
-              {/* CTA Button - for buyers */}
-              <div className="mt-6">
-                <p className="text-white/60 text-sm mb-3">Bir şey mi arıyorsunuz?</p>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  leftIcon={<PlusCircleIcon className="h-5 w-5" />}
-                  onClick={() => {
-                    if (isAuthenticated) {
-                      navigate('/create-need');
-                    } else {
-                      navigate('/login');
-                    }
-                  }}
-                >
-                  Ücretsiz İhtiyaç İlanı Ver
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="py-16 bg-surface">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl lg:text-3xl font-bold text-text text-center mb-12">
-              Nasıl Çalışır?
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#7B2CBF] to-[#5A189A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
-                  <span className="text-2xl font-bold text-white">1</span>
-                </div>
-                <h3 className="text-lg font-semibold text-text mb-2">
-                  İlanınızı Oluşturun
-                </h3>
-                <p className="text-text-secondary">
-                  Ne aradığınızı detaylı bir şekilde açıklayın ve bütçenizi belirleyin.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#7B2CBF] to-[#5A189A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
-                  <span className="text-2xl font-bold text-white">2</span>
-                </div>
-                <h3 className="text-lg font-semibold text-text mb-2">
-                  Teklifleri Alın
-                </h3>
-                <p className="text-text-secondary">
-                  Satıcılar ilanınızı görüp size en uygun tekliflerini sunar.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#7B2CBF] to-[#5A189A] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-500/30">
-                  <span className="text-2xl font-bold text-white">3</span>
-                </div>
-                <h3 className="text-lg font-semibold text-text mb-2">
-                  Seçin ve Anlaşın
-                </h3>
-                <p className="text-text-secondary">
-                  En uygun teklifi seçin, satıcıyla iletişime geçin ve anlaşma yapın.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Categories Section */}
-        <section className="py-16 bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl lg:text-3xl font-bold text-text">
-                Kategoriler
-              </h2>
               <Link
-                to="/search"
-                className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
+                to={createNeedPath}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary-orange px-6 py-3 font-bold text-[#3c0764] shadow-lg transition-colors hover:bg-[#FBBF24] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
-                Tümünü Gör
-                <ArrowRightIcon className="h-4 w-4" />
+                <PlusIcon className="h-5 w-5 stroke-2" aria-hidden="true" />
+                İlan Ver
               </Link>
             </div>
-
-            {isLoadingCategories ? (
-              <div className="flex justify-center py-12">
-                <Loading size="lg" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {categories.map((category, index) => (
-                  <Link
-                    key={category.id}
-                    to={`/needs?categoryId=${category.id}`}
-                    className="group"
-                  >
-                    <Card hover className="text-center">
-                      <div className="text-primary group-hover:text-primary-dark transition-colors mb-2 flex justify-center">
-                        {getCategoryIcon(index)}
-                      </div>
-                      <p className="font-medium text-text group-hover:text-primary transition-colors">
-                        {category.nameTr || category.name}
-                      </p>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
           </div>
         </section>
 
-        {/* Recent Needs Section */}
-        <section className="py-16 bg-surface">
+        {/* Category chips */}
+        {rootCategories.length > 0 && (
+          <nav aria-label="Kategoriler" className="border-b border-border bg-surface">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <ul className="flex gap-2 overflow-x-auto py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <li className="shrink-0">
+                  <Link
+                    to="/needs"
+                    className="block rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-white"
+                  >
+                    Tüm İlanlar
+                  </Link>
+                </li>
+                {rootCategories.map((category) => (
+                  <li key={category.id} className="shrink-0">
+                    <Link
+                      to={`/needs?categoryId=${category.id}`}
+                      className="block rounded-full border border-border px-4 py-1.5 text-sm font-medium text-text transition-colors hover:border-primary hover:text-primary"
+                    >
+                      {category.nameTr || category.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+        )}
+
+        {/* Urgent showcase */}
+        {urgentNeeds.length > 0 && (
+          <section aria-labelledby="urgent-heading" className="border-b border-[#F5DFB3] bg-[#FFF6E3]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <div className="mb-4 flex items-end justify-between gap-4">
+                <div>
+                  <h2 id="urgent-heading" className="flex items-center gap-2 text-xl font-extrabold text-[#7C2D12]">
+                    <FireIcon className="h-6 w-6 text-[#D97706]" aria-hidden="true" />
+                    Acil İlanlar
+                  </h2>
+                  <p className="text-sm text-[#7C2D12]/80">Hemen teklif bekleyen ilanlar.</p>
+                </div>
+                <Link
+                  to="/needs?urgency=Urgent"
+                  className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[#9A3412] hover:underline"
+                >
+                  Tümünü Gör
+                  <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+
+              <ul className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+                {urgentNeeds.map((need) => (
+                  <li key={need.id} className="w-[85%] shrink-0 snap-start sm:w-[380px]">
+                    <NeedCard need={need} />
+                  </li>
+                ))}
+                <li className="w-[85%] shrink-0 snap-start sm:w-[380px]">
+                  <Link
+                    to={createNeedPath}
+                    className="flex h-full min-h-[7.5rem] flex-col justify-center rounded-xl border-2 border-dashed border-[#E9B866] px-5 py-4 transition-colors hover:bg-[#FFEDC7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9A3412]"
+                  >
+                    <span className="font-bold text-[#7C2D12]">İlanınız burada yer alsın</span>
+                    <span className="mt-1 text-sm text-[#7C2D12]/80">
+                      İlan verirken “Acil”i seçin; ilanınız 7 gün boyunca en üstte görünsün.
+                    </span>
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </section>
+        )}
+
+        {/* Recent needs */}
+        <section aria-labelledby="recent-heading" className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl lg:text-3xl font-bold text-text">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 id="recent-heading" className="text-xl font-extrabold text-text">
                 Son İlanlar
               </h2>
               <Link
                 to="/needs"
-                className="flex items-center gap-1 text-primary hover:text-primary-dark transition-colors"
+                className="flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline"
               >
                 Tümünü Gör
-                <ArrowRightIcon className="h-4 w-4" />
+                <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
 
             {isLoadingNeeds ? (
-              <div className="flex justify-center py-12">
-                <Loading size="lg" />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <NeedCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : hasNoNeeds ? (
+              <div className="rounded-xl border border-border bg-surface px-6 py-12 text-center">
+                <p className="mb-4 text-text-secondary">
+                  Henüz yayında ilan yok. İlk ilanı siz verin, satıcılar size teklif getirsin.
+                </p>
+                <Link
+                  to={createNeedPath}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 font-semibold text-white hover:bg-primary-dark"
+                >
+                  <PlusIcon className="h-5 w-5" aria-hidden="true" />
+                  İlan Ver
+                </Link>
               </div>
             ) : recentNeeds.length === 0 ? (
-              <Card className="text-center py-12">
-                <p className="text-text-secondary mb-4">
-                  Henüz ilan bulunmuyor. İlk ilanı siz verin!
-                </p>
-                <Button
-                  variant="primary"
-                  leftIcon={<PlusCircleIcon className="h-5 w-5" />}
-                  onClick={() => navigate(isAuthenticated ? '/create-need' : '/login')}
-                >
-                  İlan Ver
-                </Button>
-              </Card>
+              <p className="text-text-secondary">Şu anda yayındaki tüm ilanlar acil ilanlar arasında.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {recentNeeds.map((need) => (
-                  <Link key={need.id} to={`/needs/${need.id}`}>
-                    <Card hover className="h-full">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-semibold text-text line-clamp-2 flex-1">
-                          {need.title}
-                        </h3>
-                        {getUrgencyBadge(need.urgency)}
-                      </div>
-                      <p className="text-text-secondary text-sm line-clamp-2 mb-4">
-                        {need.description}
-                      </p>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-primary font-medium">
-                          {formatBudget(need)}
-                        </span>
-                        {need.offerCount !== undefined && need.offerCount > 0 && (
-                          <Badge variant="primary">
-                            {need.offerCount} teklif
-                          </Badge>
-                        )}
-                      </div>
-                      {need.address && (
-                        <p className="text-text-secondary text-xs mt-2 truncate">
-                          {need.address}
-                        </p>
-                      )}
-                    </Card>
-                  </Link>
+                  <NeedCard key={need.id} need={need} />
                 ))}
               </div>
             )}
+          </div>
+        </section>
+
+        {/* How it works (compact) */}
+        <section aria-labelledby="how-heading" className="border-t border-border bg-surface py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 id="how-heading" className="mb-4 text-xl font-extrabold text-text">
+              Nasıl çalışır?
+            </h2>
+            <ol className="grid gap-4 md:grid-cols-3">
+              {HOW_IT_WORKS.map((step, index) => (
+                <li key={step.title} className="flex gap-3">
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary font-bold text-white"
+                    aria-hidden="true"
+                  >
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h3 className="font-bold text-text">{step.title}</h3>
+                    <p className="text-sm text-text-secondary">{step.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
@@ -421,36 +339,6 @@ const HomePage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16 bg-gradient-to-br from-primary to-primary-dark">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl lg:text-3xl font-bold text-white mb-4">
-              Aradığınızı Bulmaya Hazır mısınız?
-            </h2>
-            <p className="text-white/80 mb-8 max-w-2xl mx-auto">
-              Hemen ücretsiz kayıt olun ve ihtiyacınızı dünyaya duyurun.
-              Satıcılar ilanınızı görsün, size teklif versin.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => navigate(isAuthenticated ? '/create-need' : '/register')}
-              >
-                {isAuthenticated ? 'İlan Ver' : 'Ücretsiz Kayıt Ol'}
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="!border-white !text-white hover:!bg-white/10"
-                onClick={() => navigate('/needs')}
-              >
-                İlanları İncele
-              </Button>
             </div>
           </div>
         </section>

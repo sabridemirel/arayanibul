@@ -1,5 +1,5 @@
 // NeedCard.tsx - Modern, eye-catching Need card component
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -104,8 +104,11 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
   };
 
   const urgencyConfig = getUrgencyConfig(need.urgency);
+  const isUrgent = need.urgency === 'Urgent';
   const budgetText = formatBudget(need.minBudget, need.maxBudget, need.currency);
-  const hasImage = need.images && need.images.length > 0;
+  // A photo that fails to load is treated as missing instead of leaving an empty box
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage = !imageFailed && need.images && need.images.length > 0;
 
   // Category colors
   const categoryColor = getCategoryColor(need.categoryId);
@@ -113,7 +116,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
   const categoryBgColor = getCategoryColorWithOpacity(need.categoryId, 0.15);
 
   // Accessibility label for screen readers
-  const accessibilityLabel = `${need.title}. ${need.description}. ${urgencyConfig.text}. ${
+  const accessibilityLabel = `${need.title}. ${need.description}. ${isUrgent ? 'Acil ilan. ' : ''}${
     need.category?.nameTr || 'Kategori belirtilmemiş'
   }. ${budgetText || 'Bütçe belirtilmemiş'}. ${
     need.user?.firstName || 'Kullanıcı'
@@ -132,17 +135,19 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
         accessibilityLabel={accessibilityLabel}
         accessibilityHint="Bu ihtiyacın detaylarını görüntülemek için dokunun"
       >
-        <View style={styles.card}>
-          {/* Urgency Badge - Prominent */}
-          <View
-            style={[styles.urgencyBadge, { backgroundColor: urgencyConfig.color }]}
-            accessible={false} // Parent TouchableOpacity handles accessibility
-          >
-            <MaterialIcons name={urgencyConfig.icon} size={14} color="#ffffff" />
-            <Text style={styles.urgencyText} allowFontScaling={true} accessible={false}>
-              {urgencyConfig.text}
-            </Text>
-          </View>
+        <View style={[styles.card, isUrgent && styles.cardUrgent]}>
+          {/* Only urgent needs carry a badge; a label on every card would make it meaningless */}
+          {isUrgent && (
+            <View
+              style={[styles.urgencyBadge, { backgroundColor: urgencyConfig.color }]}
+              accessible={false} // Parent TouchableOpacity handles accessibility
+            >
+              <MaterialIcons name={urgencyConfig.icon} size={14} color="#ffffff" />
+              <Text style={styles.urgencyText} allowFontScaling={true} accessible={false}>
+                {urgencyConfig.text}
+              </Text>
+            </View>
+          )}
 
           {/* Content Container */}
           <View style={styles.contentContainer}>
@@ -153,6 +158,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
                   source={{ uri: need.images![0] }}
                   style={styles.thumbnail}
                   resizeMode="cover"
+                  onError={() => setImageFailed(true)}
                 />
               </View>
             )}
@@ -161,7 +167,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
             <View style={[styles.textContent, !hasImage && styles.textContentFull]}>
               {/* Title - 18px Bold */}
               <Text
-                style={styles.title}
+                style={[styles.title, !isUrgent && styles.titleNoBadge]}
                 numberOfLines={2}
                 allowFontScaling={true}
                 accessible={false}
@@ -284,6 +290,14 @@ const styles = StyleSheet.create({
         elevation: 8,
       },
     }),
+  },
+
+  cardUrgent: {
+    borderWidth: 1.5,
+    borderColor: colors.secondaryOrange,
+  },
+  titleNoBadge: {
+    paddingRight: 0,
   },
 
   // Prominent Urgency Badge

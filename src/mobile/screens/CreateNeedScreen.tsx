@@ -681,7 +681,7 @@ const CreateNeedScreen: React.FC = () => {
         <Card style={styles.formCard}>
           <Text style={styles.sectionTitle}>Aciliyet Durumu</Text>
           <Text style={styles.sectionDescription}>
-            İhtiyacınızın ne kadar acil olduğunu belirtin.
+            Acil ilanlar 7 gün boyunca listenin en üstünde gösterilir. Aynı anda bir acil ilanınız olabilir.
           </Text>
 
           <View style={styles.urgencyContainer}>

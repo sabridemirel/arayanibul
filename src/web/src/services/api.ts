@@ -254,6 +254,8 @@ export interface Need {
   longitude?: number;
   address?: string;
   urgency: 'Flexible' | 'Normal' | 'Urgent';
+  /** End of the "Acil İlanlar" showcase slot (urgent needs only) */
+  urgentUntil?: string;
   status: NeedStatus;
   createdAt: string;
   updatedAt: string;

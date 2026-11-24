@@ -66,6 +66,10 @@ public class NeedController : ControllerBase
             
             return CreatedAtAction(nameof(GetNeedById), new { id = need.Id }, need);
         }
+        catch (BusinessException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (ValidationException ex)
         {
             return BadRequest(new { message = ex.Message, errors = ex.Errors });

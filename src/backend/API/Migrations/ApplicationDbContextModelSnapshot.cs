@@ -356,6 +356,9 @@ namespace API.Migrations
                     b.Property<int>("Urgency")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("UrgentUntil")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("text");

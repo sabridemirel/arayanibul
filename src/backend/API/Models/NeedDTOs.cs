@@ -117,6 +117,7 @@ public class NeedResponse
     public double? Longitude { get; set; }
     public string? Address { get; set; }
     public UrgencyLevel Urgency { get; set; }
+    public DateTime? UrgentUntil { get; set; }
     public NeedStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -586,7 +586,7 @@ const NeedForm: React.FC<NeedFormProps> = ({
       <Card className="mb-6">
         <h2 className="text-lg font-semibold text-text mb-2">Aciliyet Durumu</h2>
         <p className="text-sm text-text-secondary mb-4">
-          İhtiyacınızın ne kadar acil olduğunu belirtin.
+          Acil ilanlar 7 gün boyunca listenin en üstünde gösterilir. Aynı anda bir acil ilanınız olabilir.
         </p>
 
         <div className="space-y-2">

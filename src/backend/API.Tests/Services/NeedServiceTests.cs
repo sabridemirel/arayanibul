@@ -88,6 +88,95 @@ public class NeedServiceTests : IDisposable
         needInDb.Should().NotBeNull();
     }
 
+    private static CreateNeedRequest UrgentRequest(string title) => new()
+    {
+        Title = title,
+        Description = "Test description for urgent showcase",
+        CategoryId = 1,
+        Urgency = UrgencyLevel.Urgent
+    };
+
+    [Fact]
+    public async Task CreateNeedAsync_Urgent_ShouldGetSevenDayShowcaseSlot()
+    {
+        var result = await _needService.CreateNeedAsync(UrgentRequest("Urgent one"), "test-user-id");
+
+        result.Urgency.Should().Be(UrgencyLevel.Urgent);
+        result.UrgentUntil.Should().BeCloseTo(DateTime.UtcNow.AddDays(7), TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
+    public async Task CreateNeedAsync_SecondUrgentForSameUser_ShouldBeRejected()
+    {
+        await _needService.CreateNeedAsync(UrgentRequest("Urgent one"), "test-user-id");
+
+        var act = () => _needService.CreateNeedAsync(UrgentRequest("Urgent two"), "test-user-id");
+
+        await act.Should().ThrowAsync<API.Middleware.BusinessException>();
+    }
+
+    [Fact]
+    public async Task UpdateNeedAsync_ToUrgent_ShouldRespectOneSlotRule_AndClearSlotWhenDowngraded()
+    {
+        var first = await _needService.CreateNeedAsync(UrgentRequest("Urgent one"), "test-user-id");
+        var normal = UrgentRequest("Normal one");
+        normal.Urgency = UrgencyLevel.Normal;
+        var second = await _needService.CreateNeedAsync(normal, "test-user-id");
+
+        var act = () => _needService.UpdateNeedAsync(second.Id, new UpdateNeedRequest { Urgency = UrgencyLevel.Urgent }, "test-user-id");
+        await act.Should().ThrowAsync<API.Middleware.BusinessException>();
+
+        var downgraded = await _needService.UpdateNeedAsync(first.Id, new UpdateNeedRequest { Urgency = UrgencyLevel.Normal }, "test-user-id");
+        downgraded!.UrgentUntil.Should().BeNull();
+
+        var upgraded = await _needService.UpdateNeedAsync(second.Id, new UpdateNeedRequest { Urgency = UrgencyLevel.Urgent }, "test-user-id");
+        upgraded!.UrgentUntil.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ExpireUrgentShowcasesAsync_ShouldDropEndedSlotsToNormal_AndFreeTheSlot()
+    {
+        var created = await _needService.CreateNeedAsync(UrgentRequest("Urgent one"), "test-user-id");
+        var entity = await _context.Needs.FindAsync(created.Id);
+        entity!.UrgentUntil = DateTime.UtcNow.AddMinutes(-1);
+        await _context.SaveChangesAsync();
+
+        var count = await _needService.ExpireUrgentShowcasesAsync();
+
+        count.Should().Be(1);
+        entity.Urgency.Should().Be(UrgencyLevel.Normal);
+        entity.UrgentUntil.Should().BeNull();
+        var next = await _needService.CreateNeedAsync(UrgentRequest("Urgent two"), "test-user-id");
+        next.Urgency.Should().Be(UrgencyLevel.Urgent);
+    }
+
+    [Fact]
+    public async Task GetNeedsAsync_DefaultSort_ShouldPinShowcasedUrgentNeedsFirst()
+    {
+        var urgent = await _needService.CreateNeedAsync(UrgentRequest("Older urgent need"), "test-user-id");
+        var normal = UrgentRequest("Newer normal need");
+        normal.Urgency = UrgencyLevel.Normal;
+        var newer = await _needService.CreateNeedAsync(normal, "test-user-id");
+        (await _context.Needs.FindAsync(newer.Id))!.CreatedAt = DateTime.UtcNow.AddMinutes(5);
+        await _context.SaveChangesAsync();
+
+        var result = await _needService.GetNeedsAsync(new NeedFilterRequest());
+
+        result.Items.Select(n => n.Id).Should().ContainInOrder(urgent.Id, newer.Id);
+    }
+
+    [Fact]
+    public async Task UpdateNeedAsync_ReopeningCancelledUrgentNeed_ShouldNotCreateSecondSlot()
+    {
+        var first = await _needService.CreateNeedAsync(UrgentRequest("Urgent one"), "test-user-id");
+        await _needService.UpdateNeedAsync(first.Id, new UpdateNeedRequest { Status = NeedStatus.Cancelled }, "test-user-id");
+        await _needService.CreateNeedAsync(UrgentRequest("Urgent two"), "test-user-id");
+
+        var act = () => _needService.UpdateNeedAsync(first.Id, new UpdateNeedRequest { Status = NeedStatus.Active }, "test-user-id");
+
+        await act.Should().ThrowAsync<API.Middleware.BusinessException>();
+    }
+
     [Fact]
     public async Task GetNeedByIdAsync_WithExistingId_ShouldReturnNeed()
     {

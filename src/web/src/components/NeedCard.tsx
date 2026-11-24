@@ -1,151 +1,123 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  MapPinIcon,
-  CurrencyDollarIcon,
-  TagIcon,
-  UserIcon,
-  StarIcon,
-  ClockIcon,
-} from '@heroicons/react/24/outline';
-import { Card, Badge } from './ui';
+import { MapPinIcon } from '@heroicons/react/24/outline';
+import { FireIcon } from '@heroicons/react/24/solid';
+import { resolveMediaUrl } from '../services/api';
 import type { Need } from '../services/api';
+import { getCategoryVisual, useCategories } from '../utils/categoryVisual';
 
 interface NeedCardProps {
   need: Need;
   className?: string;
 }
 
+const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY'): string | null => {
+  const unit = currency === 'TRY' ? 'TL' : currency;
+  const format = (value: number) => value.toLocaleString('tr-TR');
+  if (minBudget && maxBudget) {
+    return minBudget === maxBudget
+      ? `${format(maxBudget)} ${unit}`
+      : `${format(minBudget)} – ${format(maxBudget)} ${unit}`;
+  }
+  if (maxBudget) return `En fazla ${format(maxBudget)} ${unit}`;
+  if (minBudget) return `En az ${format(minBudget)} ${unit}`;
+  return null;
+};
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const diffInHours = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60));
+
+  if (diffInHours < 1) return 'Az önce';
+  if (diffInHours < 24) return `${diffInHours} saat önce`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays} gün önce`;
+
+  return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+};
+
+/**
+ * Listing card used on the home page and in search results.
+ * The square on the left is the first photo, or a category-coloured tile when the need has none,
+ * so cards line up whether or not a photo was added.
+ */
 const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
-  // Get urgency badge based on urgency level
-  const getUrgencyBadge = (urgency: string) => {
-    switch (urgency) {
-      case 'Urgent':
-        return <Badge variant="error">Acil</Badge>;
-      case 'Normal':
-        return <Badge variant="warning">Normal</Badge>;
-      default:
-        return <Badge variant="warning">Normal</Badge>;
-    }
-  };
-
-  // Format budget display
-  const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
-    if (minBudget && maxBudget) {
-      return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currency}`;
-    }
-    if (maxBudget) {
-      return `${maxBudget.toLocaleString('tr-TR')} ${currency}'ye kadar`;
-    }
-    if (minBudget) {
-      return `${minBudget.toLocaleString('tr-TR')} ${currency}'den başlayan`;
-    }
-    return 'Belirtilmemiş';
-  };
-
-  // Format relative date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) return 'Az once';
-    if (diffInHours < 24) return `${diffInHours} saat önce`;
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} gün önce`;
-
-    return date.toLocaleDateString('tr-TR');
-  };
+  const categories = useCategories();
+  const visual = getCategoryVisual(need.categoryId, categories);
+  // A photo that fails to load falls back to the category tile
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const photo = photoFailed ? undefined : need.images?.[0];
+  const isUrgent = need.urgency === 'Urgent';
+  const budget = formatBudget(need.minBudget, need.maxBudget, need.currency);
+  const categoryName = need.category?.nameTr || need.category?.name;
+  const offerCount = need.offerCount ?? 0;
 
   return (
-    <Link to={`/needs/${need.id}`} className={`block ${className}`}>
-      <Card
-        hover
-        className="h-full transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:shadow-primary/10"
+    <Link
+      to={`/needs/${need.id}`}
+      className={`group flex h-full gap-3.5 rounded-xl border bg-surface p-3 transition-shadow duration-200 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+        isUrgent ? 'border-secondary-orange/60' : 'border-border hover:border-purple-200'
+      } ${className}`}
+    >
+      <div
+        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg sm:h-28 sm:w-28"
+        style={photo ? undefined : { backgroundColor: visual.background }}
       >
-        {/* Header: Title and Urgency Badge */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <h3 className="font-semibold text-text text-lg line-clamp-2 flex-1 group-hover:text-primary transition-colors">
-            {need.title}
-          </h3>
-          {getUrgencyBadge(need.urgency)}
-        </div>
+        {photo ? (
+          <img
+            src={resolveMediaUrl(photo.imageUrl)}
+            alt=""
+            loading="lazy"
+            onError={() => setPhotoFailed(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <visual.Icon className="h-10 w-10" style={{ color: visual.foreground }} aria-hidden="true" />
+          </div>
+        )}
+        {isUrgent && (
+          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-md bg-[#B45309] px-1.5 py-0.5 text-xs font-bold text-white">
+            <FireIcon className="h-3 w-3" aria-hidden="true" />
+            Acil
+          </span>
+        )}
+      </div>
 
-        {/* Description */}
-        <p className="text-text-secondary text-sm line-clamp-2 mb-4">
-          {need.description}
-        </p>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {categoryName && (
+          <p className="truncate text-xs font-semibold" style={{ color: visual.foreground }}>
+            {categoryName}
+          </p>
+        )}
+        <h3 className="mt-0.5 line-clamp-2 font-semibold leading-snug text-text group-hover:text-primary">
+          {need.title}
+        </h3>
+        <p className="mt-1 line-clamp-1 text-sm text-text-secondary">{need.description}</p>
 
-        {/* Meta Information */}
-        <div className="space-y-2 mb-4">
-          {/* Category */}
-          {need.category && (
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <TagIcon className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{need.category.nameTr || need.category.name}</span>
-            </div>
-          )}
-
-          {/* Location */}
-          {need.address && (
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <MapPinIcon className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{need.address}</span>
-            </div>
-          )}
-
-          {/* Budget */}
-          <div className="flex items-center gap-2 text-sm">
-            <CurrencyDollarIcon className="h-4 w-4 flex-shrink-0 text-primary" />
-            <span className="font-medium text-primary">
-              {formatBudget(need.minBudget, need.maxBudget, need.currency)}
+        <div className="mt-auto pt-2">
+          <p className={budget ? 'font-bold text-primary' : 'text-sm text-text-secondary'}>
+            {budget ?? 'Bütçe belirtilmemiş'}
+          </p>
+          <div className="mt-1 flex items-center justify-between gap-2 text-xs text-text-secondary">
+            <span className="flex min-w-0 items-center gap-1">
+              {need.address && (
+                <>
+                  <MapPinIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{need.address}</span>
+                </>
+              )}
+            </span>
+            <span className="shrink-0">
+              {offerCount > 0 && (
+                <span className="mr-2 font-semibold text-primary">{offerCount} teklif</span>
+              )}
+              {formatDate(need.createdAt)}
             </span>
           </div>
         </div>
-
-        {/* Footer: User Info and Date */}
-        <div className="flex items-center justify-between pt-3 border-t border-border">
-          {/* User Info */}
-          <div className="flex items-center gap-2">
-            {need.user?.profileImageUrl ? (
-              <img
-                src={need.user.profileImageUrl}
-                alt={`${need.user.firstName} ${need.user.lastName}`}
-                className="w-6 h-6 rounded-full object-cover"
-              />
-            ) : (
-              <UserIcon className="h-5 w-5 text-text-secondary" />
-            )}
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-text-secondary">
-                {need.user?.firstName} {need.user?.lastName}
-              </span>
-              {(need.user?.rating ?? 0) > 0 && (
-                <div className="flex items-center gap-0.5 ml-1">
-                  <StarIcon className="h-3.5 w-3.5 text-secondary-orange fill-secondary-orange" />
-                  <span className="text-xs text-text-secondary">
-                    {(need.user?.rating ?? 0).toFixed(1)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Date and Offers */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 text-xs text-text-secondary">
-              <ClockIcon className="h-3.5 w-3.5" />
-              <span>{formatDate(need.createdAt)}</span>
-            </div>
-            {need.offerCount !== undefined && need.offerCount > 0 && (
-              <Badge variant="primary" size="sm">
-                {need.offerCount} teklif
-              </Badge>
-            )}
-          </div>
-        </div>
-      </Card>
+      </div>
     </Link>
   );
 };
@@ -153,38 +125,15 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
 // Skeleton component for loading state
 export const NeedCardSkeleton: React.FC = () => {
   return (
-    <Card className="h-full animate-pulse">
-      {/* Header skeleton */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 space-y-2">
-          <div className="h-5 bg-purple-100 rounded w-3/4" />
-          <div className="h-4 bg-purple-100 rounded w-1/2" />
-        </div>
-        <div className="h-6 bg-purple-100 rounded-full w-14" />
+    <div className="flex h-full animate-pulse gap-3.5 rounded-xl border border-border bg-surface p-3">
+      <div className="h-24 w-24 shrink-0 rounded-lg bg-purple-100 sm:h-28 sm:w-28" />
+      <div className="flex flex-1 flex-col gap-2 py-1">
+        <div className="h-3 w-1/3 rounded bg-purple-100" />
+        <div className="h-4 w-3/4 rounded bg-purple-100" />
+        <div className="h-3 w-full rounded bg-purple-100" />
+        <div className="mt-auto h-4 w-2/5 rounded bg-purple-100" />
       </div>
-
-      {/* Description skeleton */}
-      <div className="space-y-2 mb-4">
-        <div className="h-4 bg-purple-100 rounded w-full" />
-        <div className="h-4 bg-purple-100 rounded w-2/3" />
-      </div>
-
-      {/* Meta skeleton */}
-      <div className="space-y-2 mb-4">
-        <div className="h-4 bg-purple-100 rounded w-1/3" />
-        <div className="h-4 bg-purple-100 rounded w-1/2" />
-        <div className="h-4 bg-purple-100 rounded w-2/5" />
-      </div>
-
-      {/* Footer skeleton */}
-      <div className="flex items-center justify-between pt-3 border-t border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-purple-100 rounded-full" />
-          <div className="h-4 bg-purple-100 rounded w-24" />
-        </div>
-        <div className="h-4 bg-purple-100 rounded w-20" />
-      </div>
-    </Card>
+    </div>
   );
 };
 

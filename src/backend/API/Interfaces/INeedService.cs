@@ -12,6 +12,7 @@ public interface INeedService
     Task<PagedResult<NeedResponse>> GetUserNeedsAsync(string userId, NeedStatus? status = null, int page = 1, int pageSize = 20, bool ownerView = false);
     Task<List<NeedResponse>> SearchNeedsAsync(string searchText, double? latitude = null, double? longitude = null, double? radiusKm = null, int maxResults = 50);
     Task<bool> ExpireNeedAsync(int needId);
+    Task<int> ExpireUrgentShowcasesAsync();
     Task<List<NeedResponse>> GetNearbyNeedsAsync(double latitude, double longitude, double radiusKm = 10, int maxResults = 50);
     Task<List<NeedResponse>> GetTrendingNeedsAsync(int maxResults = 20);
     Task<PagedResult<NeedResponse>> GetNeedsByCategoriesAsync(List<int> categoryIds, int page = 1, int pageSize = 20);

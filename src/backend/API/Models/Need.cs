@@ -13,6 +13,9 @@ public class Need
     public double? Longitude { get; set; }
     public string? Address { get; set; }
     public UrgencyLevel Urgency { get; set; } = UrgencyLevel.Normal;
+    /// <summary>End of the "Acil İlanlar" showcase slot. Set when the need becomes Urgent;
+    /// once it passes, the need drops back to Normal (see UrgentShowcaseExpiryService).</summary>
+    public DateTime? UrgentUntil { get; set; }
     public NeedStatus Status { get; set; } = NeedStatus.Active;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

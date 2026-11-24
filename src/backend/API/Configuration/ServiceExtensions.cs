@@ -199,6 +199,7 @@ public static class ServiceExtensions
 
         // Background services
         services.AddHostedService<GuestCleanupService>();
+        services.AddHostedService<UrgentShowcaseExpiryService>();
 
         // Security services
         // services.AddScoped<API.Interfaces.IInputSanitizationService, InputSanitizationService>();
