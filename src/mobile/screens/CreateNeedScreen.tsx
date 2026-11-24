@@ -105,6 +105,46 @@ const CreateNeedScreen: React.FC = () => {
     loadCategories();
   }, []);
 
+  // Set right before leaving after a successful save, so the unsaved-changes prompt stays quiet
+  const savedRef = useRef(false);
+
+  const hasUnsavedChanges = isEdit
+    ? initialFormData !== null &&
+      (JSON.stringify(formData) !== JSON.stringify(initialFormData) || photos.length > 0)
+    : Boolean(
+        formData.title.trim() ||
+        formData.description.trim() ||
+        formData.address.trim() ||
+        formData.minBudget ||
+        formData.maxBudget ||
+        formData.categoryId ||
+        photos.length > 0
+      );
+
+  // Leaving with typed content (header arrow, Android back button, iOS swipe) asks first
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    return navigation.addListener('beforeRemove', (event) => {
+      if (savedRef.current) return;
+      event.preventDefault();
+      Alert.alert(
+        'Sayfadan Çıkılsın mı?',
+        isEdit
+          ? 'Değişiklikleriniz kaydedilmedi. Çıkarsanız kaybolur.'
+          : 'İlanınız henüz gönderilmedi. Çıkarsanız yazdıklarınız silinir.',
+        [
+          { text: 'Düzenlemeye Devam Et', style: 'cancel' },
+          {
+            text: 'Çık',
+            style: 'destructive',
+            onPress: () => navigation.dispatch(event.data.action),
+          },
+        ]
+      );
+    });
+  }, [navigation, hasUnsavedChanges, isEdit]);
+
   useEffect(() => {
     if (isEdit && user) {
       loadNeedForEdit(editNeedId);
@@ -288,7 +328,10 @@ const CreateNeedScreen: React.FC = () => {
         [
           {
             text: 'İlanlarıma Git',
-            onPress: () => navigation.replace('MyNeeds'),
+            onPress: () => {
+              savedRef.current = true;
+              navigation.replace('MyNeeds');
+            },
           },
         ],
         { cancelable: false }
@@ -344,6 +387,7 @@ const CreateNeedScreen: React.FC = () => {
           ? 'İlanınız güncellendi ve yeniden incelemeye gönderildi.'
           : 'İlanınız güncellendi.';
 
+      savedRef.current = true;
       Alert.alert('İlan Güncellendi', message, [
         { text: 'Tamam', onPress: () => navigation.goBack() },
       ], { cancelable: false });
