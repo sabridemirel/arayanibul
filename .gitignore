@@ -265,3 +265,6 @@ temp/
 
 # Six Labors (ImageSharp) license: needed at build time, never committed
 sixlabors.lic
+
+# Raw research notes (the finished report lives in docs/)
+research_notes/
