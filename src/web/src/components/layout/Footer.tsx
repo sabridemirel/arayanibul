@@ -39,7 +39,7 @@ const Footer: React.FC = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-bold text-white mb-4">Hızlı Erişim</h4>
+            <h2 className="font-bold text-white mb-4">Hızlı Erişim</h2>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -70,7 +70,7 @@ const Footer: React.FC = () => {
 
           {/* Legal Links */}
           <div>
-            <h4 className="font-bold text-white mb-4">Yasal</h4>
+            <h2 className="font-bold text-white mb-4">Yasal</h2>
             <ul className="space-y-2">
               {LEGAL_LINKS.map((link) => (
                 <li key={link.to}>

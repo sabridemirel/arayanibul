@@ -28,6 +28,18 @@ public class NeedController : ControllerBase
     }
 
     /// <summary>
+    /// Hızlı ilan: tek cümleden başlık, kategori, bütçe ve konum önerir. Hiçbir şey kaydetmez;
+    /// ilan yine POST /api/need ile oluşturulur.
+    /// </summary>
+    [HttpPost("draft")]
+    [AllowAnonymous]
+    public async Task<ActionResult<NeedDraftResponse>> BuildDraft(
+        [FromBody] NeedDraftRequest request, [FromServices] INeedDraftService draftService)
+    {
+        return Ok(await draftService.BuildDraftAsync(request.Text));
+    }
+
+    /// <summary>
     /// İhtiyaç oluştur
     /// </summary>
     [HttpPost]

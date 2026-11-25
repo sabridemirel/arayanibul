@@ -112,6 +112,13 @@ Mağazalardaki eski uygulama sürümleri aynı API'yi kullanır. API'de değişi
 
 ### 25 Kasım 2026
 
+- Hızlı ilan (web): tek cümleden başlık, kategori, bütçe ve konum çıkarılır (`NeedDraftService`,
+  kural tabanlı, dış servis yok; `POST /api/need/draft`). Misafir önce yazar, yayınlarken üye olur.
+- Temiz ilanlar onay beklemeden yayına girer; yalnızca yasaklı kelime ya da iletişim bilgisi
+  taramasına takılanlar ve daha önce reddedilmiş ilanların düzenlemeleri incelemeye düşer.
+  Kapatmak için: `Moderation__AutoApproveClean=false`. Fotoğraflar taranmaz.
+- Yeni kategoriler: Elektronik > Bilgisayar Parçaları, Bebek & Çocuk > Anne Ürünleri ve yeni ana
+  kategori Kamp & Karavan (beş alt kategori). Açılışta eksikse eklenir (`EnsureFocusCategoriesAsync`).
 - Google Search Console doğrulandı, site haritası gönderildi.
 - Dinamik site haritası, arama motorlarına özel ilan sayfaları, sayfaya özel başlık ve açıklamalar
   eklendi (`0afb596`).

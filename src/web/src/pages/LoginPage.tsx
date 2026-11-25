@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EnvelopeIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { loadPendingNeedDraft, postAuthPath } from '../utils/pendingNeedDraft';
 import { useForm } from '../hooks/useForm';
 import { Button, Input, Card, Divider, ErrorMessage } from '../components/ui';
 
@@ -12,14 +13,18 @@ interface LoginFormValues {
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  // Decided once when the page opens: signing in triggers more than one navigation here, and the
+  // saved listing is cleared as soon as the create page has picked it up.
+  const [hasPendingNeed] = useState(() => loadPendingNeedDraft() !== null);
+  const [destination] = useState(postAuthPath);
   const { login, guestContinue, isAuthenticated, isGuest, isLoading, error, clearError } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isGuest) {
-      navigate('/');
+      navigate(destination);
     }
-  }, [isAuthenticated, isGuest, navigate]);
+  }, [isAuthenticated, isGuest, navigate, destination]);
 
   const validate = (values: LoginFormValues) => {
     const errors: Partial<Record<keyof LoginFormValues, string>> = {};
@@ -48,7 +53,7 @@ const LoginPage: React.FC = () => {
     onSubmit: async (formValues) => {
       try {
         await login(formValues);
-        navigate('/');
+        navigate(destination);
       } catch {
         // Error handled by AuthContext
       }
@@ -87,6 +92,11 @@ const LoginPage: React.FC = () => {
         </div>
 
         <Card padding="lg" className="!bg-white/95 backdrop-blur-sm !shadow-2xl shadow-purple-900/50">
+          {hasPendingNeed && (
+            <p className="mb-4 rounded-lg bg-purple-50 px-4 py-3 text-sm text-purple-900">
+              İlanınız hazır ve kaydedildi. Yayınlamak için giriş yapın; yazdıklarınız kaybolmaz.
+            </p>
+          )}
           {/* Error Message */}
           {error && (
             <ErrorMessage

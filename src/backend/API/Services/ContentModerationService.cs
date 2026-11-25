@@ -35,6 +35,8 @@ public class ContentModerationService : IContentModerationService
 
     public bool IsEnabled => _configuration.GetValue("Moderation:Enabled", true);
 
+    public bool AutoApproveClean => _configuration.GetValue("Moderation:AutoApproveClean", true);
+
     public static string Normalize(string value) => value.Trim().ToLower(Tr);
 
     public async Task<List<string>> GetKeywordsAsync()

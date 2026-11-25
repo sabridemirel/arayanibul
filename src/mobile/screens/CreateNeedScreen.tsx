@@ -321,10 +321,13 @@ const CreateNeedScreen: React.FC = () => {
         }
       }
 
-      // New needs start in review; the owner can follow them from MyNeeds
+      // Clean listings go live at once; flagged ones wait for a short review.
+      const inReview = String(created.status) === 'PendingReview';
       Alert.alert(
-        'İlanınız Alındı',
-        `İlanınız alındı. İncelendikten sonra yayınlanacak.${photoNote}`,
+        inReview ? 'İlanınız Alındı' : 'İlanınız Yayında',
+        inReview
+          ? `İlanınız alındı. Kısa bir incelemenin ardından yayınlanacak.${photoNote}`
+          : `İlanınız yayında. Teklif geldiğinde size haber vereceğiz.${photoNote}`,
         [
           {
             text: 'İlanlarıma Git',
@@ -738,7 +741,7 @@ const CreateNeedScreen: React.FC = () => {
           {!isEdit && (
             <View style={styles.reviewNotice}>
               <MaterialIcons name="info-outline" size={16} color={colors.textSecondary} />
-              <Text style={styles.reviewNoticeText}>İlanlar yayınlanmadan önce incelenir.</Text>
+              <Text style={styles.reviewNoticeText}>Uygun ilanlar hemen yayınlanır; bazı ilanlar kısa bir incelemeden geçebilir.</Text>
             </View>
           )}
           {isEdit && existingNeed?.status === 'Active' && (

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   EnvelopeIcon,
@@ -6,6 +6,7 @@ import {
   UserIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import { loadPendingNeedDraft, postAuthPath } from '../utils/pendingNeedDraft';
 import { useForm } from '../hooks/useForm';
 import { Button, Input, Card, ErrorMessage } from '../components/ui';
 
@@ -19,14 +20,18 @@ interface RegisterFormValues {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  // Decided once when the page opens: signing in triggers more than one navigation here, and the
+  // saved listing is cleared as soon as the create page has picked it up.
+  const [hasPendingNeed] = useState(() => loadPendingNeedDraft() !== null);
+  const [destination] = useState(postAuthPath);
   const { register, isAuthenticated, isGuest, isLoading, error, clearError } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !isGuest) {
-      navigate('/');
+      navigate(destination);
     }
-  }, [isAuthenticated, isGuest, navigate]);
+  }, [isAuthenticated, isGuest, navigate, destination]);
 
   const validate = (values: RegisterFormValues) => {
     const errors: Partial<Record<keyof RegisterFormValues, string>> = {};
@@ -83,7 +88,7 @@ const RegisterPage: React.FC = () => {
           email: formValues.email,
           password: formValues.password,
         });
-        navigate('/');
+        navigate(destination);
       } catch {
         // Error handled by AuthContext
       }
@@ -113,6 +118,11 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <Card padding="lg" className="!bg-white/95 backdrop-blur-sm !shadow-2xl shadow-purple-900/50">
+          {hasPendingNeed && (
+            <p className="mb-4 rounded-lg bg-purple-50 px-4 py-3 text-sm text-purple-900">
+              İlanınız hazır ve kaydedildi. Yayınlamak için ücretsiz hesap oluşturun; yazdıklarınız kaybolmaz.
+            </p>
+          )}
           {isGuest && (
             <p className="mb-4 rounded-lg bg-purple-50 px-4 py-3 text-sm text-purple-900">
               Misafir olarak yalnızca ilanları görüntüleyebilirsiniz. İlan vermek, teklif vermek ve

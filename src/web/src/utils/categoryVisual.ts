@@ -12,6 +12,7 @@ import {
   BuildingOffice2Icon,
   GlobeEuropeAfricaIcon,
   PuzzlePieceIcon,
+  FireIcon,
   TagIcon,
 } from '@heroicons/react/24/outline';
 import PawIcon from '../components/PawIcon';
@@ -44,6 +45,11 @@ const ROOT_VISUALS: Record<number, CategoryVisual> = {
   12: { Icon: PawIcon, background: '#F1EAE2', foreground: '#6B4423' }, // Evcil Hayvan
 };
 
+/** Root categories added after the first seed have no fixed id, so they are matched by name. */
+const NAMED_VISUALS: Record<string, CategoryVisual> = {
+  'Camping & Caravan': { Icon: FireIcon, background: '#E4F2E4', foreground: '#2E6B2E' }, // Kamp & Karavan
+};
+
 const FALLBACK_VISUAL: CategoryVisual = {
   Icon: TagIcon,
   background: '#EFE6F9',
@@ -62,7 +68,11 @@ export const getCategoryVisual = (
     if (!parent) break;
     current = parent;
   }
-  return ROOT_VISUALS[current?.id ?? categoryId ?? 0] ?? FALLBACK_VISUAL;
+  return (
+    ROOT_VISUALS[current?.id ?? categoryId ?? 0] ??
+    (current ? NAMED_VISUALS[current.name] : undefined) ??
+    FALLBACK_VISUAL
+  );
 };
 
 // The category list is small and rarely changes: fetch it once per page load and share it.

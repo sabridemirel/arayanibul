@@ -92,6 +92,7 @@ if (!app.Environment.IsEnvironment("Testing"))
             await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.MigrateAsync(context.Database);
         }
         await API.Data.SeedData.SeedCategoriesAsync(context);
+        await API.Data.SeedData.EnsureFocusCategoriesAsync(context);
         await API.Data.SeedData.UpdateCategoryDescriptionsAsync(context);
         await API.Services.AdminRoleService.SeedModerationKeywordsAsync(context);
         await scope.ServiceProvider.GetRequiredService<API.Services.AdminRoleService>().SyncConfiguredAdminsAsync();

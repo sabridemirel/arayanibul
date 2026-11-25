@@ -21,6 +21,11 @@ public class NeedService : INeedService
 
     private bool ModerationEnabled => _moderation?.IsEnabled ?? false;
 
+    /// <summary>True when a listing with these flagged terms must wait for an admin before going live.
+    /// Clean listings skip the queue when Moderation:AutoApproveClean is on.</summary>
+    private bool RequiresReview(string? flaggedTerms)
+        => ModerationEnabled && (flaggedTerms != null || !(_moderation?.AutoApproveClean ?? false));
+
     /// <summary>How long an urgent need stays in the "Acil İlanlar" showcase.</summary>
     public const int UrgentShowcaseDays = 7;
 
@@ -112,6 +117,10 @@ public class NeedService : INeedService
             await EnsureUrgentSlotAvailableAsync(userId);
         }
 
+        var flaggedTerms = await GetFlaggedTermsAsync(request.Title, request.Description);
+        var requiresReview = RequiresReview(flaggedTerms);
+        var now = DateTime.UtcNow;
+
         var need = new Need
         {
             Title = request.Title,
@@ -125,12 +134,14 @@ public class NeedService : INeedService
             Address = request.Address,
             Urgency = request.Urgency,
             UrgentUntil = request.Urgency == UrgencyLevel.Urgent ? DateTime.UtcNow.AddDays(UrgentShowcaseDays) : null,
-            Status = ModerationEnabled ? NeedStatus.PendingReview : NeedStatus.Active,
-            NeedsReview = ModerationEnabled,
-            FlaggedTerms = await GetFlaggedTermsAsync(request.Title, request.Description),
+            Status = requiresReview ? NeedStatus.PendingReview : NeedStatus.Active,
+            NeedsReview = requiresReview,
+            // Auto-approved listings carry an approval time but no reviewer.
+            ApprovedAt = ModerationEnabled && !requiresReview ? now : null,
+            FlaggedTerms = flaggedTerms,
             UserId = userId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
+            CreatedAt = now,
+            UpdatedAt = now,
             ExpiresAt = request.ExpiresAt
         };
 
@@ -445,7 +456,11 @@ public class NeedService : INeedService
         {
             need.FlaggedTerms = await GetFlaggedTermsAsync(need.Title, need.Description);
 
-            if (ModerationEnabled)
+            // A clean edit of a live listing stays live. Anything an admin has rejected, or that
+            // is still waiting, goes back through review however clean the new text looks.
+            var wasHeldByModeration = need.NeedsReview || need.Status == NeedStatus.Rejected ||
+                                      need.Status == NeedStatus.PendingReview;
+            if (ModerationEnabled && (wasHeldByModeration || RequiresReview(need.FlaggedTerms)))
             {
                 need.NeedsReview = true;
                 if (need.Status == NeedStatus.Active || need.Status == NeedStatus.Rejected)

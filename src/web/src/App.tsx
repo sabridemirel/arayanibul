@@ -24,6 +24,7 @@ import {
   ResetPasswordPage,
 } from './pages';
 import { Loading } from './components/ui';
+import { postAuthPath } from './utils/pendingNeedDraft';
 
 // Admin panel ships as its own chunk; regular users never download it
 const AdminApp = lazy(() => import('./pages/admin/AdminApp'));
@@ -69,7 +70,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Guests may still open login/register to get a real account
   if (requireGuest && isAuthenticated && !isGuest) {
-    return <Navigate to="/" replace />;
+    // Someone who wrote a listing before signing in goes back to it instead of the home page.
+    return <Navigate to={postAuthPath()} replace />;
   }
 
   return <>{children}</>;
@@ -111,14 +113,8 @@ const AppRoutes: React.FC = () => {
       />
 
       {/* Protected Routes */}
-      <Route
-        path="/create-need"
-        element={
-          <ProtectedRoute requireAuth requireMember>
-            <CreateNeedPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Anyone can write a listing; signing in is asked for when publishing */}
+      <Route path="/create-need" element={<CreateNeedPage />} />
       <Route
         path="/my-needs"
         element={
@@ -163,14 +159,8 @@ const AppRoutes: React.FC = () => {
       {/* Public Detail Routes */}
       <Route path="/search" element={<SearchPage />} />
       <Route path="/needs" element={<SearchPage />} />
-      <Route
-        path="/needs/create"
-        element={
-          <ProtectedRoute requireAuth requireMember>
-            <CreateNeedPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Anyone can write a listing; signing in is asked for when publishing */}
+      <Route path="/needs/create" element={<CreateNeedPage />} />
       <Route path="/needs/:id" element={<NeedDetailPage />} />
       <Route
         path="/needs/:id/edit"

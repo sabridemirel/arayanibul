@@ -686,6 +686,55 @@ public static class SeedData
         await context.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// Categories added after the first seed (launch focus areas: PC components, mother & baby,
+    /// camping & caravans). Idempotent: runs at every startup and only adds what is missing.
+    /// </summary>
+    public static async Task EnsureFocusCategoriesAsync(ApplicationDbContext context)
+    {
+        var existing = await context.Categories.ToListAsync();
+
+        async Task<Category> EnsureAsync(string name, string nameTr, int? parentId, int sortOrder, string? description = null)
+        {
+            var category = existing.FirstOrDefault(c => c.Name == name && c.ParentCategoryId == parentId);
+            if (category != null) return category;
+
+            category = new Category
+            {
+                Name = name,
+                NameTr = nameTr,
+                Description = description,
+                ParentCategoryId = parentId,
+                IsActive = true,
+                SortOrder = sortOrder
+            };
+            context.Categories.Add(category);
+            await context.SaveChangesAsync();
+            existing.Add(category);
+            return category;
+        }
+
+        var electronics = existing.FirstOrDefault(c => c.Name == "Electronics" && c.ParentCategoryId == null);
+        if (electronics != null)
+        {
+            await EnsureAsync("Computer Components", "Bilgisayar Parçaları", electronics.Id, 6);
+        }
+
+        var babyKids = existing.FirstOrDefault(c => c.Name == "Baby & Kids" && c.ParentCategoryId == null);
+        if (babyKids != null)
+        {
+            await EnsureAsync("Maternity & Nursing", "Anne Ürünleri", babyKids.Id, 5);
+        }
+
+        var camping = await EnsureAsync("Camping & Caravan", "Kamp & Karavan", null, 13,
+            "Kamp ekipmanları, karavanlar ve karavan malzemeleri");
+        await EnsureAsync("Tents & Sleeping Gear", "Çadır & Uyku Ekipmanı", camping.Id, 1);
+        await EnsureAsync("Camp Kitchen & Gear", "Kamp Mutfağı & Ekipmanı", camping.Id, 2);
+        await EnsureAsync("Caravans & Trailers", "Karavan & Çekme Karavan", camping.Id, 3);
+        await EnsureAsync("Caravan Equipment", "Karavan Ekipmanı & Aksesuar", camping.Id, 4);
+        await EnsureAsync("Campsites & Rentals", "Kamp Alanı & Kiralama", camping.Id, 5);
+    }
+
     public static async Task UpdateCategoryDescriptionsAsync(ApplicationDbContext context)
     {
         var descriptions = new Dictionary<string, string>

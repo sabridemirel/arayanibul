@@ -22,7 +22,7 @@ const OnboardingSlide1: React.FC<OnboardingSlide1Props> = ({ onNext, onSkip }) =
     }
     title="Aradığınızı paylaşın"
     description="Ne aradığınızı yazın, satıcılar size teklif versin."
-    features={['Ücretsiz ilan verin', 'Kategori ve bütçenizi seçin', 'İlanınız incelendikten sonra yayınlanır']}
+    features={['Ücretsiz ilan verin', 'Kategori ve bütçenizi seçin', 'İlanınız hemen yayına girer']}
     step={1}
     totalSteps={2}
     primaryLabel="Devam Et"

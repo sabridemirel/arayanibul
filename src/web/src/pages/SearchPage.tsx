@@ -648,7 +648,9 @@ const SearchPage: React.FC = () => {
                   Sonuç bulunamadı
                 </h3>
                 <p className="text-text-secondary mb-6 max-w-md mx-auto">
-                  Arama kriterlerinize uygun ilan bulunamadı. Farklı kelimeler deneyin veya filtreleri değiştirin.
+                  {searchQuery.trim()
+                    ? 'Bunu arayan henüz yok. Aradığınızı ilan olarak yayınlayın, satıcılar size teklif getirsin.'
+                    : 'Arama kriterlerinize uygun ilan bulunamadı. Farklı kelimeler deneyin veya filtreleri değiştirin.'}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button
@@ -659,9 +661,15 @@ const SearchPage: React.FC = () => {
                   </Button>
                   <Button
                     variant="primary"
-                    onClick={() => navigate('/create-need')}
+                    onClick={() =>
+                      navigate(
+                        searchQuery.trim()
+                          ? `/create-need?q=${encodeURIComponent(searchQuery.trim())}`
+                          : '/create-need'
+                      )
+                    }
                   >
-                    İlan Oluştur
+                    {searchQuery.trim() ? 'Bunu İlan Olarak Yayınla' : 'İlan Ver'}
                   </Button>
                 </div>
               </Card>
