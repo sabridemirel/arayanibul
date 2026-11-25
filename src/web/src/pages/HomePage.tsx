@@ -275,9 +275,13 @@ const HomePage: React.FC = () => {
         {/* How it works (compact) */}
         <section aria-labelledby="how-heading" className="border-t border-border bg-surface py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 id="how-heading" className="mb-4 text-xl font-extrabold text-text">
+            <h2 id="how-heading" className="text-xl font-extrabold text-text">
               Nasıl çalışır?
             </h2>
+            <p className="mb-4 mt-1 max-w-3xl text-sm text-text-secondary">
+              Arayanibul bir ters pazar yeridir: klasik ilan sitelerinin tersine ilanı alıcı verir,
+              satıcılar teklifle gelir.
+            </p>
             <ol className="grid gap-4 md:grid-cols-3">
               {HOW_IT_WORKS.map((step, index) => (
                 <li key={step.title} className="flex gap-3">

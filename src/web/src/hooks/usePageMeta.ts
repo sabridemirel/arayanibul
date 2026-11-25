@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 
-const DEFAULT_TITLE = 'Arayanibul – Aradığınızı ilan verin, satıcılar teklif getirsin';
+const DEFAULT_TITLE = 'Arayanibul – Ters pazar yeri: siz ilan verin, satıcılar teklif getirsin';
 const DEFAULT_DESCRIPTION =
-  'Arayanibul ters ilan platformudur: aradığınız ürün veya hizmet için ücretsiz ilan verin, satıcılar size teklif getirsin. İlanlara göz atıp siz de teklif verin.';
+  'Arayanibul bir ters pazar yeridir: aradığınız ürün veya hizmet için ücretsiz ilan verin, satıcılar size teklif getirsin. Ters ilan mantığıyla çalışır; ilanlara göz atıp siz de teklif verin.';
 const SITE_ORIGIN = 'https://arayanibul.com';
 
 const setMeta = (selector: string, attribute: 'content' | 'href', value: string) => {

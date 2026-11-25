@@ -31,8 +31,8 @@ const Footer: React.FC = () => {
               </span>
             </Link>
             <p className="text-white/60 text-sm max-w-md leading-relaxed">
-              Arayanibul, alıcıların ne aradıklarını ilan ettiği ve satıcıların teklif verdiği
-              bir ters ilan platformudur. Ne arıyorsanız, onu bulan size gelsin!
+              Arayanibul bir ters pazar yeridir: alıcılar ne aradıklarını ilan eder, satıcılar
+              teklif verir. Ne arıyorsanız, onu bulan size gelsin!
             </p>
             <AppDownloadBadges size="sm" className="mt-6" />
           </div>
