@@ -15,7 +15,7 @@ const ProductPriceStrip: React.FC<ProductPriceStripProps> = ({ onSelect }) => {
   useEffect(() => {
     productAPI
       .search('')
-      .then((result) => setProducts([...result].sort((a, b) => b.seekerCount - a.seekerCount).slice(0, 8)))
+      .then((result) => setProducts(result.filter((product) => product.realPrice != null).slice(0, 8)))
       .catch(() => {
         // The strip is simply not shown (e.g. offline, or an API that predates products)
       });
@@ -26,9 +26,9 @@ const ProductPriceStrip: React.FC<ProductPriceStripProps> = ({ onSelect }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title} accessibilityRole="header">
-        Ekran kartlarında gerçek fiyat
+        Alıcısı hazır ürünler
       </Text>
-      <Text style={styles.subtitle}>Alıcıların şu an ödemeye hazır olduğu fiyatlar.</Text>
+      <Text style={styles.subtitle}>Bu fiyatlara şu an alıcı var.</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {products.map((product) => (
           <TouchableOpacity

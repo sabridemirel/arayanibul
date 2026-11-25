@@ -265,5 +265,30 @@ public class ProductPricingServiceTests : IDisposable
         page.SuggestedPrices.Should().Equal(15000); // but the last deal guides the next buyer
     }
 
+    // ---------------- home page strip
+
+    [Fact]
+    public async Task EmptySearch_ListsOnlyProductsWithALivePrice_MostSoughtFirst()
+    {
+        (await _service.SearchAsync("")).Should().BeEmpty(); // nothing to show before the first price
+
+        await Bid("ayse", 14000);
+        await Bid("bora", 15000);
+        await _service.PlaceBidAsync("rx-6700-xt", "cem", new ProductBidRequest { Price = 9500 });
+        await _service.PlaceBidAsync("rtx-3080-ti", "ayse", new ProductBidRequest { Price = null }); // seeker without a price
+
+        var strip = await _service.SearchAsync(null);
+
+        strip.Select(p => p.Name).Should().Equal("RTX 3080", "RX 6700 XT");
+        strip[0].RealPrice.Should().Be(15000);
+        strip[0].SeekerCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task SearchWithText_StillFindsProductsWithoutAPrice()
+    {
+        (await _service.SearchAsync("3080")).Select(p => p.Name).Should().Contain("RTX 3080");
+    }
+
     public void Dispose() => _context.Dispose();
 }

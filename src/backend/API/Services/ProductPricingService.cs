@@ -73,6 +73,10 @@ public class ProductPricingService : IProductPricingService
         return Regex.IsMatch(folded, $@"(?<![a-z0-9]){pattern}(?![a-z0-9])", RegexOptions.None, RegexTimeout);
     }
 
+    /// <summary>
+    /// With a query: the matching products, priced or not. Without one: the home page strip, which
+    /// only lists products a buyer has named a price for (most sought first) and is empty until then.
+    /// </summary>
     public async Task<List<ProductSummary>> SearchAsync(string? query)
     {
         var folded = NeedDraftService.Fold(query ?? string.Empty).Trim();
@@ -82,11 +86,28 @@ public class ProductPricingService : IProductPricingService
             .OrderBy(p => p.SortOrder).ThenBy(p => p.Name)
             .ToListAsync();
 
-        var matches = folded.Length == 0
-            ? products
-            : products.Where(p =>
-                NeedDraftService.Fold(p.Name).Contains(folded) ||
-                p.Aliases.Split('|').Any(alias => alias.Contains(folded) || ContainsAlias(folded, alias.Trim()))).ToList();
+        if (folded.Length == 0)
+        {
+            var now = DateTime.UtcNow;
+            var live = await _context.Needs.AsNoTracking()
+                .Where(n => n.ProductId != null && n.Status == NeedStatus.Active &&
+                            (n.ExpiresAt == null || n.ExpiresAt > now))
+                .ToListAsync();
+            var byProduct = live.GroupBy(n => n.ProductId!.Value).ToDictionary(g => g.Key, g => g.ToList());
+
+            return products
+                .Where(p => byProduct.ContainsKey(p.Id))
+                .Select(p => ToSummary(p, byProduct[p.Id]))
+                .Where(summary => summary.RealPrice != null)
+                .OrderByDescending(summary => summary.SeekerCount)
+                .ThenByDescending(summary => summary.RealPrice)
+                .Take(MaxSearchResults)
+                .ToList();
+        }
+
+        var matches = products.Where(p =>
+            NeedDraftService.Fold(p.Name).Contains(folded) ||
+            p.Aliases.Split('|').Any(alias => alias.Contains(folded) || ContainsAlias(folded, alias.Trim()))).ToList();
 
         var result = new List<ProductSummary>();
         foreach (var product in matches.Take(MaxSearchResults))

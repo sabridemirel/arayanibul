@@ -45,8 +45,8 @@ const HomePage: React.FC = () => {
     productAPI
       .search('')
       .then((result) =>
-        // Products somebody is already looking for come first
-        setProducts([...result].sort((a, b) => b.seekerCount - a.seekerCount).slice(0, 8))
+        // The API sends only products with a live price, most sought first
+        setProducts(result.filter((product) => product.realPrice != null).slice(0, 8))
       )
       .catch(() => {
         // The strip is simply not shown
@@ -209,37 +209,6 @@ const HomePage: React.FC = () => {
           </nav>
         )}
 
-        {/* "Gerçek Fiyat": products with their own price page */}
-        {products.length > 0 && (
-          <section aria-labelledby="prices-heading" className="border-b border-border bg-surface">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-              <h2 id="prices-heading" className="text-lg font-extrabold text-text">
-                Ekran kartlarında gerçek fiyat
-              </h2>
-              <p className="mt-0.5 text-sm text-text-secondary">
-                Alıcıların şu an ödemeye hazır olduğu fiyatlar. Elinizde varsa tek dokunuşla satın.
-              </p>
-              <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {products.map((product) => (
-                  <li key={product.id} className="shrink-0">
-                    <Link
-                      to={`/fiyat/${product.slug}`}
-                      className="block min-w-[9.5rem] rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    >
-                      <span className="block text-sm font-semibold text-text">{product.name}</span>
-                      <span className={`block ${product.realPrice ? 'font-bold text-primary' : 'text-sm text-text-secondary'}`}>
-                        {product.realPrice
-                          ? `${product.realPrice.toLocaleString('tr-TR')} TL`
-                          : 'İlk fiyatı siz verin'}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
-
         {/* Urgent showcase */}
         {urgentNeeds.length > 0 && (
           <section aria-labelledby="urgent-heading" className="border-b border-[#F5DFB3] bg-[#FFF6E3]">
@@ -278,6 +247,36 @@ const HomePage: React.FC = () => {
                     </span>
                   </Link>
                 </li>
+              </ul>
+            </div>
+          </section>
+        )}
+
+        {/* "Gerçek Fiyat": only products a buyer has named a price for; hidden until there is one */}
+        {products.length > 0 && (
+          <section aria-labelledby="prices-heading" className="border-b border-border bg-surface">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+              <h2 id="prices-heading" className="text-lg font-extrabold text-text">
+                Alıcısı hazır ürünler
+              </h2>
+              <p className="mt-0.5 text-sm text-text-secondary">
+                Bu fiyatlara şu an alıcı var. Elinizde varsa tek dokunuşla teklif verin.
+              </p>
+              <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {products.map((product) => (
+                  <li key={product.id} className="shrink-0">
+                    <Link
+                      to={`/fiyat/${product.slug}`}
+                      className="block min-w-[10rem] rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <span className="block text-sm font-semibold text-text">{product.name}</span>
+                      <span className="block text-lg font-extrabold text-primary">
+                        {product.realPrice?.toLocaleString('tr-TR')} TL
+                      </span>
+                      <span className="block text-xs text-text-secondary">{product.seekerCount} kişi arıyor</span>
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </section>
