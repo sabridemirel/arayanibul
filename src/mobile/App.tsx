@@ -22,6 +22,7 @@ import NeedDetailScreen from './screens/NeedDetailScreen';
 import SearchScreen from './screens/SearchScreen';
 import CreateNeedScreen from './screens/CreateNeedScreen';
 import QuickNeedScreen from './screens/QuickNeedScreen';
+import ProductPriceScreen from './screens/ProductPriceScreen';
 import CreateOfferScreen from './screens/CreateOfferScreen';
 import MyNeedsScreen from './screens/MyNeedsScreen';
 import MyOffersScreen from './screens/MyOffersScreen';
@@ -57,6 +58,7 @@ function AppNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Search" component={SearchScreen} />
         <Stack.Screen name="NeedDetail" component={NeedDetailScreen} />
+        <Stack.Screen name="ProductPrice" component={ProductPriceScreen} />
         
         {/* Auth screens - presented as modals */}
         <Stack.Group screenOptions={{ presentation: 'modal' }}>

@@ -210,6 +210,14 @@ const toAdminNeed = (n: AdminNeedItem): AdminNeedItem => ({
   images: Array.isArray(n.images) ? n.images : [],
 });
 
+export interface AdminProduct {
+  id: number;
+  name: string;
+  slug: string;
+  ceilingPrice?: number | null;
+  isActive: boolean;
+}
+
 export const adminAPI = {
   getStats: (): Promise<AdminStats> => api.get('/admin/stats').then((res) => res.data),
 
@@ -250,4 +258,12 @@ export const adminAPI = {
     api.put('/admin/moderation/keywords', { keywords }).then((res) =>
       Array.isArray(res.data?.keywords) ? res.data.keywords : keywords,
     ),
+
+  /** "Gerçek Fiyat" products with their price ceilings */
+  getProducts: (): Promise<AdminProduct[]> => api.get('/admin/products').then((res) => res.data),
+
+  updateProduct: (
+    id: number,
+    data: { ceilingPrice: number | null; isActive: boolean },
+  ): Promise<AdminProduct> => api.put(`/admin/products/${id}`, data).then((res) => res.data),
 };

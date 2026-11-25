@@ -5,6 +5,7 @@ import AdminNeedsPage from './AdminNeedsPage';
 import AdminReportsPage from './AdminReportsPage';
 import AdminUsersPage from './AdminUsersPage';
 import AdminKeywordsPage from './AdminKeywordsPage';
+import AdminProductsPage from './AdminProductsPage';
 
 /** Admin panel, mounted at /admin/* as a lazily loaded chunk */
 const AdminApp: React.FC = () => (
@@ -15,6 +16,7 @@ const AdminApp: React.FC = () => (
       <Route path="reports" element={<AdminReportsPage />} />
       <Route path="users" element={<AdminUsersPage />} />
       <Route path="keywords" element={<AdminKeywordsPage />} />
+      <Route path="products" element={<AdminProductsPage />} />
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Route>
   </Routes>

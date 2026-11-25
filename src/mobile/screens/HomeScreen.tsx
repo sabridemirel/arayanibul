@@ -24,6 +24,7 @@ import ErrorMessage from '../components/ui/ErrorMessage';
 import BrandHeader from '../components/brand/BrandHeader';
 import MascotEmptyState from '../components/brand/MascotEmptyState';
 import AuthPromptModal from '../components/ui/AuthPromptModal';
+import ProductPriceStrip from '../components/ProductPriceStrip';
 import ConversionBanner from '../components/ui/ConversionBanner';
 import GuestWelcomeCard from '../components/ui/GuestWelcomeCard';
 import FilterModal from '../components/ui/FilterModal';
@@ -495,7 +496,12 @@ const HomeScreen: React.FC = () => {
           />
         }
         ListEmptyComponent={renderEmptyState}
-        ListHeaderComponent={renderGuestContent}
+        ListHeaderComponent={
+          <View>
+            <ProductPriceStrip onSelect={(slug) => navigation.navigate('ProductPrice', { slug })} />
+            {renderGuestContent()}
+          </View>
+        }
         showsVerticalScrollIndicator={false}
         estimatedItemSize={120}
         removeClippedSubviews={true}

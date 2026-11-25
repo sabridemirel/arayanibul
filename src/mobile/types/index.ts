@@ -45,6 +45,8 @@ export type RootStackParamList = {
   /** The long listing form, optionally carrying over what the quick flow already understood. */
   CreateNeedDetailed: { prefill?: NeedPrefill } | undefined;
   EditNeed: { needId: number };
+  /** "Gerçek Fiyat" page of a catalogued product; the buyer panel can arrive opened and pre-filled */
+  ProductPrice: { slug: string; openBid?: boolean; price?: string; address?: string };
   CreateOffer: { needId: number };
   MyNeeds: undefined;
   MyOffers: undefined;

@@ -7,6 +7,7 @@ import {
   UsersIcon,
   RectangleStackIcon,
   ListBulletIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminAPI } from '../../services/moderation';
@@ -61,6 +62,7 @@ const AdminLayout: React.FC = () => {
     { to: '/admin/users', label: 'Kullanıcılar', icon: UsersIcon },
     { to: '/admin/needs', label: 'İlanlar', icon: RectangleStackIcon },
     { to: '/admin/keywords', label: 'Kelime Listesi', icon: ListBulletIcon },
+    { to: '/admin/products', label: 'Ürünler ve Tavan Fiyatlar', icon: TagIcon },
   ];
 
   const context: AdminOutletContext = { stats, refreshStats, bumpStat, showToast };

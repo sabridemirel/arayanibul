@@ -136,6 +136,19 @@ const QuickNeedScreen: React.FC = () => {
     setIsReading(true);
     try {
       const suggestion = await needAPI.buildDraft(trimmed);
+
+      // A catalogued product has its own price page: the buyer names a price there and sees
+      // where it puts them, instead of posting an ordinary listing.
+      if (suggestion.productSlug) {
+        leavingRef.current = true;
+        navigation.replace('ProductPrice', {
+          slug: suggestion.productSlug,
+          openBid: true,
+          price: suggestion.maxBudget ? String(Math.round(suggestion.maxBudget)) : undefined,
+          address: suggestion.address ?? undefined,
+        });
+        return;
+      }
       const questions = suggestion.questions ?? [];
       setShowMinBudget(Boolean(suggestion.minBudget));
       setDraft({

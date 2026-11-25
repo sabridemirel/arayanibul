@@ -116,7 +116,7 @@ Mağazalardaki eski uygulama sürümleri aynı API'yi kullanır. API'de değişi
   `ProductController`). İlk katalog 42 ekran kartı modeli; açılışta eksikse eklenir
   (`EnsureProductsAsync`). Ayarlar: `ProductPricing__ListingDays` (14), `ProductPricing__ResponseDays`
   (7), `ProductPricing__DefaultCeilingPrice` (250000). Ürün başına tavan fiyat yönetici uç noktasıyla
-  girilir (`PUT /api/admin/products/{id}`); yönetim panelinde ekranı henüz yok.
+  girilir: yönetim paneli > Ürünler ve Tavan Fiyatlar (`/admin/products`). Mobilde fiyat ekranı 1.0.5 ile gelir.
   `ProductListingCleanupService` 15 dakikada bir yanıtsız "bu fiyata" tekliflerini ve süresi dolan
   ürün ilanlarını kapatır. Arama motorları için `/seo/fiyat/{slug}`; Caddy kuralı eklendi
   (canlıya alırken Caddy yeniden başlatılmalı). Tasarım: `docs/superpowers/specs/`.
