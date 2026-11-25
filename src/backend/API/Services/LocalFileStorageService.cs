@@ -1,6 +1,9 @@
 using API.Interfaces;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Jpeg;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 
 namespace API.Services;
@@ -28,6 +31,19 @@ public class LocalFileStorageService : IFileStorageService
             Directory.CreateDirectory(_uploadsPath);
         }
     }
+
+    /// <summary>
+    /// Only the formats we accept are decoded. The declared content type comes from the client, so
+    /// without this a TIFF/BMP/GIF/... sent as "image/jpeg" would still reach its decoder; the
+    /// less common decoders (TIFF in particular) are where most ImageSharp advisories land.
+    /// </summary>
+    private static readonly DecoderOptions UploadDecoderOptions = new()
+    {
+        Configuration = new SixLabors.ImageSharp.Configuration(
+            new JpegConfigurationModule(),
+            new PngConfigurationModule(),
+            new WebpConfigurationModule())
+    };
 
     public async Task<string?> UploadImageAsync(IFormFile imageFile, string folder)
     {
@@ -65,7 +81,7 @@ public class LocalFileStorageService : IFileStorageService
             var filePath = Path.Combine(folderPath, fileName);
 
             using var stream = imageFile.OpenReadStream();
-            using var image = await Image.LoadAsync(stream);
+            using var image = await Image.LoadAsync(UploadDecoderOptions, stream);
 
             // Apply the camera's EXIF orientation, then drop all metadata (GPS location, device
             // model, capture time) so photos never reveal where they were taken.

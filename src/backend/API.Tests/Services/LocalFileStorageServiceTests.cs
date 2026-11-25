@@ -75,6 +75,54 @@ public class LocalFileStorageServiceTests : IDisposable
         File.Exists(saved).Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData("tiff")]
+    [InlineData("bmp")]
+    [InlineData("gif")]
+    public async Task UploadImageAsync_RejectsOtherFormatsSentAsJpeg(string format)
+    {
+        // The content type is whatever the client claims; only JPEG/PNG/WebP may reach a decoder.
+        using var image = new Image<Rgb24>(64, 64);
+        var ms = new MemoryStream();
+        switch (format)
+        {
+            case "tiff": image.SaveAsTiff(ms); break;
+            case "bmp": image.SaveAsBmp(ms); break;
+            default: image.SaveAsGif(ms); break;
+        }
+        ms.Position = 0;
+        var file = new FormFile(ms, 0, ms.Length, "image", "photo.jpg")
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "image/jpeg"
+        };
+
+        var url = await CreateService().UploadImageAsync(file, "needs");
+
+        url.Should().BeNull();
+        var folder = Path.Combine(_root, "uploads", "needs");
+        (Directory.Exists(folder) ? Directory.GetFiles(folder) : Array.Empty<string>()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UploadImageAsync_AcceptsPngAndWebp()
+    {
+        foreach (var contentType in new[] { "image/png", "image/webp" })
+        {
+            using var image = new Image<Rgb24>(64, 64);
+            var ms = new MemoryStream();
+            if (contentType == "image/png") image.SaveAsPng(ms); else image.SaveAsWebp(ms);
+            ms.Position = 0;
+            var file = new FormFile(ms, 0, ms.Length, "image", "photo")
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = contentType
+            };
+
+            (await CreateService().UploadImageAsync(file, "needs")).Should().NotBeNull();
+        }
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
