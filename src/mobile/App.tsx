@@ -7,7 +7,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Font from 'expo-font';
 import { Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import * as SplashScreen from 'expo-splash-screen';
-import * as InAppUpdates from 'expo-in-app-updates';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -116,7 +115,16 @@ function AppContent() {
   // Only works for installs that came from Play, so failures (sideloaded/dev builds) are ignored.
   useEffect(() => {
     if (Platform.OS !== 'android' || __DEV__) return;
-    InAppUpdates.checkAndStartUpdate(true).catch(() => {});
+    // Loaded here, not imported at the top: the package looks up its native module as soon as it
+    // is imported, and that module is not part of the iOS build (it needs iOS 16.4, the app
+    // targets 15.1). A top-level import stopped the iOS app at the splash screen.
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const InAppUpdates = require('expo-in-app-updates') as typeof import('expo-in-app-updates');
+      InAppUpdates.checkAndStartUpdate(true).catch(() => {});
+    } catch {
+      // No update prompt on this build
+    }
   }, []);
   // Android draws edge-to-edge, so the system navigation buttons sit on top of the app. Most
   // screens never reserved room for them; laying the whole navigator out above the bar fixes
