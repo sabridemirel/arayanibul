@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<ModerationKeyword> ModerationKeywords { get; set; }
     public DbSet<Report> Reports { get; set; }
     public DbSet<UserBlock> UserBlocks { get; set; }
+    public DbSet<CategoryFollow> CategoryFollows { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -330,5 +331,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(b => new { b.BlockerId, b.BlockedId })
             .IsUnique()
             .HasDatabaseName("IX_UserBlocks_BlockerId_BlockedId");
+
+        builder.Entity<CategoryFollow>()
+            .HasOne(f => f.User)
+            .WithMany()
+            .HasForeignKey(f => f.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CategoryFollow>()
+            .HasOne(f => f.Category)
+            .WithMany()
+            .HasForeignKey(f => f.CategoryId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CategoryFollow>()
+            .HasIndex(f => new { f.UserId, f.CategoryId })
+            .IsUnique()
+            .HasDatabaseName("IX_CategoryFollows_UserId_CategoryId");
+
+        builder.Entity<CategoryFollow>()
+            .HasIndex(f => f.CategoryId)
+            .HasDatabaseName("IX_CategoryFollows_CategoryId");
     }
 }

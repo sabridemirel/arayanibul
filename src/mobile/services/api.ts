@@ -399,6 +399,11 @@ export const authAPI = {
     api.get('/user/profile').then(res => res.data),
 };
 
+export interface CategoryFollows {
+  categoryIds: number[];
+  emailEnabled: boolean;
+}
+
 export const categoryAPI = {
   // Backend route is singular controller name
   getCategories: (): Promise<Category[]> =>
@@ -406,6 +411,14 @@ export const categoryAPI = {
   
   getSubCategories: (parentId: number): Promise<Category[]> =>
     api.get(`/category/${parentId}/subcategories`).then(res => res.data),
+
+  /** Categories the signed-in user follows for new-listing alerts */
+  getFollows: (): Promise<CategoryFollows> =>
+    api.get('/category/follows').then(res => res.data),
+
+  /** Replaces the followed categories and the e-mail preference */
+  setFollows: (categoryIds: number[], emailEnabled: boolean): Promise<CategoryFollows> =>
+    api.put('/category/follows', { categoryIds, emailEnabled }).then(res => res.data),
 };
 
 // The API returns flat DTOs (categoryName, userName, needTitle, providerName, ...).
@@ -718,6 +731,8 @@ export interface NotificationItem {
   type: string;
   title: string;
   message: string;
+  /** The API sends the text as `body`; `message` is kept for older callers */
+  body?: string;
   data?: any;
   isRead: boolean;
   createdAt: string;

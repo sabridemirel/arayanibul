@@ -112,6 +112,13 @@ Mağazalardaki eski uygulama sürümleri aynı API'yi kullanır. API'de değişi
 
 ### 25 Kasım 2026
 
+- Satıcıya yeni ilan bildirimi: kullanıcılar kategori takip eder (`CategoryFollow`,
+  `GET/PUT /api/category/follows`). `NewNeedAlertService` dakikada bir yeni yayına giren ilanları
+  takipçilerine duyurur (uygulama içi bildirim + e-posta). E-posta günlük sınırı:
+  `NewNeedAlerts__MaxEmailsPerDay` (varsayılan 5). Web'de bildirim listesi yoktur; web kullanıcısı
+  e-postayla haberdar olur.
+- Mobil: Bildirimler ekranını açınca oluşan çökme düzeltildi (1.0.5 ile yayınlanacak; önceki
+  sürümlerde hata duruyor).
 - Hızlı ilan (web): tek cümleden başlık, kategori, bütçe ve konum çıkarılır (`NeedDraftService`,
   kural tabanlı, dış servis yok; `POST /api/need/draft`). Misafir önce yazar, yayınlarken üye olur.
 - Temiz ilanlar onay beklemeden yayına girer; yalnızca yasaklı kelime ya da iletişim bilgisi

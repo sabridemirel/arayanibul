@@ -53,6 +53,7 @@ export type RootStackParamList = {
   Profile: { userId?: string };
   EditProfile: undefined;
   NotificationSettings: undefined;
+  CategoryFollows: undefined;
   BlockedUsers: undefined;
   Notifications: undefined;
   Review: {

@@ -258,6 +258,9 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
       renderMenuRow('edit', 'Profili Düzenle', handleEditProfile),
       ...(!isGuest
         ? [
+            renderMenuRow('campaign', 'Yeni İlan Bildirimleri', () => navigation.navigate('CategoryFollows'), {
+              subtitle: 'Sattığınız kategorilerde yeni ilanlardan haberdar olun',
+            }),
             renderMenuRow('list-alt', 'İlanlarım', () => navigation.navigate('MyNeeds')),
             renderMenuRow('local-offer', 'Tekliflerim', () => navigation.navigate('MyOffers')),
             renderMenuRow('star-border', 'Değerlendirmelerim', () => navigation.navigate('ReviewHistory')),

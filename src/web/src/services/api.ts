@@ -463,6 +463,11 @@ export const authAPI = {
     api.post('/auth/reset-password', data).then(res => res.data),
 };
 
+export interface CategoryFollows {
+  categoryIds: number[];
+  emailEnabled: boolean;
+}
+
 export const categoryAPI = {
   // Backend route is singular controller name
   getCategories: (): Promise<Category[]> =>
@@ -470,6 +475,14 @@ export const categoryAPI = {
 
   getSubCategories: (parentId: number): Promise<Category[]> =>
     api.get(`/category/${parentId}/subcategories`).then(res => res.data),
+
+  /** Categories the signed-in user follows for new-listing alerts */
+  getFollows: (): Promise<CategoryFollows> =>
+    api.get('/category/follows').then(res => res.data),
+
+  /** Replaces the followed categories and the e-mail preference */
+  setFollows: (categoryIds: number[], emailEnabled: boolean): Promise<CategoryFollows> =>
+    api.put('/category/follows', { categoryIds, emailEnabled }).then(res => res.data),
 };
 
 // The API returns flat DTOs (categoryName, userName, needTitle, providerName, ...).

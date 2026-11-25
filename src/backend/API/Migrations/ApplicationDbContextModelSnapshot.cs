@@ -59,6 +59,9 @@ namespace API.Migrations
                     b.Property<bool>("EnableMessageNotifications")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("EnableNewNeedEmails")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("EnableOfferNotifications")
                         .HasColumnType("boolean");
 
@@ -99,6 +102,12 @@ namespace API.Migrations
 
                     b.Property<double?>("Longitude")
                         .HasColumnType("double precision");
+
+                    b.Property<int>("NewNeedEmailCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NewNeedEmailDay")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -214,6 +223,36 @@ namespace API.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("API.Models.CategoryFollow", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_CategoryFollows_CategoryId");
+
+                    b.HasIndex("UserId", "CategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_CategoryFollows_UserId_CategoryId");
+
+                    b.ToTable("CategoryFollows");
+                });
+
             modelBuilder.Entity("API.Models.Message", b =>
                 {
                     b.Property<int>("Id")
@@ -312,6 +351,9 @@ namespace API.Migrations
 
                     b.Property<string>("FlaggedTerms")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("FollowersNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
@@ -1083,6 +1125,25 @@ namespace API.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ParentCategory");
+                });
+
+            modelBuilder.Entity("API.Models.CategoryFollow", b =>
+                {
+                    b.HasOne("API.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("API.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("API.Models.Message", b =>

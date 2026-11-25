@@ -33,6 +33,9 @@ public class Need
     /// <summary>True while the current content has not been approved by an admin
     /// (prevents re-activating an unreviewed listing by cancelling and re-opening it).</summary>
     public bool NeedsReview { get; set; }
+
+    /// <summary>When followers of the category were told about this listing (once per listing).</summary>
+    public DateTime? FollowersNotifiedAt { get; set; }
     
     // Navigation Properties
     public ApplicationUser User { get; set; } = null!;

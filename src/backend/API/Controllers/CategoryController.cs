@@ -196,4 +196,34 @@ public class CategoryController : ControllerBase
             return StatusCode(500, new { message = "Kategori silinirken bir hata oluştu.", error = ex.Message });
         }
     }
+
+    /// <summary>Categories the signed-in user follows for new-listing alerts.</summary>
+    [HttpGet("follows")]
+    [Authorize]
+    public async Task<ActionResult<CategoryFollowsResponse>> GetFollows([FromServices] ICategoryFollowService follows)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+        return Ok(await follows.GetFollowsAsync(userId));
+    }
+
+    /// <summary>Replaces the followed categories (and the e-mail preference) for the signed-in user.</summary>
+    [HttpPut("follows")]
+    [Authorize]
+    [API.Filters.RegisteredUserOnly]
+    public async Task<ActionResult<CategoryFollowsResponse>> SetFollows(
+        [FromBody] CategoryFollowsRequest request, [FromServices] ICategoryFollowService follows)
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        try
+        {
+            return Ok(await follows.SetFollowsAsync(userId, request));
+        }
+        catch (API.Middleware.BusinessException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

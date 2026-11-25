@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { usePageMeta } from '../hooks/usePageMeta';
+import FollowCategoryButton from '../components/FollowCategoryButton';
 import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
@@ -484,6 +485,17 @@ const SearchPage: React.FC = () => {
         {/* Results Section */}
         <section className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {/* Sellers can follow the category they are browsing */}
+            {selectedCategoryId && selectedCategoryName && (
+              <div className="mb-5 flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-text">
+                  <span className="font-semibold">{selectedCategoryName}</span> satıyor musunuz? Yeni ilanlar
+                  yayınlandığında haber verelim, ilk teklifi siz verin.
+                </p>
+                <FollowCategoryButton categoryId={selectedCategoryId} categoryName={selectedCategoryName} />
+              </div>
+            )}
 
             {/* Results Header: count + sort + active tags */}
             {!isLoading && !error && (

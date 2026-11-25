@@ -202,6 +202,27 @@ const NotificationSettingsScreen: React.FC<NotificationSettingsScreenProps> = ({
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Satıcılar İçin
+          </Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('CategoryFollows')}
+            style={[styles.followLink, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+            accessibilityRole="button"
+            accessibilityLabel="Yeni ilan bildirimleri: takip edilecek kategorileri seçin"
+          >
+            <MaterialIcons name="campaign" size={24} color={theme.colors.primary} />
+            <View style={styles.followLinkText}>
+              <Text style={[styles.followLinkTitle, { color: theme.colors.text }]}>Yeni İlan Bildirimleri</Text>
+              <Text style={[styles.followLinkHint, { color: theme.colors.textSecondary }]}>
+                Sattığınız kategorileri seçin, yeni ilanlarda haber verelim
+              </Text>
+            </View>
+            <MaterialIcons name="chevron-right" size={24} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             Teklif Bildirimleri
           </Text>
           {renderSettingItem(
@@ -317,6 +338,18 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  followLink: {
+    minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  followLinkText: { flex: 1, marginHorizontal: 12 },
+  followLinkTitle: { fontSize: 16, fontWeight: '600' },
+  followLinkHint: { fontSize: 13, marginTop: 2 },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',

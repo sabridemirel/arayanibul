@@ -32,6 +32,7 @@ import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import NotificationsScreen from './screens/NotificationsScreen';
 import NotificationSettingsScreen from './screens/NotificationSettingsScreen';
+import CategoryFollowsScreen from './screens/CategoryFollowsScreen';
 import BlockedUsersScreen from './screens/BlockedUsersScreen';
 import { ReviewScreen } from './screens/ReviewScreen';
 import { ReviewHistoryScreen } from './screens/ReviewHistoryScreen';
@@ -83,6 +84,11 @@ function AppNavigator() {
             name="NotificationSettings"
             component={NotificationSettingsScreen}
             options={{ title: 'Bildirim Ayarları' }}
+          />
+          <Stack.Screen
+            name="CategoryFollows"
+            component={CategoryFollowsScreen}
+            options={{ title: 'Yeni İlan Bildirimleri' }}
           />
           <Stack.Screen
             name="BlockedUsers"

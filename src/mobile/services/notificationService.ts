@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Push notifications will be re-added when building a development/production build
 
 export interface NotificationData {
-  type: 'new_offer' | 'offer_accepted' | 'offer_rejected' | 'new_message' | 'need_expiring';
+  type: 'new_offer' | 'offer_accepted' | 'offer_rejected' | 'new_message' | 'need_expiring' | 'new_need';
   needId?: number;
   offerId?: number;
   messageId?: number;

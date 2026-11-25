@@ -32,6 +32,12 @@ public class ApplicationUser : IdentityUser
     public bool EnableOfferNotifications { get; set; } = true;
     public bool EnableMessageNotifications { get; set; } = true;
     public bool EnableSystemNotifications { get; set; } = true;
+
+    // New-listing alerts for followed categories (see CategoryFollow)
+    public bool EnableNewNeedEmails { get; set; } = true;
+    /// <summary>UTC day the counter below belongs to; e-mails per day are capped.</summary>
+    public DateTime? NewNeedEmailDay { get; set; }
+    public int NewNeedEmailCount { get; set; }
     
     // Device tokens for push notifications
     public string? FcmToken { get; set; }

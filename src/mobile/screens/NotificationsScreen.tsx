@@ -49,7 +49,9 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     loadNotifications();
 
     // Setup navigation handler for push notifications
-    setNavigationHandler(handleNavigationFromNotification);
+    // A state setter calls a function argument as an updater, so the handler has to be wrapped;
+    // passing it directly ran it with `null` and crashed the app as soon as this screen opened.
+    setNavigationHandler(() => handleNavigationFromNotification);
 
     return () => {
       setNavigationHandler(null);
@@ -75,9 +77,11 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     setIsRefreshing(false);
   };
 
-  const handleNavigationFromNotification = (data: NotificationData) => {
+  const handleNavigationFromNotification = (data: NotificationData | null | undefined) => {
+    if (!data) return;
     switch (data.type) {
       case 'new_offer':
+      case 'new_need':
         if (data.needId) {
           navigation.navigate('NeedDetail', { needId: data.needId });
         }
@@ -115,7 +119,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     const serverMapped: MergedNotification[] = serverNotifications.map((notif) => ({
       id: `server-${notif.id}`,
       title: notif.title,
-      message: notif.message,
+      message: notif.message ?? notif.body ?? '',
       type: notif.type,
       data: notif.data,
       isRead: notif.isRead,
@@ -203,6 +207,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     switch (type) {
       case 'new_offer':
         return 'local-offer';
+      case 'new_need':
+        return 'campaign';
       case 'offer_accepted':
         return 'check-circle';
       case 'offer_rejected':
@@ -219,6 +225,7 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
   const getNotificationColor = (type: string) => {
     switch (type) {
       case 'new_offer':
+      case 'new_need':
         return theme.colors.primary;
       case 'offer_accepted':
         return theme.colors.success;

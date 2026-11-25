@@ -186,6 +186,13 @@ Mevcut koda yaslanır; yeni bir akış kurmaz.
   kategoriye indiriyor.
 - **Bağlayıcı olmayan fiyat.** Tavan, tek ilan kuralı ve cevap süresi kuralı kötüye kullanımı azaltır,
   engellemez.
+- **Doğrulanmamış hesabın fiyatı.** Alıcıdan e-posta doğrulaması istenmediği için sahte yüksek
+  fiyata karşı elde yalnızca tavan fiyat ve tek ilan kuralı var; üstelik cevap süresi 7 gün olduğundan
+  "bu fiyata satarım" denmiş ama cevaplanmamış bir ilan o süre boyunca sayfadaki rakam olarak
+  kalabilir. Planda ele alınacak önlem: cevap bekleyen ilan fiyat hesabında kalır ama sayfada
+  "teklif aldı, cevap bekleniyor" diye işaretlenir ve ikinci satıcıya sıradaki fiyat da gösterilir.
+- **İki süre çakışabilir.** İlan 14 günde, cevapsız teklif 7 günde kapanır; aynı ilanı iki iş birden
+  kapatmaya çalışmamalı (kapatma işi yalnızca hâlâ yayında olan ilanlara dokunur).
 - **Durum farkı.** Tek fiyat, kutulu ürünle yıpranmış ürünü ayırmıyor. İlk sürümde fiyat "çalışır,
   temiz ürün" için tanımlanır ve sayfada böyle yazar; ayrıntı sohbette konuşulur.
 - **İnce veri.** Tek alıcılı üründe fiyat bir kişinin sözüdür. Sayfa arayan sayısını her zaman
