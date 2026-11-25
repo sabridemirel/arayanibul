@@ -115,5 +115,6 @@ Tek satırlık basit düzeltmeler (typo, bir elementi kaldırma vb.) için agent
 ## Important Notes
 - Google/Facebook authentication requires native builds (won't work in Expo Go); email/password and guest auth work in Expo Go
 - Features usually need to be implemented on both mobile and web to keep parity
+- Production setup and runbook (domains/DNS, SEO, ImageSharp license, deploy steps, change log): `docs/OPERATIONS.md` — update it when production setup changes
 - Project status and backlog: `docs/MVP_STATUS_SUMMARY.md`, `docs/FEATURES_ROADMAP.md`, `docs/PRIORITY_TASKS.md` (may lag behind code)
 - Project follows Turkish documentation (README and docs are in Turkish); UI text is Turkish

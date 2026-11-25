@@ -1,5 +1,8 @@
 # Arayanibul — Canlı Ortam Kurulumu (Hetzner + Cloudflare)
 
+> **Güncel durum için:** [`docs/OPERATIONS.md`](../docs/OPERATIONS.md). Bu belge ilk kurulum planını
+> anlatır; bugün DNS Cloudflare'de değil Natro'dadır ve web de aynı sunucudan (Caddy) sunulur.
+
 Mimari:
 
 ```
