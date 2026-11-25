@@ -179,6 +179,7 @@ public static class ServiceExtensions
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<INeedService, NeedService>();
+        services.AddScoped<ISeoService, SeoService>();
         services.AddScoped<IOfferService, OfferService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IMessageService, MessageService>();

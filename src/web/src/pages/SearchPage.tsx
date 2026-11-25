@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { usePageMeta } from '../hooks/usePageMeta';
 import {
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
@@ -42,6 +43,18 @@ const SearchPage: React.FC = () => {
   const [maxBudget, setMaxBudget] = useState<string>(searchParams.get('maxBudget') || '');
   const [urgency, setUrgency] = useState<string>(searchParams.get('urgency') || '');
   const [sortBy, setSortBy] = useState<string>('');
+
+  const selectedCategory = categories
+    .flatMap((category) => [category, ...(category.subCategories ?? [])])
+    .find((category) => category.id === selectedCategoryId);
+  const selectedCategoryName = selectedCategory?.nameTr || selectedCategory?.name;
+  usePageMeta(
+    selectedCategoryName ? `${selectedCategoryName} İlanları` : 'Tüm İlanlar',
+    selectedCategoryName
+      ? `${selectedCategoryName} kategorisindeki güncel ilanlara göz atın ve arayanlara teklif verin.`
+      : 'Ürün ve hizmet arayanların güncel ilanlarına göz atın, size uygun olanlara teklif verin.',
+    selectedCategoryId ? `/needs?categoryId=${selectedCategoryId}` : '/needs'
+  );
 
   // Location state
   const [locationEnabled, setLocationEnabled] = useState(false);

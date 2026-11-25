@@ -21,7 +21,32 @@
 # Web app (static SPA built with VITE_API_URL=https://{$API_DOMAIN}/api)
 {$WEB_DOMAIN} {
 	encode zstd gzip
-	reverse_proxy web:80
+
+	# The sitemap lists live listings, so the API generates it.
+	handle /sitemap.xml {
+		reverse_proxy api:5000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	# Search engines and link-preview crawlers (WhatsApp, Facebook, X...) get a static HTML version
+	# of a listing from the API, with its own title, description and Open Graph tags. The SPA only
+	# fills those in with JavaScript, which most of these crawlers do not run. Visitors always get
+	# the SPA.
+	@listingCrawler {
+		path_regexp listing ^/needs/([0-9]+)/?$
+		header_regexp User-Agent (?i)(googlebot|google-inspectiontool|bingbot|yandex|duckduckbot|applebot|facebookexternalhit|facebot|whatsapp|twitterbot|telegrambot|linkedinbot|slackbot|discordbot|pinterest)
+	}
+	handle @listingCrawler {
+		rewrite * /seo/needs/{re.listing.1}
+		reverse_proxy api:5000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
 }
 
 www.{$WEB_DOMAIN} {

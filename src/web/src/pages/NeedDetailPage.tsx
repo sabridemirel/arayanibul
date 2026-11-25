@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { usePageMeta } from '../hooks/usePageMeta';
 import {
   ArrowLeftIcon,
   MapPinIcon,
@@ -365,6 +366,15 @@ const NeedDetailPage: React.FC = () => {
   const { user, isAuthenticated, isGuest } = useAuth();
 
   const [need, setNeed] = useState<Need | null>(null);
+  usePageMeta(
+    need?.title,
+    need
+      ? [need.category?.nameTr || need.category?.name, need.address, need.description]
+          .filter(Boolean)
+          .join(' · ')
+          .slice(0, 160)
+      : undefined
+  );
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOffersLoading, setIsOffersLoading] = useState(false);
