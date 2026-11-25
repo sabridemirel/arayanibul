@@ -52,3 +52,9 @@
 www.{$WEB_DOMAIN} {
 	redir https://{$WEB_DOMAIN}{uri} permanent
 }
+
+# Spare domain: sends visitors to the main site. (The other spare domains are redirected by the
+# registrar's own forwarding service, because editing their DNS records is a paid add-on there.)
+bularayani.com, www.bularayani.com {
+	redir https://{$WEB_DOMAIN}{uri} permanent
+}
