@@ -1,6 +1,7 @@
 # Gerçek Fiyat: ürün sayfası ve tek fiyat
 
 Durum: onaylandı (25 Kasım 2026). Kural 3 ve 7 onay sırasında değiştirildi; aşağıda işaretli.
+Hızlı ilan ve satıcı bildirimleriyle aynı pakette yayınlanacak.
 
 ## Neden
 
@@ -101,11 +102,11 @@ Tasarımcının kararları (itiraz edilebilir):
 1. **Gerçek fiyat** = o ürün için yayındaki, süresi dolmamış ilanlar arasındaki en yüksek fiyat.
    Fiyatsız ilanlar "arayan" sayısına girer, fiyata girmez.
 2. Fiyat ülke geneli tektir; şehir her ilanın üstünde görünür. İkinci el parça kargoyla gidiyor.
-3. Alıcının fiyat verebilmesi için üye olması yeterlidir. Doğrulanmış e-posta ilk sürümde yalnızca
-   satıcı bir ilana teklif verirken ("bu fiyata satarım" dahil) ve anlaşma (teklif kabulü) adımında
-   istenir. Üyelik sırasında e-posta doğrulaması bir sonraki faza bırakıldı. Telefon doğrulaması
-   şart koşulmaz, çünkü SMS servisi bugün sahte (`MockSmsService`) ve gerçeği ücretli.
-   *(Onayda değişti: ilk taslakta alıcıdan da doğrulanmış e-posta isteniyordu.)*
+3. Fiyat vermek ve teklif vermek için üye olmak yeterlidir. E-posta doğrulaması ilk sürümde hiçbir
+   adımda istenmez; tamamı sonraki faza bırakıldı. Telefon doğrulaması da şart koşulmaz, çünkü SMS
+   servisi bugün sahte (`MockSmsService`) ve gerçeği ücretli.
+   *(Onayda iki kez değişti: ilk taslakta alıcıdan doğrulanmış e-posta isteniyordu; sonra yalnızca
+   satıcı teklifinde ve anlaşmada istenmesi kararlaştırıldı; son karar hiç istenmemesi.)*
 4. Bir kullanıcının aynı ürün için aynı anda tek ilanı olur. Fiyatını değiştirmek isterse o ilanı
    günceller.
 5. Ürün ilanı 14 gün yayında kalır; alıcı tek dokunuşla yeniler. Böylece fiyat bayatlamaz.
@@ -186,7 +187,7 @@ Mevcut koda yaslanır; yeni bir akış kurmaz.
   kategoriye indiriyor.
 - **Bağlayıcı olmayan fiyat.** Tavan, tek ilan kuralı ve cevap süresi kuralı kötüye kullanımı azaltır,
   engellemez.
-- **Doğrulanmamış hesabın fiyatı.** Alıcıdan e-posta doğrulaması istenmediği için sahte yüksek
+- **Doğrulanmamış hesabın fiyatı.** Hiçbir adımda e-posta doğrulaması istenmediği için sahte yüksek
   fiyata karşı elde yalnızca tavan fiyat ve tek ilan kuralı var; üstelik cevap süresi 7 gün olduğundan
   "bu fiyata satarım" denmiş ama cevaplanmamış bir ilan o süre boyunca sayfadaki rakam olarak
   kalabilir. Planda ele alınacak önlem: cevap bekleyen ilan fiyat hesabında kalır ama sayfada
