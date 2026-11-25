@@ -372,6 +372,9 @@ namespace API.Migrations
                     b.Property<bool>("NeedsReview")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("ProductId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RejectionNote")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -412,6 +415,9 @@ namespace API.Migrations
                     b.HasIndex("Latitude", "Longitude")
                         .HasDatabaseName("IX_Needs_Location")
                         .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
+
+                    b.HasIndex("ProductId", "Status")
+                        .HasDatabaseName("IX_Needs_ProductId_Status");
 
                     b.HasIndex("Status", "UpdatedAt")
                         .HasDatabaseName("IX_Needs_Status_UpdatedAt");
@@ -505,6 +511,9 @@ namespace API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AtListedPrice")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -575,6 +584,56 @@ namespace API.Migrations
                     b.HasIndex("OfferId");
 
                     b.ToTable("OfferImages");
+                });
+
+            modelBuilder.Entity("API.Models.Product", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Aliases")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("CategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("CeilingPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Products_Slug");
+
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("API.Models.RefreshToken", b =>
@@ -1173,6 +1232,11 @@ namespace API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("API.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("API.Models.ApplicationUser", "User")
                         .WithMany("Needs")
                         .HasForeignKey("UserId")
@@ -1180,6 +1244,8 @@ namespace API.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("Product");
 
                     b.Navigation("User");
                 });
@@ -1234,6 +1300,17 @@ namespace API.Migrations
                         .IsRequired();
 
                     b.Navigation("Offer");
+                });
+
+            modelBuilder.Entity("API.Models.Product", b =>
+                {
+                    b.HasOne("API.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("API.Models.RefreshToken", b =>

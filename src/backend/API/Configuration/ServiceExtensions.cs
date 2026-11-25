@@ -182,6 +182,7 @@ public static class ServiceExtensions
         services.AddScoped<ISeoService, SeoService>();
         services.AddScoped<INeedDraftService, NeedDraftService>();
         services.AddScoped<ICategoryFollowService, CategoryFollowService>();
+        services.AddScoped<IProductPricingService, ProductPricingService>();
         services.AddScoped<IOfferService, OfferService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IMessageService, MessageService>();
@@ -204,6 +205,7 @@ public static class ServiceExtensions
         services.AddHostedService<GuestCleanupService>();
         services.AddHostedService<UrgentShowcaseExpiryService>();
         services.AddHostedService<NewNeedAlertService>();
+        services.AddHostedService<ProductListingCleanupService>();
 
         // Security services
         // services.AddScoped<API.Interfaces.IInputSanitizationService, InputSanitizationService>();

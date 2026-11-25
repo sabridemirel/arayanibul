@@ -44,6 +44,18 @@
 		}
 	}
 
+	# Same for product price pages ("Gerçek Fiyat"): crawlers get the price as static HTML.
+	@priceCrawler {
+		path_regexp price ^/fiyat/([a-z0-9-]+)/?$
+		header_regexp User-Agent (?i)(googlebot|google-inspectiontool|bingbot|yandex|duckduckbot|applebot|facebookexternalhit|facebot|whatsapp|twitterbot|telegrambot|linkedinbot|slackbot|discordbot|pinterest)
+	}
+	handle @priceCrawler {
+		rewrite * /seo/fiyat/{re.price.1}
+		reverse_proxy api:5000 {
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
 	handle {
 		reverse_proxy web:80
 	}

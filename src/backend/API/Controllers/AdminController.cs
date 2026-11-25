@@ -119,4 +119,25 @@ public class AdminController : ControllerBase
     [HttpPut("moderation/keywords")]
     public async Task<ActionResult<ModerationKeywordsDto>> ReplaceKeywords([FromBody] ModerationKeywordsDto request)
         => Ok(new ModerationKeywordsDto { Keywords = await _moderation.ReplaceKeywordsAsync(request.Keywords ?? new List<string>()) });
+
+    // ---------------- Products (Gerçek Fiyat) ----------------
+
+    [HttpGet("products")]
+    public async Task<IActionResult> GetProducts([FromServices] IProductPricingService pricing)
+        => Ok(await pricing.GetAllProductsAsync());
+
+    /// <summary>Sets a product's price ceiling and whether its price page is live.</summary>
+    [HttpPut("products/{id:int}")]
+    public async Task<IActionResult> UpdateProduct(
+        int id, [FromBody] AdminProductRequest request, [FromServices] IProductPricingService pricing)
+    {
+        try
+        {
+            return Ok(await pricing.UpdateProductAsync(id, request));
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }

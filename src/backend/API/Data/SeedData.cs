@@ -758,6 +758,56 @@ public static class SeedData
         await context.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// First catalogue for "Gerçek Fiyat": common second-hand graphics cards. Idempotent (matched
+    /// by slug); price ceilings are left empty for an admin to fill in, the default ceiling applies
+    /// until then.
+    /// </summary>
+    public static async Task EnsureProductsAsync(ApplicationDbContext context)
+    {
+        var category = await context.Categories
+            .FirstOrDefaultAsync(c => c.Name == "Computer Components" && c.ParentCategoryId != null);
+        if (category == null) return;
+
+        // "Ti", "Super" and "XT" versions are separate products with separate prices.
+        var nvidia = new[]
+        {
+            "3050", "3060", "3060 Ti", "3070", "3070 Ti", "3080", "3080 Ti", "3090", "3090 Ti",
+            "4060", "4060 Ti", "4070", "4070 Super", "4070 Ti", "4070 Ti Super", "4080", "4080 Super", "4090",
+            "5060", "5060 Ti", "5070", "5070 Ti", "5080", "5090"
+        };
+        var amd = new[]
+        {
+            "6600", "6600 XT", "6650 XT", "6700 XT", "6750 XT", "6800", "6800 XT", "6900 XT", "6950 XT",
+            "7600", "7600 XT", "7700 XT", "7800 XT", "7900 XT", "7900 XTX",
+            "9060 XT", "9070", "9070 XT"
+        };
+
+        var wanted = nvidia.Select(model => (Name: $"RTX {model}", Aliases: $"rtx {model}|geforce {model}|{model}"))
+            .Concat(amd.Select(model => (Name: $"RX {model}", Aliases: $"rx {model}|radeon {model}|{model}")))
+            .ToList();
+
+        var existingSlugs = (await context.Products.Select(p => p.Slug).ToListAsync()).ToHashSet();
+        var order = existingSlugs.Count;
+        foreach (var (name, aliases) in wanted)
+        {
+            var slug = name.ToLowerInvariant().Replace(' ', '-');
+            if (existingSlugs.Contains(slug)) continue;
+
+            context.Products.Add(new Product
+            {
+                Name = name,
+                Slug = slug,
+                CategoryId = category.Id,
+                Aliases = aliases.ToLowerInvariant(),
+                IsActive = true,
+                SortOrder = ++order
+            });
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     public static async Task UpdateCategoryDescriptionsAsync(ApplicationDbContext context)
     {
         var descriptions = new Dictionary<string, string>

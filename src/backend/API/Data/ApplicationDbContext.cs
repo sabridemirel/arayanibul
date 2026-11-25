@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Report> Reports { get; set; }
     public DbSet<UserBlock> UserBlocks { get; set; }
     public DbSet<CategoryFollow> CategoryFollows { get; set; }
+    public DbSet<Product> Products { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -352,5 +353,30 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<CategoryFollow>()
             .HasIndex(f => f.CategoryId)
             .HasDatabaseName("IX_CategoryFollows_CategoryId");
+
+        builder.Entity<Product>()
+            .HasOne(p => p.Category)
+            .WithMany()
+            .HasForeignKey(p => p.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Product>()
+            .HasIndex(p => p.Slug)
+            .IsUnique()
+            .HasDatabaseName("IX_Products_Slug");
+
+        builder.Entity<Product>()
+            .Property(p => p.CeilingPrice)
+            .HasPrecision(18, 2);
+
+        builder.Entity<Need>()
+            .HasOne(n => n.Product)
+            .WithMany()
+            .HasForeignKey(n => n.ProductId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<Need>()
+            .HasIndex(n => new { n.ProductId, n.Status })
+            .HasDatabaseName("IX_Needs_ProductId_Status");
     }
 }

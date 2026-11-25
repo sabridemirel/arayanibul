@@ -22,6 +22,11 @@ public class Need
     public DateTime? ExpiresAt { get; set; }
     public string UserId { get; set; } = string.Empty;
 
+    /// <summary>Set when the listing is for a catalogued product (see Product). Its price is
+    /// MaxBudget; no new price column, so app versions that predate products show it as a budget.</summary>
+    public int? ProductId { get; set; }
+    public Product? Product { get; set; }
+
     // Moderation
     public NeedRejectionReason? RejectionReason { get; set; }
     public string? RejectionNote { get; set; }

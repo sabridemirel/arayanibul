@@ -23,9 +23,12 @@ public class NeedDraftService : INeedDraftService
 
     private readonly ICategoryService _categoryService;
 
-    public NeedDraftService(ICategoryService categoryService)
+    private readonly IProductPricingService? _productPricing;
+
+    public NeedDraftService(ICategoryService categoryService, IProductPricingService? productPricing = null)
     {
         _categoryService = categoryService;
+        _productPricing = productPricing;
     }
 
     public async Task<NeedDraftResponse> BuildDraftAsync(string text)
@@ -65,6 +68,16 @@ public class NeedDraftService : INeedDraftService
         var spans = new List<(int Start, int Length)>();
         if (budget != null) spans.Add((budget.Start, budget.Length));
         if (location != null) spans.Add((location.Start, location.Length));
+        if (_productPricing != null)
+        {
+            var product = await _productPricing.FindProductInTextAsync(original);
+            if (product != null)
+            {
+                response.ProductSlug = product.Slug;
+                response.ProductName = product.Name;
+            }
+        }
+
         response.Title = BuildTitle(original, spans);
         response.Description = original.Length >= MinDescriptionLength ? original : $"{original} arıyorum.";
         return response;

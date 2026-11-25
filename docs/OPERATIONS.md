@@ -112,6 +112,14 @@ Mağazalardaki eski uygulama sürümleri aynı API'yi kullanır. API'de değişi
 
 ### 25 Kasım 2026
 
+- "Gerçek Fiyat" (API + web): ürün fiyat sayfaları `/fiyat/{slug}` (`ProductPricingService`,
+  `ProductController`). İlk katalog 42 ekran kartı modeli; açılışta eksikse eklenir
+  (`EnsureProductsAsync`). Ayarlar: `ProductPricing__ListingDays` (14), `ProductPricing__ResponseDays`
+  (7), `ProductPricing__DefaultCeilingPrice` (250000). Ürün başına tavan fiyat yönetici uç noktasıyla
+  girilir (`PUT /api/admin/products/{id}`); yönetim panelinde ekranı henüz yok.
+  `ProductListingCleanupService` 15 dakikada bir yanıtsız "bu fiyata" tekliflerini ve süresi dolan
+  ürün ilanlarını kapatır. Arama motorları için `/seo/fiyat/{slug}`; Caddy kuralı eklendi
+  (canlıya alırken Caddy yeniden başlatılmalı). Tasarım: `docs/superpowers/specs/`.
 - Satıcıya yeni ilan bildirimi: kullanıcılar kategori takip eder (`CategoryFollow`,
   `GET/PUT /api/category/follows`). `NewNeedAlertService` dakikada bir yeni yayına giren ilanları
   takipçilerine duyurur (uygulama içi bildirim + e-posta). E-posta günlük sınırı:

@@ -10,6 +10,9 @@ public class Offer
     public string Description { get; set; } = string.Empty;
     public int DeliveryDays { get; set; }
     public OfferStatus Status { get; set; } = OfferStatus.Pending;
+    /// <summary>Made with "bu fiyata satarım": the seller accepted the buyer's listed price as is.
+    /// The buyer has a limited time to answer these (see ProductPricingService).</summary>
+    public bool AtListedPrice { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     

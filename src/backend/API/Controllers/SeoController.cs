@@ -47,4 +47,24 @@ public class SeoController : ControllerBase
 
         return Content(html, "text/html; charset=utf-8");
     }
+
+    [HttpGet("/seo/fiyat/{slug}")]
+    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any)]
+    public async Task<IActionResult> ProductPage(string slug)
+    {
+        var html = await _seoService.BuildProductPageAsync(slug);
+        if (html == null)
+        {
+            return new ContentResult
+            {
+                StatusCode = StatusCodes.Status404NotFound,
+                ContentType = "text/html; charset=utf-8",
+                Content = "<!doctype html><html lang=\"tr\"><head><meta charset=\"UTF-8\" />" +
+                          "<meta name=\"robots\" content=\"noindex\" /><title>Ürün bulunamadı | Arayanibul</title></head>" +
+                          "<body><h1>Ürün bulunamadı</h1></body></html>"
+            };
+        }
+
+        return Content(html, "text/html; charset=utf-8");
+    }
 }

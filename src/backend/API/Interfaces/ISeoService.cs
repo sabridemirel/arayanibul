@@ -11,4 +11,7 @@ public interface ISeoService
     /// Returns null when the need does not exist or is not publicly listed.
     /// </summary>
     Task<string?> BuildNeedPageAsync(int needId);
+
+    /// <summary>Static HTML for a product's price page (/fiyat/{slug}); null when there is no such product.</summary>
+    Task<string?> BuildProductPageAsync(string slug);
 }

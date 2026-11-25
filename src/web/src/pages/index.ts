@@ -17,3 +17,4 @@ export { default as ContactPage } from './ContactPage';
 export { default as AccountDeletionPage } from './AccountDeletionPage';
 export { default as ForgotPasswordPage } from './ForgotPasswordPage';
 export { default as ResetPasswordPage } from './ResetPasswordPage';
+export { default as ProductPricePage } from './ProductPricePage';

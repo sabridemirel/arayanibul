@@ -30,6 +30,11 @@ public class NeedDraftResponse
     /// <summary>City (and district when recognised), e.g. "Kadıköy, İstanbul".</summary>
     public string? Address { get; set; }
 
+    /// <summary>Set when the text names a catalogued product: the client can send the buyer to
+    /// its price page (/fiyat/{slug}) instead of creating an ordinary listing.</summary>
+    public string? ProductSlug { get; set; }
+    public string? ProductName { get; set; }
+
     /// <summary>One-tap questions for the recognised category (condition, warranty...).</summary>
     public List<NeedDraftQuestion> Questions { get; set; } = new();
 }

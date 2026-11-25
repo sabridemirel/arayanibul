@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapPinIcon, PencilSquareIcon, SparklesIcon, TagIcon } from '@heroicons/react/24/outline';
 import { needAPI } from '../../services/api';
 import type { Category } from '../../services/api';
@@ -80,6 +81,7 @@ const QuickNeedComposer: React.FC<QuickNeedComposerProps> = ({
   onPublish,
   onUseDetailedForm,
 }) => {
+  const navigate = useNavigate();
   const categories = useCategories();
   const [text, setText] = useState(initialDraft?.text ?? initialText);
   const [draft, setDraft] = useState<PendingNeedDraft | null>(initialDraft);
@@ -102,6 +104,16 @@ const QuickNeedComposer: React.FC<QuickNeedComposerProps> = ({
     setIsReading(true);
     try {
       const suggestion = await needAPI.buildDraft(trimmed);
+
+      // A catalogued product has its own price page: the buyer names a price there and sees
+      // where it puts them, instead of posting an ordinary listing.
+      if (suggestion.productSlug) {
+        const query = new URLSearchParams({ ara: '1' });
+        if (suggestion.maxBudget) query.set('fiyat', String(suggestion.maxBudget));
+        if (suggestion.address) query.set('konum', suggestion.address);
+        navigate(`/fiyat/${suggestion.productSlug}?${query.toString()}`);
+        return;
+      }
       setShowMinBudget(Boolean(suggestion.minBudget));
       setDraft({
         text: trimmed,

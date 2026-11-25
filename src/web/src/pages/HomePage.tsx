@@ -8,9 +8,8 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
-import { useAuth } from '../contexts/AuthContext';
-import { needAPI } from '../services/api';
-import type { Need } from '../services/api';
+import { needAPI, productAPI } from '../services/api';
+import type { Need, ProductSummary } from '../services/api';
 import { Header, Footer } from '../components/layout';
 import AppDownloadBadges from '../components/AppDownloadBadges';
 import NeedCard, { NeedCardSkeleton } from '../components/NeedCard';
@@ -31,7 +30,6 @@ const isShowcased = (need: Need) =>
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
   // One-off confirmation passed via navigation state (e.g. after account deletion)
   const [flashMessage, setFlashMessage] = useState<string | null>(
     () => (location.state as { flash?: string } | null)?.flash ?? null
@@ -41,6 +39,19 @@ const HomePage: React.FC = () => {
   const [recentNeeds, setRecentNeeds] = useState<Need[]>([]);
   const [isLoadingNeeds, setIsLoadingNeeds] = useState(true);
   const categories = useCategories();
+  const [products, setProducts] = useState<ProductSummary[]>([]);
+
+  useEffect(() => {
+    productAPI
+      .search('')
+      .then((result) =>
+        // Products somebody is already looking for come first
+        setProducts([...result].sort((a, b) => b.seekerCount - a.seekerCount).slice(0, 8))
+      )
+      .catch(() => {
+        // The strip is simply not shown
+      });
+  }, []);
   const rootCategories = categories
     .filter((category) => !category.parentCategoryId)
     .sort((a, b) => a.sortOrder - b.sortOrder);
@@ -78,13 +89,29 @@ const HomePage: React.FC = () => {
     fetchNeeds();
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
-    navigate(query ? `/needs?search=${encodeURIComponent(query)}` : '/needs');
+    if (!query) {
+      navigate('/needs');
+      return;
+    }
+
+    // A catalogued product has its own price page; everything else goes to the listing search.
+    try {
+      const draft = await needAPI.buildDraft(query);
+      if (draft.productSlug) {
+        navigate(`/fiyat/${draft.productSlug}`);
+        return;
+      }
+    } catch {
+      // The search below still works without product recognition
+    }
+    navigate(`/needs?search=${encodeURIComponent(query)}`);
   };
 
-  const createNeedPath = isAuthenticated ? '/create-need' : '/login';
+  // Anyone can start writing a listing; signing in is asked for when publishing
+  const createNeedPath = '/create-need';
   const hasNoNeeds = !isLoadingNeeds && urgentNeeds.length === 0 && recentNeeds.length === 0;
 
   return (
@@ -180,6 +207,37 @@ const HomePage: React.FC = () => {
               </ul>
             </div>
           </nav>
+        )}
+
+        {/* "Gerçek Fiyat": products with their own price page */}
+        {products.length > 0 && (
+          <section aria-labelledby="prices-heading" className="border-b border-border bg-surface">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+              <h2 id="prices-heading" className="text-lg font-extrabold text-text">
+                Ekran kartlarında gerçek fiyat
+              </h2>
+              <p className="mt-0.5 text-sm text-text-secondary">
+                Alıcıların şu an ödemeye hazır olduğu fiyatlar. Elinizde varsa tek dokunuşla satın.
+              </p>
+              <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {products.map((product) => (
+                  <li key={product.id} className="shrink-0">
+                    <Link
+                      to={`/fiyat/${product.slug}`}
+                      className="block min-w-[9.5rem] rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                    >
+                      <span className="block text-sm font-semibold text-text">{product.name}</span>
+                      <span className={`block ${product.realPrice ? 'font-bold text-primary' : 'text-sm text-text-secondary'}`}>
+                        {product.realPrice
+                          ? `${product.realPrice.toLocaleString('tr-TR')} TL`
+                          : 'İlk fiyatı siz verin'}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
         )}
 
         {/* Urgent showcase */}

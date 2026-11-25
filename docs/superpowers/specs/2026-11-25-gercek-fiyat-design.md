@@ -2,6 +2,8 @@
 
 Durum: onaylandı (25 Kasım 2026). Kural 3 ve 7 onay sırasında değiştirildi; aşağıda işaretli.
 Hızlı ilan ve satıcı bildirimleriyle aynı pakette yayınlanacak.
+Uygulama durumu (25 Kasım 2026): API ve web yazıldı, yerelde denendi; canlıya alınmadı. Eksikler:
+yönetim panelinde tavan fiyat ekranı, mobil fiyat sayfası (ikinci aşama).
 
 ## Neden
 

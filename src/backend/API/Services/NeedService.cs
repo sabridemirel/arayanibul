@@ -12,12 +12,19 @@ public class NeedService : INeedService
     private readonly IFileStorageService _fileStorageService;
     private readonly IContentModerationService? _moderation;
 
-    public NeedService(ApplicationDbContext context, IFileStorageService fileStorageService, IContentModerationService? moderation = null)
+    public NeedService(
+        ApplicationDbContext context,
+        IFileStorageService fileStorageService,
+        IContentModerationService? moderation = null,
+        IProductPricingService? productPricing = null)
     {
         _context = context;
         _fileStorageService = fileStorageService;
         _moderation = moderation;
+        _productPricing = productPricing;
     }
+
+    private readonly IProductPricingService? _productPricing;
 
     private bool ModerationEnabled => _moderation?.IsEnabled ?? false;
 
@@ -324,6 +331,11 @@ public class NeedService : INeedService
         if (need == null)
         {
             throw new NotFoundException("İhtiyaç bulunamadı veya güncelleme yetkiniz yok.");
+        }
+
+        if (_productPricing != null)
+        {
+            await _productPricing.EnsureEditAllowedAsync(need, request);
         }
 
         // Content/detail edits are only allowed while the listing is live or under moderation.

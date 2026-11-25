@@ -22,6 +22,7 @@ import {
   AccountDeletionPage,
   ForgotPasswordPage,
   ResetPasswordPage,
+  ProductPricePage,
 } from './pages';
 import { Loading } from './components/ui';
 import { postAuthPath } from './utils/pendingNeedDraft';
@@ -162,6 +163,8 @@ const AppRoutes: React.FC = () => {
       {/* Anyone can write a listing; signing in is asked for when publishing */}
       <Route path="/needs/create" element={<CreateNeedPage />} />
       <Route path="/needs/:id" element={<NeedDetailPage />} />
+      {/* "Gerçek Fiyat": public price page of a catalogued product */}
+      <Route path="/fiyat/:slug" element={<ProductPricePage />} />
       <Route
         path="/needs/:id/edit"
         element={

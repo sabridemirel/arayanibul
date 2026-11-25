@@ -309,6 +309,9 @@ export interface NeedDraft {
   minBudget?: number | null;
   maxBudget?: number | null;
   address?: string | null;
+  /** Set when the text names a catalogued product with its own price page */
+  productSlug?: string | null;
+  productName?: string | null;
   questions: NeedDraftQuestion[];
 }
 
@@ -461,6 +464,58 @@ export const authAPI = {
 
   resetPassword: (data: { email: string; token: string; newPassword: string }): Promise<{ message: string }> =>
     api.post('/auth/reset-password', data).then(res => res.data),
+};
+
+// ---- "Gerçek Fiyat": product price pages
+
+export interface ProductSummary {
+  id: number;
+  name: string;
+  slug: string;
+  categoryName?: string | null;
+  /** Highest price a buyer is offering right now */
+  realPrice?: number | null;
+  seekerCount: number;
+}
+
+export interface ProductSeeker {
+  needId: number;
+  price?: number | null;
+  address?: string | null;
+  createdAt: string;
+  awaitingBuyerResponse: boolean;
+}
+
+export interface ProductPage extends ProductSummary {
+  recentDeals: { price: number; agreedAt: string }[];
+  seekers: ProductSeeker[];
+  suggestedPrices: number[];
+  myListing?: {
+    needId: number;
+    price?: number | null;
+    rank?: number | null;
+    priceToLead?: number | null;
+    expiresAt?: string | null;
+  } | null;
+  sellTarget?: { needId: number; price: number; isTopPrice: boolean } | null;
+  responseDays: number;
+  listingDays: number;
+}
+
+export const productAPI = {
+  search: (query: string): Promise<ProductSummary[]> =>
+    api.get('/product/search', { params: { q: query } }).then(res => res.data),
+
+  getPage: (slug: string): Promise<ProductPage> =>
+    api.get(`/product/${slug}`).then(res => res.data),
+
+  /** "Ben de arıyorum": price is omitted when the buyer lets sellers name it */
+  placeBid: (slug: string, price?: number, address?: string): Promise<{ needId: number; page: ProductPage }> =>
+    api.post(`/product/${slug}/bid`, { price: price ?? null, address: address || null }).then(res => res.data),
+
+  /** "Bu fiyata satarım" */
+  sell: (slug: string): Promise<{ offerId: number; needId: number; price: number }> =>
+    api.post(`/product/${slug}/sell`).then(res => res.data),
 };
 
 export interface CategoryFollows {
