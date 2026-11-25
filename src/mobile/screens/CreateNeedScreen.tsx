@@ -28,9 +28,9 @@ import { RootStackParamList } from '../types';
 import { withCreateNeedAuth } from '../hoc/withAuthPrompt';
 import { isNeedEditable } from '../utils/needStatus';
 
-type CreateNeedScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateNeed'>;
+type CreateNeedScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateNeedDetailed'>;
 // The same screen is registered as EditNeed ({ needId }) for editing an existing need
-type CreateNeedScreenRouteProp = RouteProp<RootStackParamList, 'CreateNeed' | 'EditNeed'>;
+type CreateNeedScreenRouteProp = RouteProp<RootStackParamList, 'CreateNeedDetailed' | 'EditNeed'>;
 
 type UrgencyValue = 'Flexible' | 'Normal' | 'Urgent';
 
@@ -79,13 +79,18 @@ const CreateNeedScreen: React.FC = () => {
     route.name === 'EditNeed' ? (route.params as { needId: number } | undefined)?.needId : undefined;
   const isEdit = editNeedId !== undefined;
 
+  // What the quick flow already understood from the user's sentence, if they came from there
+  const prefill = !isEdit
+    ? (route.params as RootStackParamList['CreateNeedDetailed'])?.prefill
+    : undefined;
+
   const [formData, setFormData] = useState<FormData>({
-    title: '',
-    description: '',
-    categoryId: null,
-    minBudget: '',
-    maxBudget: '',
-    address: '',
+    title: prefill?.title ?? '',
+    description: prefill?.description ?? '',
+    categoryId: prefill?.categoryId ?? null,
+    minBudget: prefill?.minBudget ?? '',
+    maxBudget: prefill?.maxBudget ?? '',
+    address: prefill?.address ?? '',
     urgency: 'Normal',
   });
 
@@ -201,7 +206,7 @@ const CreateNeedScreen: React.FC = () => {
 
   // Once categories arrive, show the full category entry for the need being edited
   useEffect(() => {
-    if (!isEdit || !formData.categoryId || categories.length === 0) return;
+    if ((!isEdit && !prefill) || !formData.categoryId || categories.length === 0) return;
     const match = categories.find(cat => cat.id === formData.categoryId);
     if (match && match !== selectedCategory) {
       setSelectedCategory(match);
@@ -227,16 +232,16 @@ const CreateNeedScreen: React.FC = () => {
 
     if (!formData.title.trim()) {
       newErrors.title = 'Başlık gereklidir';
-    } else if (formData.title.length < 10) {
-      newErrors.title = 'Başlık en az 10 karakter olmalıdır';
+    } else if (formData.title.trim().length < 5) {
+      newErrors.title = 'Başlık en az 5 karakter olmalıdır';
     } else if (formData.title.length > 100) {
       newErrors.title = 'Başlık en fazla 100 karakter olabilir';
     }
 
     if (!formData.description.trim()) {
       newErrors.description = 'Açıklama gereklidir';
-    } else if (formData.description.length < 20) {
-      newErrors.description = 'Açıklama en az 20 karakter olmalıdır';
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = 'Açıklama en az 10 karakter olmalıdır';
     } else if (formData.description.length > 1000) {
       newErrors.description = 'Açıklama en fazla 1000 karakter olabilir';
     }
@@ -463,8 +468,8 @@ const CreateNeedScreen: React.FC = () => {
       case 'title':
         if (!formData.title.trim()) {
           newErrors.title = 'Başlık gereklidir';
-        } else if (formData.title.length < 10) {
-          newErrors.title = 'Başlık en az 10 karakter olmalıdır';
+        } else if (formData.title.trim().length < 5) {
+          newErrors.title = 'Başlık en az 5 karakter olmalıdır';
         } else if (formData.title.length > 100) {
           newErrors.title = 'Başlık en fazla 100 karakter olabilir';
         } else {
@@ -475,8 +480,8 @@ const CreateNeedScreen: React.FC = () => {
       case 'description':
         if (!formData.description.trim()) {
           newErrors.description = 'Açıklama gereklidir';
-        } else if (formData.description.length < 20) {
-          newErrors.description = 'Açıklama en az 20 karakter olmalıdır';
+        } else if (formData.description.trim().length < 10) {
+          newErrors.description = 'Açıklama en az 10 karakter olmalıdır';
         } else if (formData.description.length > 1000) {
           newErrors.description = 'Açıklama en fazla 1000 karakter olabilir';
         } else {

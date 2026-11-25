@@ -457,9 +457,33 @@ const normalizeList = <T>(data: unknown, fn: (x: Raw) => T): T[] => {
   return Array.isArray(items) ? items.map(x => fn(x as Raw)) : [];
 };
 
+/** One-tap question suggested for a recognised category (condition, warranty...) */
+export interface NeedDraftQuestion {
+  label: string;
+  options: string[];
+  selected?: string | null;
+}
+
+/** Listing fields the server suggests from one line of free text */
+export interface NeedDraft {
+  title: string;
+  description: string;
+  categoryId?: number | null;
+  categoryName?: string | null;
+  parentCategoryName?: string | null;
+  minBudget?: number | null;
+  maxBudget?: number | null;
+  address?: string | null;
+  questions: NeedDraftQuestion[];
+}
+
 export const needAPI = {
   createNeed: (data: CreateNeedRequest): Promise<Need> =>
     api.post('/need', data).then(res => normalizeNeed(res.data)),
+
+  /** Suggests title, category, budget and location from one line of text; saves nothing. */
+  buildDraft: (text: string): Promise<NeedDraft> =>
+    api.post('/need/draft', { text }).then(res => res.data),
   
   // Map filters to backend parameter names and unwrap paged response
   getNeeds: (filters: NeedFilters = {}): Promise<{ items: Need[]; totalCount: number }> => {

@@ -590,8 +590,17 @@ const SearchScreen: React.FC = () => {
         <MaterialIcons name="search-off" size={64} color={colors.textSecondary} />
         <Text style={styles.emptyTitle}>Sonuç bulunamadı</Text>
         <Text style={styles.emptyDescription}>
-          Arama kriterlerinize uygun ihtiyaç bulunamadı. Farklı kelimeler deneyin veya filtreleri değiştirin.
+          {searchQuery.trim()
+            ? 'Bunu arayan henüz yok. Aradığınızı ilan olarak yayınlayın, satıcılar size teklif getirsin.'
+            : 'Arama kriterlerinize uygun ilan bulunamadı. Farklı kelimeler deneyin veya filtreleri değiştirin.'}
         </Text>
+        {searchQuery.trim() ? (
+          <Button
+            title="Bunu İlan Olarak Yayınla"
+            onPress={() => navigation.navigate('CreateNeed', { initialText: searchQuery.trim() })}
+            style={{ marginTop: spacing.lg }}
+          />
+        ) : null}
       </View>
     );
   };

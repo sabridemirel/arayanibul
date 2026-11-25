@@ -21,6 +21,7 @@ import HomeScreen from './screens/HomeScreen';
 import NeedDetailScreen from './screens/NeedDetailScreen';
 import SearchScreen from './screens/SearchScreen';
 import CreateNeedScreen from './screens/CreateNeedScreen';
+import QuickNeedScreen from './screens/QuickNeedScreen';
 import CreateOfferScreen from './screens/CreateOfferScreen';
 import MyNeedsScreen from './screens/MyNeedsScreen';
 import MyOffersScreen from './screens/MyOffersScreen';
@@ -64,7 +65,8 @@ function AppNavigator() {
         </Stack.Group>
         
         {/* Protected screens - require authentication */}
-        <Stack.Screen name="CreateNeed" component={CreateNeedScreen} />
+        <Stack.Screen name="CreateNeed" component={QuickNeedScreen} />
+        <Stack.Screen name="CreateNeedDetailed" component={CreateNeedScreen} />
         <Stack.Screen name="CreateOffer" component={CreateOfferScreen} />
         <Stack.Screen name="MyNeeds" component={MyNeedsScreen} />
         <Stack.Screen name="MyOffers" component={MyOffersScreen} />

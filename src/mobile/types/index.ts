@@ -40,7 +40,10 @@ export type RootStackParamList = {
   Register: undefined;
   
   // Protected screens (require authentication)
-  CreateNeed: undefined;
+  /** Quick listing: one sentence, then confirm. `initialText` pre-fills the sentence (e.g. a search). */
+  CreateNeed: { initialText?: string } | undefined;
+  /** The long listing form, optionally carrying over what the quick flow already understood. */
+  CreateNeedDetailed: { prefill?: NeedPrefill } | undefined;
   EditNeed: { needId: number };
   CreateOffer: { needId: number };
   MyNeeds: undefined;
@@ -161,4 +164,14 @@ export interface ApiError {
   message: string;
   status?: number;
   code?: string;
+}
+
+/** Listing fields handed from the quick flow to the long form */
+export interface NeedPrefill {
+  title: string;
+  description: string;
+  categoryId: number | null;
+  minBudget: string;
+  maxBudget: string;
+  address: string;
 }
