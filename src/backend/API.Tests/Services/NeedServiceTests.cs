@@ -352,6 +352,25 @@ public class NeedServiceTests : IDisposable
         result.Should().NotContain(n => n.Title.Contains("Samsung"));
     }
 
+    [Fact]
+    public async Task GetNeedsAsync_FilteringByRootCategory_IncludesSubcategoryNeeds()
+    {
+        _context.Categories.AddRange(
+            new Category { Id = 50, Name = "Baby", NameTr = "Bebek", ParentCategoryId = 1, IsActive = true },
+            new Category { Id = 60, Name = "Other root", NameTr = "Diğer", IsActive = true });
+        _context.Needs.AddRange(
+            new Need { Title = "Kökte ilan", Description = "Kök kategoride", CategoryId = 1, UserId = "test-user-id", Status = NeedStatus.Active },
+            new Need { Title = "Alt kategoride ilan", Description = "Alt kategoride", CategoryId = 50, UserId = "test-user-id", Status = NeedStatus.Active },
+            new Need { Title = "Başka kökte ilan", Description = "Başka kategoride", CategoryId = 60, UserId = "test-user-id", Status = NeedStatus.Active });
+        await _context.SaveChangesAsync();
+
+        var byRoot = await _needService.GetNeedsAsync(new NeedFilterRequest { CategoryId = 1 });
+        var bySub = await _needService.GetNeedsAsync(new NeedFilterRequest { CategoryId = 50 });
+
+        byRoot.Items.Select(n => n.Title).Should().BeEquivalentTo(new[] { "Kökte ilan", "Alt kategoride ilan" });
+        bySub.Items.Select(n => n.Title).Should().BeEquivalentTo(new[] { "Alt kategoride ilan" });
+    }
+
     public void Dispose()
     {
         _context.Dispose();

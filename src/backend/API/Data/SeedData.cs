@@ -733,6 +733,29 @@ public static class SeedData
         await EnsureAsync("Caravans & Trailers", "Karavan & Çekme Karavan", camping.Id, 3);
         await EnsureAsync("Caravan Equipment", "Karavan Ekipmanı & Aksesuar", camping.Id, 4);
         await EnsureAsync("Campsites & Rentals", "Kamp Alanı & Kiralama", camping.Id, 5);
+
+        // The launch focus areas lead every category list (web and mobile both follow SortOrder);
+        // the remaining root categories keep their relative order behind them.
+        var focusRoots = new[] { "Electronics", "Baby & Kids", "Camping & Caravan" };
+        var roots = existing
+            .Where(c => c.ParentCategoryId == null)
+            .OrderBy(c => Array.IndexOf(focusRoots, c.Name) is var index && index >= 0 ? index : int.MaxValue)
+            .ThenBy(c => c.SortOrder)
+            .ThenBy(c => c.Id)
+            .ToList();
+        for (var position = 0; position < roots.Count; position++)
+        {
+            roots[position].SortOrder = position + 1;
+        }
+
+        // Within Electronics, PC components come first.
+        var components = existing.FirstOrDefault(c => c.Name == "Computer Components" && c.ParentCategoryId == electronics?.Id);
+        if (components != null)
+        {
+            components.SortOrder = 0;
+        }
+
+        await context.SaveChangesAsync();
     }
 
     public static async Task UpdateCategoryDescriptionsAsync(ApplicationDbContext context)

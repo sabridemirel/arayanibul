@@ -182,7 +182,9 @@ public class NeedService : INeedService
         // Apply filters
         if (filter.CategoryId.HasValue)
         {
-            query = query.Where(n => n.CategoryId == filter.CategoryId.Value);
+            // A root category also covers the listings filed under its subcategories.
+            var categoryId = filter.CategoryId.Value;
+            query = query.Where(n => n.CategoryId == categoryId || n.Category.ParentCategoryId == categoryId);
         }
 
         if (filter.CategoryIds != null && filter.CategoryIds.Any())
