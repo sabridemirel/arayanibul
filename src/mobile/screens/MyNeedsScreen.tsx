@@ -292,7 +292,9 @@ const MyNeedsScreen: React.FC = () => {
             <View style={styles.metaRow}>
               <MaterialIcons name="attach-money" size={16} color={colors.textSecondary} />
               <Text style={styles.metaText}>
-                {formatBudget(item.minBudget, item.maxBudget, item.currency)}
+                {item.isFixedPrice && item.maxBudget
+                  ? `Hemen alır: ${item.maxBudget.toLocaleString('tr-TR')} TL`
+                  : formatBudget(item.minBudget, item.maxBudget, item.currency)}
               </Text>
             </View>
           )}

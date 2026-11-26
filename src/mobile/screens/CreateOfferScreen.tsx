@@ -61,6 +61,11 @@ const CreateOfferScreen: React.FC = () => {
       setLoading(true);
       setError(null);
       const needData = await needAPI.getNeedById(needId);
+      if (needData.isFixedPrice) {
+        // One firm price: the listing screen has the "bu fiyata satarım" button instead of this form.
+        navigation.goBack();
+        return;
+      }
       setNeed(needData);
     } catch (err: any) {
       setError(err.response?.data?.message || 'İhtiyaç detayları yüklenirken hata oluştu');

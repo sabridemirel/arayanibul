@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import PriceModeSelector from '../components/PriceModeSelector';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { needAPI, categoryAPI } from '../services/api';
@@ -43,6 +44,8 @@ interface Draft {
   categoryId: number | null;
   minBudget: string;
   maxBudget: string;
+  /** "Bu fiyata hemen alırım": maxBudget is the exact price */
+  isFixedPrice: boolean;
   address: string;
   answers: Record<string, string>;
   questions: NeedDraftQuestion[];
@@ -52,6 +55,9 @@ const digitsOnly = (value: string) => value.replace(/\D/g, '');
 const formatAmount = (digits: string) => (digits ? Number(digits).toLocaleString('tr-TR') : '');
 
 const budgetText = (draft: Draft): string => {
+  if (draft.isFixedPrice) {
+    return draft.maxBudget ? `Hemen alır: ${formatAmount(draft.maxBudget)} TL` : 'Fiyat yazılmadı';
+  }
   if (draft.minBudget && draft.maxBudget) {
     return `${formatAmount(draft.minBudget)} – ${formatAmount(draft.maxBudget)} TL`;
   }
@@ -158,6 +164,7 @@ const QuickNeedScreen: React.FC = () => {
         categoryId: suggestion.categoryId ?? null,
         minBudget: suggestion.minBudget ? String(Math.round(suggestion.minBudget)) : '',
         maxBudget: suggestion.maxBudget ? String(Math.round(suggestion.maxBudget)) : '',
+        isFixedPrice: false,
         address: suggestion.address ?? '',
         questions,
         answers: Object.fromEntries(
@@ -179,7 +186,10 @@ const QuickNeedScreen: React.FC = () => {
   const validate = (current: Draft): string | null => {
     if (current.title.trim().length < 5) return 'Başlık en az 5 karakter olmalı.';
     if (!current.categoryId) return 'İlanınız için bir kategori seçin.';
-    if (current.minBudget && current.maxBudget && Number(current.minBudget) > Number(current.maxBudget)) {
+    if (current.isFixedPrice && !(Number(current.maxBudget) > 0)) {
+      return 'Hemen almak istediğiniz fiyatı yazın.';
+    }
+    if (!current.isFixedPrice && current.minBudget && current.maxBudget && Number(current.minBudget) > Number(current.maxBudget)) {
       return 'En az bütçe, en fazla bütçeden büyük olamaz.';
     }
     return null;
@@ -202,7 +212,8 @@ const QuickNeedScreen: React.FC = () => {
         categoryId: draft.categoryId!,
         urgency: URGENCY_NORMAL as unknown as CreateNeedRequest['urgency'],
       };
-      if (draft.minBudget) request.minBudget = Number(draft.minBudget);
+      if (draft.isFixedPrice) request.isFixedPrice = true;
+      else if (draft.minBudget) request.minBudget = Number(draft.minBudget);
       if (draft.maxBudget) request.maxBudget = Number(draft.maxBudget);
       if (draft.address.trim()) request.address = draft.address.trim();
 
@@ -236,6 +247,7 @@ const QuickNeedScreen: React.FC = () => {
             categoryId: draft.categoryId,
             minBudget: draft.minBudget,
             maxBudget: draft.maxBudget,
+            isFixedPrice: draft.isFixedPrice,
             address: draft.address,
           }
         : undefined,
@@ -367,22 +379,39 @@ const QuickNeedScreen: React.FC = () => {
                 <Text style={styles.fieldHint}>Kategoriyi yazdıklarınızdan çıkaramadık; listeden seçin.</Text>
               ) : null}
 
-              {showMinBudget ? (
-                <Input
-                  label="En az bütçe (TL)"
-                  placeholder="İsteğe bağlı"
-                  keyboardType="number-pad"
-                  value={formatAmount(draft.minBudget)}
-                  onChangeText={(value) => update({ minBudget: digitsOnly(value) })}
-                />
-              ) : null}
-              <Input
-                label="En fazla bütçe (TL)"
-                placeholder="İsteğe bağlı"
-                keyboardType="number-pad"
-                value={formatAmount(draft.maxBudget)}
-                onChangeText={(value) => update({ maxBudget: digitsOnly(value) })}
+              <Text style={styles.fieldLabel}>Fiyat</Text>
+              <PriceModeSelector
+                isFixedPrice={draft.isFixedPrice}
+                onChange={(isFixedPrice) => update({ isFixedPrice, ...(isFixedPrice ? { minBudget: '' } : {}) })}
               />
+              {draft.isFixedPrice ? (
+                <Input
+                  label="Fiyatınız (TL)"
+                  placeholder="Örn. 15.000"
+                  keyboardType="number-pad"
+                  value={formatAmount(draft.maxBudget)}
+                  onChangeText={(value) => update({ maxBudget: digitsOnly(value) })}
+                />
+              ) : (
+                <>
+                  {showMinBudget ? (
+                    <Input
+                      label="En az bütçe (TL)"
+                      placeholder="İsteğe bağlı"
+                      keyboardType="number-pad"
+                      value={formatAmount(draft.minBudget)}
+                      onChangeText={(value) => update({ minBudget: digitsOnly(value) })}
+                    />
+                  ) : null}
+                  <Input
+                    label="En fazla bütçe (TL)"
+                    placeholder="İsteğe bağlı"
+                    keyboardType="number-pad"
+                    value={formatAmount(draft.maxBudget)}
+                    onChangeText={(value) => update({ maxBudget: digitsOnly(value) })}
+                  />
+                </>
+              )}
 
               <Input
                 label="Konum"

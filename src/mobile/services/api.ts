@@ -267,6 +267,14 @@ export interface Need {
   category?: Category;
   images?: string[];
   offerCount?: number;
+  /** "Bu fiyata hemen alırım": maxBudget is the exact price; other prices are not accepted */
+  isFixedPrice?: boolean;
+  /** Sellers waiting to hear about a price change (fixed-price listings) */
+  priceWatchCount?: number;
+  /** Whether the signed-in user is one of them */
+  isWatchingPrice?: boolean;
+  /** Slug of the catalogued product this listing counts towards */
+  productSlug?: string;
 }
 
 export interface CreateNeedRequest {
@@ -279,7 +287,14 @@ export interface CreateNeedRequest {
   longitude?: number;
   address?: string;
   urgency: 'Flexible' | 'Normal' | 'Urgent';
+  /** true = "bu fiyata hemen alırım": maxBudget is the exact price */
+  isFixedPrice?: boolean;
   images?: string[];
+}
+
+export interface PriceWatchState {
+  isWatchingPrice: boolean;
+  priceWatchCount: number;
 }
 
 export type SortBy = 'CreatedAt' | 'Budget' | 'Urgency';
@@ -308,6 +323,8 @@ export interface Offer {
   description: string;
   deliveryDays: number;
   status: 'Pending' | 'Accepted' | 'Rejected' | 'Withdrawn';
+  /** The seller took the listing's own price ("bu fiyata satarım") */
+  atListedPrice?: boolean;
   createdAt: string;
   updatedAt: string;
   provider?: User;
@@ -587,6 +604,13 @@ export const needAPI = {
   deleteNeed: (id: number): Promise<void> =>
     api.delete(`/need/${id}`).then(res => res.data),
 
+  /** "Fiyat artarsa haber ver" on a fixed-price listing */
+  watchPrice: (id: number): Promise<PriceWatchState> =>
+    api.post(`/need/${id}/price-watch`).then(res => res.data),
+
+  unwatchPrice: (id: number): Promise<PriceWatchState> =>
+    api.delete(`/need/${id}/price-watch`).then(res => res.data),
+
   /** Uploads already-downscaled photos to a need (multipart, field "images") */
   uploadNeedImages: (id: number, uris: string[]): Promise<string[]> => {
     const formData = new FormData();
@@ -605,6 +629,10 @@ export const needAPI = {
 export const offerAPI = {
   createOffer: (data: CreateOfferRequest): Promise<Offer> =>
     api.post('/offer', data).then(res => normalizeOffer(res.data)),
+
+  /** "Bende var, bu fiyata satarım": a ready-made offer at the listing's own price */
+  createAtListedPrice: (needId: number): Promise<Offer> =>
+    api.post(`/offer/at-price/${needId}`).then(res => normalizeOffer(res.data)),
   
   getOffersForNeed: (needId: number): Promise<Offer[]> =>
     api.get(`/offer/need/${needId}`).then(res => normalizeList(res.data, normalizeOffer)),

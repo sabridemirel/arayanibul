@@ -105,7 +105,9 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
 
   const urgencyConfig = getUrgencyConfig(need.urgency);
   const isUrgent = need.urgency === 'Urgent';
-  const budgetText = formatBudget(need.minBudget, need.maxBudget, need.currency);
+  const budgetText = need.isFixedPrice && need.maxBudget
+    ? `Hemen alır: ${need.maxBudget.toLocaleString('tr-TR')} TL`
+    : formatBudget(need.minBudget, need.maxBudget, need.currency);
   // A photo that fails to load is treated as missing instead of leaving an empty box
   const [imageFailed, setImageFailed] = useState(false);
   const hasImage = !imageFailed && need.images && need.images.length > 0;

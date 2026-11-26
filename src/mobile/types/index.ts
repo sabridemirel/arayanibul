@@ -176,5 +176,6 @@ export interface NeedPrefill {
   categoryId: number | null;
   minBudget: string;
   maxBudget: string;
+  isFixedPrice?: boolean;
   address: string;
 }

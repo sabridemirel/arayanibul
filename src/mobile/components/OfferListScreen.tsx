@@ -207,6 +207,7 @@ const OfferListScreen: React.FC<OfferListScreenProps> = ({
           <Text style={styles.offerPrice}>
             {offer.price.toLocaleString('tr-TR')} {offer.currency}
           </Text>
+          {offer.atListedPrice ? <Text style={styles.atListedPrice}>İlandaki fiyatınıza</Text> : null}
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(offer.status) }]}>
             <Text style={styles.statusText}>
               {getStatusText(offer.status)}
@@ -534,6 +535,7 @@ const styles = StyleSheet.create({
   priceContainer: {
     alignItems: 'flex-end',
   },
+  atListedPrice: { fontSize: 12, fontWeight: '700', color: colors.primaryDark, marginBottom: 4 },
   offerPrice: {
     fontSize: typography.h3.fontSize,
     fontWeight: typography.h3.fontWeight as any,

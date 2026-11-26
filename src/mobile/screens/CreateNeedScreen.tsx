@@ -22,6 +22,7 @@ import Input from '../components/ui/Input';
 import Loading from '../components/ui/Loading';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import ImagePickerField from '../components/ImagePickerField';
+import PriceModeSelector from '../components/PriceModeSelector';
 import type { PickedImage } from '../utils/prepareImage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
@@ -56,7 +57,9 @@ interface FormData {
   description: string;
   categoryId: number | null;
   minBudget: string;
+  /** In fixed-price mode this is the exact price */
   maxBudget: string;
+  isFixedPrice: boolean;
   address: string;
   urgency: UrgencyValue;
 }
@@ -90,6 +93,7 @@ const CreateNeedScreen: React.FC = () => {
     categoryId: prefill?.categoryId ?? null,
     minBudget: prefill?.minBudget ?? '',
     maxBudget: prefill?.maxBudget ?? '',
+    isFixedPrice: prefill?.isFixedPrice ?? false,
     address: prefill?.address ?? '',
     urgency: 'Normal',
   });
@@ -182,6 +186,7 @@ const CreateNeedScreen: React.FC = () => {
         categoryId: need.categoryId ?? null,
         minBudget: budgetToForm(need.minBudget),
         maxBudget: budgetToForm(need.maxBudget),
+        isFixedPrice: Boolean(need.isFixedPrice),
         address: need.address ?? '',
         urgency: parseUrgency(need.urgency),
       };
@@ -258,7 +263,11 @@ const CreateNeedScreen: React.FC = () => {
       newErrors.maxBudget = 'Geçerli bir sayı giriniz';
     }
 
-    if (formData.minBudget && formData.maxBudget) {
+    if (formData.isFixedPrice) {
+      if (!(Number(formData.maxBudget) > 0)) {
+        newErrors.maxBudget = 'Hemen almak istediğiniz fiyatı yazın';
+      }
+    } else if (formData.minBudget && formData.maxBudget) {
       const min = Number(formData.minBudget);
       const max = Number(formData.maxBudget);
       if (min >= max) {
@@ -303,7 +312,9 @@ const CreateNeedScreen: React.FC = () => {
         urgency: urgencyMap[formData.urgency] as unknown as 'Flexible' | 'Normal' | 'Urgent',
       };
 
-      if (formData.minBudget) {
+      if (formData.isFixedPrice) {
+        requestData.isFixedPrice = true;
+      } else if (formData.minBudget) {
         requestData.minBudget = Number(formData.minBudget);
       }
 
@@ -367,7 +378,10 @@ const CreateNeedScreen: React.FC = () => {
     if (title !== initialFormData.title.trim()) changes.title = title;
     if (description !== initialFormData.description.trim()) changes.description = description;
     if (formData.categoryId !== initialFormData.categoryId) changes.categoryId = formData.categoryId;
-    if (formData.minBudget !== initialFormData.minBudget && formData.minBudget) {
+    if (formData.isFixedPrice !== initialFormData.isFixedPrice) {
+      changes.isFixedPrice = formData.isFixedPrice;
+    }
+    if (!formData.isFixedPrice && formData.minBudget !== initialFormData.minBudget && formData.minBudget) {
       changes.minBudget = Number(formData.minBudget);
     }
     if (formData.maxBudget !== initialFormData.maxBudget && formData.maxBudget) {
@@ -619,7 +633,16 @@ const CreateNeedScreen: React.FC = () => {
         </View>
       )}
 
-      <ScrollView ref={scrollRef} style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        // Keeps the focused field above the keyboard on iOS; the number pad has no "done" key,
+        // so dragging the form puts the keyboard away.
+        automaticallyAdjustKeyboardInsets
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+      >
         {isEdit && existingNeed ? <NeedModerationNotice need={existingNeed} /> : null}
 
         <Card style={styles.formCard}>
@@ -674,34 +697,59 @@ const CreateNeedScreen: React.FC = () => {
         </Card>
 
         <Card style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Bütçe</Text>
+          <Text style={styles.sectionTitle}>Fiyat</Text>
           <Text style={styles.sectionDescription}>
-            Bütçe belirtmek isteğe bağlıdır. Belirtirseniz size daha uygun teklifler alabilirsiniz.
+            Pazarlığa açık ilanda bütçe yazmak isteğe bağlıdır.
           </Text>
 
-          <View style={styles.budgetContainer}>
-            <Input
-              label="Minimum Bütçe (TL)"
-              placeholder="0"
-              value={formatBudget(formData.minBudget)}
-              onChangeText={(text) => handleBudgetChange('minBudget', text)}
-              onBlur={() => validateField('minBudget')}
-              error={errors.minBudget}
-              keyboardType="numeric"
-              style={styles.budgetInput}
-            />
+          <PriceModeSelector
+            isFixedPrice={formData.isFixedPrice}
+            onChange={(isFixedPrice) => {
+              setFormData(prev => ({ ...prev, isFixedPrice, minBudget: isFixedPrice ? '' : prev.minBudget }));
+              setErrors(prev => ({ ...prev, minBudget: undefined, maxBudget: undefined }));
+            }}
+          />
 
+          {formData.isFixedPrice ? (
             <Input
-              label="Maksimum Bütçe (TL)"
-              placeholder="0"
+              label="Fiyatınız (TL)"
+              placeholder="Örn. 15.000"
               value={formatBudget(formData.maxBudget)}
               onChangeText={(text) => handleBudgetChange('maxBudget', text)}
               onBlur={() => validateField('maxBudget')}
               error={errors.maxBudget}
               keyboardType="numeric"
-              style={styles.budgetInput}
             />
-          </View>
+          ) : null}
+          {formData.isFixedPrice ? (
+            <Text style={styles.sectionDescription}>
+              Yanıt gelmezse fiyatı sonradan artırabilir ya da ilanı pazarlığa açabilirsiniz.
+            </Text>
+          ) : (
+            <View style={styles.budgetContainer}>
+              <Input
+                label="En az (TL)"
+                placeholder="İsteğe bağlı"
+                value={formatBudget(formData.minBudget)}
+                onChangeText={(text) => handleBudgetChange('minBudget', text)}
+                onBlur={() => validateField('minBudget')}
+                error={errors.minBudget}
+                keyboardType="numeric"
+                style={styles.budgetInput}
+              />
+
+              <Input
+                label="En fazla (TL)"
+                placeholder="İsteğe bağlı"
+                value={formatBudget(formData.maxBudget)}
+                onChangeText={(text) => handleBudgetChange('maxBudget', text)}
+                onBlur={() => validateField('maxBudget')}
+                error={errors.maxBudget}
+                keyboardType="numeric"
+                style={styles.budgetInput}
+              />
+            </View>
+          )}
         </Card>
 
         {!isEdit && (

@@ -143,6 +143,53 @@ const NeedDetailScreen: React.FC = () => {
     navigation.navigate('CreateOffer', { needId });
   };
 
+  // ---- "Bu fiyata hemen alırım" listings: take the price, or ask to hear about a change
+  const [isSelling, setIsSelling] = useState(false);
+  const [isSavingWatch, setIsSavingWatch] = useState(false);
+
+  const sellAtPrice = async () => {
+    if (!need) return;
+    setIsSelling(true);
+    try {
+      setMyOffer(await offerAPI.createAtListedPrice(need.id));
+      Alert.alert('Teklifiniz Gönderildi', 'Alıcı kabul ederse ayrıntıları mesajlaşarak netleştirirsiniz.');
+    } catch (err: any) {
+      Alert.alert(
+        'Teklif Gönderilemedi',
+        err.response?.data?.message || 'İnternet bağlantınızı kontrol edip tekrar deneyin.'
+      );
+    } finally {
+      setIsSelling(false);
+    }
+  };
+
+  const confirmSellAtPrice = () => {
+    if (!need) return;
+    Alert.alert(
+      'Teklifi Onaylayın',
+      `${(need.maxBudget ?? 0).toLocaleString('tr-TR')} TL üzerinden teklif veriyorsunuz.`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Teklifi Gönder', onPress: sellAtPrice },
+      ]
+    );
+  };
+
+  const togglePriceWatch = async () => {
+    if (!need) return;
+    setIsSavingWatch(true);
+    try {
+      const state = need.isWatchingPrice
+        ? await needAPI.unwatchPrice(need.id)
+        : await needAPI.watchPrice(need.id);
+      setNeed((current) => (current ? { ...current, ...state } : current));
+    } catch (err: any) {
+      Alert.alert('İşlem Tamamlanamadı', err.response?.data?.message || 'Tekrar deneyin.');
+    } finally {
+      setIsSavingWatch(false);
+    }
+  };
+
   const handleAcceptOffer = async (offerId: number) => {
     try {
       await offerAPI.acceptOffer(offerId);
@@ -357,14 +404,34 @@ const NeedDetailScreen: React.FC = () => {
               </Text>
             </View>
 
-            {(need.minBudget || need.maxBudget) && (
+            {need.isFixedPrice && need.maxBudget ? (
+              <View style={styles.infoRow}>
+                <MaterialIcons name="attach-money" size={20} color={colors.textSecondary} />
+                <Text style={styles.infoText}>
+                  <Text style={styles.fixedPriceInline}>{need.maxBudget.toLocaleString('tr-TR')} TL</Text>
+                  {' '}fiyata hemen alır, pazarlık yok
+                </Text>
+              </View>
+            ) : (need.minBudget || need.maxBudget) ? (
               <View style={styles.infoRow}>
                 <MaterialIcons name="attach-money" size={20} color={colors.textSecondary} />
                 <Text style={styles.infoText}>
                   {formatBudget(need.minBudget, need.maxBudget, need.currency)}
                 </Text>
               </View>
-            )}
+            ) : null}
+
+            {isOwner && need.isFixedPrice && need.status === 'Active' ? (
+              <View style={styles.ownerPriceNote}>
+                <Text style={styles.ownerPriceNoteText}>
+                  Satıcılar yalnızca bu fiyata teklif verebilir.
+                  {(need.priceWatchCount ?? 0) > 0
+                    ? ` ${need.priceWatchCount} satıcı bu fiyatı düşük buldu; fiyat artarsa haber bekliyor.`
+                    : ''}
+                  {' '}Fiyatı değiştirmek ya da ilanı pazarlığa açmak için ilanı düzenleyin.
+                </Text>
+              </View>
+            ) : null}
 
             {need.address && (
               <View style={styles.infoRow}>
@@ -448,7 +515,44 @@ const NeedDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {canCreateOffer && (
+      {canCreateOffer && need.isFixedPrice && (
+        <View style={styles.actionContainer}>
+          <Text style={styles.myOfferHint}>
+            Bu alıcı pazarlık yapmıyor; yalnızca {(need.maxBudget ?? 0).toLocaleString('tr-TR')} TL fiyata satan
+            satıcıdan teklif alıyor.
+          </Text>
+          <Button
+            title="Bende Var, Bu Fiyata Satarım"
+            onPress={confirmSellAtPrice}
+            loading={isSelling}
+            disabled={isSelling}
+            icon="sell"
+            fullWidth
+          />
+          <Button
+            title={need.isWatchingPrice ? 'Fiyat Takibini Kapat' : 'Fiyat Artarsa Haber Ver'}
+            onPress={togglePriceWatch}
+            loading={isSavingWatch}
+            disabled={isSavingWatch}
+            icon={need.isWatchingPrice ? 'notifications-off' : 'notifications-active'}
+            variant="outline"
+            fullWidth
+            style={styles.watchButton}
+            accessibilityHint={
+              need.isWatchingPrice
+                ? 'Fiyat değişikliği bildirimini kapatır'
+                : 'Alıcı fiyatı artırır ya da ilanı pazarlığa açarsa size bildirim gelir'
+            }
+          />
+          {need.isWatchingPrice ? (
+            <Text style={styles.watchHint}>
+              Alıcı fiyatı artırır ya da ilanı pazarlığa açarsa size haber vereceğiz.
+            </Text>
+          ) : null}
+        </View>
+      )}
+
+      {canCreateOffer && !need.isFixedPrice && (
         <View style={styles.actionContainer}>
           {myOffer?.status === 'Rejected' && (
             <Text style={styles.myOfferHint}>Önceki teklifiniz reddedildi. Yeni bir teklif verebilirsiniz.</Text>
@@ -660,6 +764,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.md,
   },
+  fixedPriceInline: { fontWeight: '700', color: colors.primary },
+  ownerPriceNote: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: 10,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  ownerPriceNoteText: { fontSize: 13, lineHeight: 19, color: colors.text },
+  watchButton: { marginTop: spacing.sm },
+  watchHint: { fontSize: 12, color: colors.textSecondary, marginTop: spacing.xs, textAlign: 'center' },
 });
 
 export default NeedDetailScreen;

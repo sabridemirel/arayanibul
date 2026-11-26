@@ -82,6 +82,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     switch (data.type) {
       case 'new_offer':
       case 'new_need':
+      case 'price_raised':
+      case 'price_nudge':
+      case 'need_expired':
+      case 'offer_unanswered':
         if (data.needId) {
           navigation.navigate('NeedDetail', { needId: data.needId });
         }
@@ -209,6 +213,10 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
         return 'local-offer';
       case 'new_need':
         return 'campaign';
+      case 'price_raised':
+        return 'trending-up';
+      case 'price_nudge':
+        return 'sell';
       case 'offer_accepted':
         return 'check-circle';
       case 'offer_rejected':
@@ -226,6 +234,8 @@ const NotificationsScreen: React.FC<NotificationsScreenProps> = ({ navigation })
     switch (type) {
       case 'new_offer':
       case 'new_need':
+      case 'price_raised':
+      case 'price_nudge':
         return theme.colors.primary;
       case 'offer_accepted':
         return theme.colors.success;
