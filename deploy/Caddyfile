@@ -12,6 +12,9 @@
 
 {$API_DOMAIN} {
 	encode zstd gzip
+	# The API host is not a website: keep it out of search results. Pages meant for search engines
+	# (sitemap, crawler pages) are served through the web domain below and do not get this header.
+	header X-Robots-Tag "noindex, nofollow"
 	reverse_proxy api:5000 {
 		# Pass exactly one, already-verified client IP to the API (it trusts this proxy only).
 		header_up X-Forwarded-For {client_ip}
