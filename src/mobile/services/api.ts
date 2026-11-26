@@ -218,6 +218,9 @@ export interface User {
   profileImageUrl?: string;
   rating?: number;
   reviewCount?: number;
+  /** Own profile only (GET /user/profile) */
+  phoneNumber?: string;
+  address?: string;
 }
 
 export interface Category {

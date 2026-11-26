@@ -89,6 +89,11 @@ public class OfferService : IOfferService
             });
         }
 
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            throw new ValidationException("Description", "Teklif mesajı boş olamaz.");
+        }
+
         // "Bu fiyata hemen alırım": the buyer is closed to any other price.
         if (need.IsFixedPrice && request.Price != need.MaxBudget)
         {
@@ -119,7 +124,7 @@ public class OfferService : IOfferService
             AtListedPrice = need.IsFixedPrice,
             Price = request.Price,
             Currency = request.Currency,
-            Description = request.Description,
+            Description = request.Description.Trim(),
             DeliveryDays = request.DeliveryDays,
             Status = OfferStatus.Pending,
             CreatedAt = DateTime.UtcNow,

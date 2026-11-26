@@ -30,7 +30,8 @@ export const ReviewHistoryScreen: React.FC = () => {
   const route = useRoute<ReviewHistoryScreenRouteProp>();
   const { user } = useAuth();
   
-  const { userId } = route.params as ReviewHistoryScreenParams;
+  // "Değerlendirmelerim" in the account menu opens this screen without params (own reviews)
+  const { userId } = (route.params ?? {}) as ReviewHistoryScreenParams;
   const targetUserId = userId || user?.id;
   const isOwnProfile = !userId || userId === user?.id;
 

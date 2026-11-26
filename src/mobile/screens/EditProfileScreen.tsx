@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { Input, Button, Loading } from '../components/ui';
 import { useForm } from '../hooks/useForm';
 import { colors, spacing, typography } from '../theme';
-import { userAPI } from '../services/api';
+import { authAPI, userAPI } from '../services/api';
 // import * as ImagePicker from 'expo-image-picker';
+
+const PHONE_PATTERN = /^(\+90|0)?5\d{9}$/;
+const normalizePhone = (value: string) => value.replace(/[\s\-()]/g, '');
 
 interface Props {
   navigation: any;
@@ -29,7 +32,7 @@ interface EditProfileFormData {
 }
 
 const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, updateUser } = useAuth();
   const [profileImage] = useState<string | null>(
     user?.profileImageUrl || null
   );
@@ -49,17 +52,9 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       errors.lastName = 'Soyad en az 2 karakter olmalıdır';
     }
 
-    if (!values.email?.trim()) {
-      errors.email = 'E-posta adresi gereklidir';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
-      errors.email = 'Geçerli bir e-posta adresi girin';
-    }
-
-    if (values.phone && values.phone.trim()) {
-      const phoneRegex = /^[+]?[\d\s\-\(\)]{10,}$/;
-      if (!phoneRegex.test(values.phone.trim())) {
-        errors.phone = 'Geçerli bir telefon numarası girin';
-      }
+    // Same rule as the API: a Turkish mobile number, spaces and dashes allowed while typing
+    if (values.phone && values.phone.trim() && !PHONE_PATTERN.test(normalizePhone(values.phone))) {
+      errors.phone = 'Geçerli bir cep telefonu numarası girin (örn. 0555 123 45 67)';
     }
 
     return errors;
@@ -78,27 +73,62 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
       email: user?.email || '',
-      phone: '',
-      address: '',
+      phone: user?.phoneNumber || '',
+      address: user?.address || '',
     },
     validate: validateProfile,
     onSubmit: async (formValues) => {
+      const phone = normalizePhone(formValues.phone ?? '');
+      const address = (formValues.address ?? '').trim();
       try {
-        await userAPI.updateProfile({
+        const saved = await userAPI.updateProfile({
           firstName: formValues.firstName.trim(),
           lastName: formValues.lastName.trim(),
-          email: formValues.email.trim(),
-          // TODO: Add phone and address when backend supports them
+          // The API keeps the current value for an empty field
+          ...(phone ? { phoneNumber: phone } : {}),
+          ...(address ? { address } : {}),
         });
-        
-        Alert.alert('Başarılı', 'Profil güncellendi', [
+
+        // Show the new details right away and on the next app start
+        await updateUser({
+          firstName: saved.firstName,
+          lastName: saved.lastName,
+          phoneNumber: saved.phoneNumber,
+          address: saved.address,
+        });
+
+        Alert.alert('Profil Güncellendi', 'Bilgileriniz kaydedildi.', [
           { text: 'Tamam', onPress: () => navigation.goBack() }
         ]);
       } catch (error: any) {
-        Alert.alert('Hata', error.message);
+        const data = error?.response?.data;
+        const firstError = data?.errors ? Object.values(data.errors).flat()[0] : undefined;
+        Alert.alert(
+          'Profil Kaydedilemedi',
+          (firstError as string) || data?.message || 'İnternet bağlantınızı kontrol edip tekrar deneyin.'
+        );
       }
     },
   });
+
+  // The cached user may not carry the phone and address: load the saved profile once
+  useEffect(() => {
+    let cancelled = false;
+    authAPI
+      .getCurrentUser()
+      .then((profile) => {
+        if (cancelled) return;
+        if (profile.phoneNumber) setValue('phone', profile.phoneNumber);
+        if (profile.address) setValue('address', profile.address);
+      })
+      .catch(() => {
+        // The form still works with what the app already knows
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const renderProfileImage = () => {
     const imageSource = profileImage
@@ -130,7 +160,9 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.content}>
+      {/* "handled": the first tap on Kaydet saves instead of only closing the keyboard */}
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
         <View style={styles.header}>
           {renderProfileImage()}
           <Text style={styles.title}>Profili Düzenle</Text>
@@ -161,20 +193,15 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
 
           <Input
             label="E-posta"
-            placeholder="E-posta adresinizi girin"
             value={values.email}
-            onChangeText={(text) => setValue('email', text)}
-            onBlur={() => setFieldTouched('email')}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
+            editable={false}
             leftIcon="email"
-            error={touched.email ? errors.email : undefined}
           />
+          <Text style={styles.fieldNote}>E-posta adresi giriş için kullanıldığından buradan değiştirilemez.</Text>
 
           <Input
-            label="Telefon (Opsiyonel)"
-            placeholder="Telefon numaranızı girin"
+            label="Telefon (isteğe bağlı)"
+            placeholder="0555 123 45 67"
             value={values.phone}
             onChangeText={(text) => setValue('phone', text)}
             onBlur={() => setFieldTouched('phone')}
@@ -184,7 +211,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
           />
 
           <Input
-            label="Adres (Opsiyonel)"
+            label="Adres (isteğe bağlı)"
             placeholder="Adresinizi girin"
             value={values.address}
             onChangeText={(text) => setValue('address', text)}
@@ -220,6 +247,7 @@ const EditProfileScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  fieldNote: { fontSize: 12, color: colors.textSecondary, marginTop: -8, marginBottom: spacing.md },
   container: {
     flex: 1,
     backgroundColor: colors.background,

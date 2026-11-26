@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import authService, { isAuthCancelled } from '../services/authService';
 import { User, RegisterData, LoginData, AuthResponse, onAuthExpired, refreshSession, userAPI } from '../services/api';
 import { notificationService } from '../services/notificationService';
@@ -27,6 +28,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  /** Applies saved profile changes to the signed-in user and its cached copy */
+  updateUser: (changes: Partial<User>) => Promise<void>;
   
   // Guest tracking
   guestActions: GuestAction[];
@@ -339,6 +342,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return guestActions.filter(action => action.type === 'view_need').length;
   };
 
+  const updateUser = async (changes: Partial<User>) => {
+    let next: User | null = null;
+    setUser((current) => {
+      next = current ? { ...current, ...changes } : current;
+      return next;
+    });
+    if (next) {
+      try {
+        // The app starts from this cached copy, so it must not keep the old name
+        await AsyncStorage.setItem('user', JSON.stringify(next));
+      } catch {
+        // The next sign-in reloads the user anyway
+      }
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -354,6 +373,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     deleteAccount,
     refreshToken,
+    updateUser,
     
     // Guest tracking
     guestActions,

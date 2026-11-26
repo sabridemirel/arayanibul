@@ -87,11 +87,9 @@ const CreateOfferScreen: React.FC = () => {
       newErrors.price = `Maksimum bütçe ${need.maxBudget.toLocaleString('tr-TR')} TL`;
     }
 
-    // Description validation
+    // A few words are enough; only an empty message is refused
     if (!description.trim()) {
-      newErrors.description = 'Açıklama gereklidir';
-    } else if (description.trim().length < 50) {
-      newErrors.description = 'Açıklama en az 50 karakter olmalıdır';
+      newErrors.description = 'Alıcıya kısa bir mesaj yazın';
     }
 
     // Delivery days validation
@@ -241,7 +239,7 @@ const CreateOfferScreen: React.FC = () => {
         style={styles.content} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* Need Summary */}
           <Card style={styles.needSummary}>
             <View style={styles.needHeader}>
@@ -325,13 +323,13 @@ const CreateOfferScreen: React.FC = () => {
             {/* Description Input */}
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>
-                Açıklama <Text style={styles.required}>*</Text>
+                Mesajınız <Text style={styles.required}>*</Text>
               </Text>
               <TextInput
                 style={[styles.textArea, errors.description ? styles.inputError : null]}
                 value={description}
                 onChangeText={setDescription}
-                placeholder="Teklifinizi detaylı olarak açıklayın..."
+                placeholder="Örn. ürünün durumu, teslimat şekli"
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -339,7 +337,7 @@ const CreateOfferScreen: React.FC = () => {
               />
               <View style={styles.characterCount}>
                 <Text style={styles.helperText}>
-                  {description.length}/1000 karakter (min. 50)
+                  Kısa bir not yeterli · {description.length}/1000
                 </Text>
               </View>
               {errors.description && (

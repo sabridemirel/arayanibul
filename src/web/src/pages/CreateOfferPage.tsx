@@ -64,11 +64,9 @@ const CreateOfferPage: React.FC = () => {
       errors.price = `Maksimum bütçe ${need.maxBudget.toLocaleString('tr-TR')} TL`;
     }
 
-    // Description validation
+    // A few words are enough; only an empty message is refused
     if (!values.description.trim()) {
-      errors.description = 'Mesaj gereklidir';
-    } else if (values.description.trim().length < 50) {
-      errors.description = 'Mesaj en az 50 karakter olmalıdır';
+      errors.description = 'Alıcıya kısa bir mesaj yazın';
     }
 
     // Delivery days validation
@@ -310,7 +308,7 @@ const CreateOfferPage: React.FC = () => {
                   id="description"
                   name="description"
                   rows={4}
-                  placeholder="Teklifinizi detaylı olarak açıklayın..."
+                  placeholder="Örn. ürünün durumu, teslimat şekli"
                   value={values.description}
                   onChange={handleChange}
                   onBlur={handleBlur}
@@ -331,7 +329,7 @@ const CreateOfferPage: React.FC = () => {
                 {touched.description && formErrors.description ? (
                   <p className="text-sm text-error">{formErrors.description}</p>
                 ) : (
-                  <p className="text-xs text-text-secondary">En az 50 karakter</p>
+                  <p className="text-xs text-text-secondary">Kısa bir not yeterli.</p>
                 )}
                 <p className="text-xs text-text-secondary">
                   {values.description.length}/1000

@@ -136,7 +136,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <AuthHero title="Hesap Oluştur" subtitle="Yeni hesabınızı oluşturun" />
 
         {error && (

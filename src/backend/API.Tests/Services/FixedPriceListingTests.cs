@@ -222,6 +222,34 @@ public class FixedPriceListingTests : IDisposable
     }
 
     [Fact]
+    public async Task OfferMessage_HasNoMinimumLength()
+    {
+        var need = await Create("Bebek arabası arıyorum", 3000, isFixed: false);
+
+        var offer = await _offers.CreateOfferAsync(new CreateOfferRequest
+        {
+            NeedId = need.Id, Price = 2800, Currency = "TRY", Description = " Var ", DeliveryDays = 1
+        }, "seller");
+
+        offer.Description.Should().Be("Var");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task OfferMessage_CannotBeEmpty(string message)
+    {
+        var need = await Create("Bebek arabası arıyorum", 3000, isFixed: false);
+
+        var act = () => _offers.CreateOfferAsync(new CreateOfferRequest
+        {
+            NeedId = need.Id, Price = 2800, Currency = "TRY", Description = message, DeliveryDays = 1
+        }, "seller");
+
+        (await act.Should().ThrowAsync<ValidationException>()).Which.Errors["Description"][0].Should().Contain("boş olamaz");
+    }
+
+    [Fact]
     public async Task OpenListing_StillTakesAnyPriceWithinTheBudget()
     {
         var need = await Create("Bebek arabası arıyorum", 3000, isFixed: false);

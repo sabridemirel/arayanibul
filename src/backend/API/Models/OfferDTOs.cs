@@ -13,8 +13,9 @@ public class CreateOfferRequest
     
     public string Currency { get; set; } = "TRY";
     
-    [Required]
-    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Teklif açıklaması 50 ile 2000 karakter arasında olmalıdır.")]
+    /// <summary>A note to the buyer: required, but a few words are enough (no minimum length).</summary>
+    [Required(AllowEmptyStrings = false, ErrorMessage = "Teklif mesajı boş olamaz.")]
+    [StringLength(2000, ErrorMessage = "Teklif mesajı en fazla 2000 karakter olabilir.")]
     public string Description { get; set; } = string.Empty;
     
     [Required]
@@ -31,7 +32,7 @@ public class UpdateOfferRequest
     
     public string? Currency { get; set; }
     
-    [StringLength(2000, MinimumLength = 50, ErrorMessage = "Teklif açıklaması 50 ile 2000 karakter arasında olmalıdır.")]
+    [StringLength(2000, ErrorMessage = "Teklif mesajı en fazla 2000 karakter olabilir.")]
     public string? Description { get; set; }
     
     [Range(1, 365, ErrorMessage = "Teslimat süresi 1 ile 365 gün arasında olmalıdır.")]

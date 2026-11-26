@@ -105,7 +105,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <AuthHero title="Hoş Geldiniz" subtitle="Hesabınıza giriş yapın" />
 
         {error && (
