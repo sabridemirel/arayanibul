@@ -13,6 +13,7 @@ import type { Category, NeedImage } from '../../services/api';
 import { Button, Card, Input, Loading, ErrorMessage } from '../ui';
 import { prepareImageForUpload, ImageDecodeError } from '../../utils/prepareImage';
 
+import PriceModeFields from './PriceModeFields';
 import type { NeedFormSubmitData, NeedFormValues, NeedUrgency } from './needFormTypes';
 
 interface FormErrors {
@@ -62,14 +63,6 @@ const getUrgencyText = (urgency: NeedUrgency) => {
 };
 
 // Format number with thousand separator (Turkish format: 1.000.000)
-const formatBudget = (value: string): string => {
-  const numericValue = value.replace(/\D/g, '');
-  if (!numericValue) return '';
-  return Number(numericValue).toLocaleString('tr-TR');
-};
-
-// Parse formatted budget string to raw number string
-const parseBudget = (formattedValue: string): string => formattedValue.replace(/\./g, '');
 
 const validateTitle = (title: string): string | undefined => {
   if (!title.trim()) return 'Başlık gereklidir';
@@ -149,6 +142,9 @@ const NeedForm: React.FC<NeedFormProps> = ({
   const validateBudget = (data: NeedFormValues, field: 'minBudget' | 'maxBudget'): string | undefined => {
     const value = data[field];
     if (value && isNaN(Number(value))) return 'Geçerli bir sayı giriniz';
+    if (field === 'maxBudget' && data.isFixedPrice && !(Number(data.maxBudget) > 0)) {
+      return 'Hemen almak istediğiniz fiyatı yazın';
+    }
     if (field === 'maxBudget' && data.minBudget && data.maxBudget && Number(data.minBudget) >= Number(data.maxBudget)) {
       return 'Maksimum bütçe minimum bütçeden büyük olmalıdır';
     }
@@ -228,8 +224,9 @@ const NeedForm: React.FC<NeedFormProps> = ({
     }
   };
 
-  const handleBudgetChange = (field: 'minBudget' | 'maxBudget', value: string) => {
-    handleInputChange(field, parseBudget(value));
+  const handlePriceChange = (patch: Partial<Pick<NeedFormValues, 'isFixedPrice' | 'minBudget' | 'maxBudget'>>) => {
+    setFormData(prev => ({ ...prev, ...patch }));
+    setErrors(prev => ({ ...prev, minBudget: undefined, maxBudget: undefined }));
   };
 
   // Image handling: photos are downscaled in the browser before upload (see prepareImageForUpload)
@@ -515,35 +512,22 @@ const NeedForm: React.FC<NeedFormProps> = ({
         )}
       </Card>
 
-      {/* Budget */}
+      {/* Price */}
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-2">Bütçe</h2>
+        <h2 className="text-lg font-semibold text-text mb-2">Fiyat</h2>
         <p className="text-sm text-text-secondary mb-4">
-          Bütçe belirtmek isteğe bağlıdır. Belirtirseniz size daha uygun teklifler alabilirsiniz.
+          Pazarlığa açık ilanda bütçe yazmak isteğe bağlıdır.
         </p>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Minimum Bütçe (TL)"
-            placeholder="0"
-            type="text"
-            inputMode="numeric"
-            value={formatBudget(formData.minBudget)}
-            onChange={(e) => handleBudgetChange('minBudget', e.target.value)}
-            onBlur={() => validateField('minBudget')}
-            error={errors.minBudget}
-          />
-          <Input
-            label="Maksimum Bütçe (TL)"
-            placeholder="0"
-            type="text"
-            inputMode="numeric"
-            value={formatBudget(formData.maxBudget)}
-            onChange={(e) => handleBudgetChange('maxBudget', e.target.value)}
-            onBlur={() => validateField('maxBudget')}
-            error={errors.maxBudget}
-          />
-        </div>
+        <PriceModeFields
+          idPrefix="need-form"
+          isFixedPrice={formData.isFixedPrice}
+          minBudget={formData.minBudget}
+          maxBudget={formData.maxBudget}
+          onChange={handlePriceChange}
+          onBlur={(field) => validateField(field)}
+          errors={{ minBudget: errors.minBudget, maxBudget: errors.maxBudget }}
+        />
       </Card>
 
       {/* Location */}

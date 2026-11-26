@@ -6,6 +6,7 @@ import type { Category } from '../../services/api';
 import { getCategoryVisual, useCategories } from '../../utils/categoryVisual';
 import type { PendingNeedDraft } from '../../utils/pendingNeedDraft';
 import { Button, Input } from '../ui';
+import PriceModeFields from './PriceModeFields';
 
 const EXAMPLES = [
   'İkinci el RTX 3080, 15 bin TL’ye kadar, İstanbul',
@@ -18,6 +19,9 @@ const MIN_TEXT_LENGTH = 3;
 const formatAmount = (digits: string) => Number(digits).toLocaleString('tr-TR');
 
 const budgetText = (draft: PendingNeedDraft): string => {
+  if (draft.isFixedPrice) {
+    return draft.maxBudget ? `Hemen alır: ${formatAmount(draft.maxBudget)} TL` : 'Fiyat yazılmadı';
+  }
   if (draft.minBudget && draft.maxBudget) {
     return `${formatAmount(draft.minBudget)} – ${formatAmount(draft.maxBudget)} TL`;
   }
@@ -68,7 +72,6 @@ interface QuickNeedComposerProps {
   onUseDetailedForm: (draft: PendingNeedDraft | null) => void;
 }
 
-const digitsOnly = (value: string) => value.replace(/\D/g, '');
 
 /**
  * Posting a listing in two short steps: write one sentence, then confirm what was understood from
@@ -114,7 +117,6 @@ const QuickNeedComposer: React.FC<QuickNeedComposerProps> = ({
         navigate(`/fiyat/${suggestion.productSlug}?${query.toString()}`);
         return;
       }
-      setShowMinBudget(Boolean(suggestion.minBudget));
       setDraft({
         text: trimmed,
         title: suggestion.title,
@@ -137,9 +139,6 @@ const QuickNeedComposer: React.FC<QuickNeedComposerProps> = ({
     }
   };
 
-  // The lower bound is rare; it only gets a field when the text contained one ("20-30 bin").
-  const [showMinBudget, setShowMinBudget] = useState(Boolean(initialDraft?.minBudget));
-
   const update = (changes: Partial<PendingNeedDraft>) =>
     setDraft((current) => (current ? { ...current, ...changes } : current));
 
@@ -153,7 +152,11 @@ const QuickNeedComposer: React.FC<QuickNeedComposerProps> = ({
       setError('İlanınız için bir kategori seçin.');
       return;
     }
-    if (draft.minBudget && draft.maxBudget && Number(draft.minBudget) > Number(draft.maxBudget)) {
+    if (draft.isFixedPrice && !(Number(draft.maxBudget) > 0)) {
+      setError('Hemen almak istediğiniz fiyatı yazın.');
+      return;
+    }
+    if (!draft.isFixedPrice && draft.minBudget && draft.maxBudget && Number(draft.minBudget) > Number(draft.maxBudget)) {
       setError('En az bütçe, en fazla bütçeden büyük olamaz.');
       return;
     }
@@ -292,28 +295,13 @@ const QuickNeedComposer: React.FC<QuickNeedComposerProps> = ({
           )}
         </div>
 
-        <div className={`grid gap-4 ${showMinBudget ? 'sm:grid-cols-2' : ''}`}>
-          {showMinBudget && (
-            <Input
-              id="quick-need-min-budget"
-              label="En az bütçe (TL)"
-              inputMode="numeric"
-              placeholder="İsteğe bağlı"
-              value={draft.minBudget}
-              onChange={(event) => update({ minBudget: digitsOnly(event.target.value) })}
-              fullWidth
-            />
-          )}
-          <Input
-            id="quick-need-max-budget"
-            label="En fazla bütçe (TL)"
-            inputMode="numeric"
-            placeholder="İsteğe bağlı"
-            value={draft.maxBudget}
-            onChange={(event) => update({ maxBudget: digitsOnly(event.target.value) })}
-            fullWidth
-          />
-        </div>
+        <PriceModeFields
+          idPrefix="quick-need"
+          isFixedPrice={Boolean(draft.isFixedPrice)}
+          minBudget={draft.minBudget}
+          maxBudget={draft.maxBudget}
+          onChange={update}
+        />
 
         <Input
           id="quick-need-address"

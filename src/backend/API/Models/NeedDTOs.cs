@@ -39,6 +39,9 @@ public class CreateNeedRequest
     public string? Address { get; set; }
     
     public UrgencyLevel Urgency { get; set; } = UrgencyLevel.Normal;
+
+    /// <summary>True for "bu fiyata hemen alırım": MaxBudget is the exact price.</summary>
+    public bool IsFixedPrice { get; set; }
     
     public DateTime? ExpiresAt { get; set; }
     
@@ -73,6 +76,8 @@ public class UpdateNeedRequest
     public string? Address { get; set; }
     
     public UrgencyLevel? Urgency { get; set; }
+
+    public bool? IsFixedPrice { get; set; }
     
     public NeedStatus? Status { get; set; }
     
@@ -129,6 +134,15 @@ public class NeedResponse
     public int OfferCount { get; set; }
     public double? DistanceKm { get; set; }
 
+    /// <summary>"Bu fiyata hemen alırım": MaxBudget is the exact price and other prices are not accepted.</summary>
+    public bool IsFixedPrice { get; set; }
+    /// <summary>Sellers waiting to hear about a price change (fixed-price listings only).</summary>
+    public int PriceWatchCount { get; set; }
+    /// <summary>Whether the signed-in user is one of them.</summary>
+    public bool IsWatchingPrice { get; set; }
+    /// <summary>Slug of the catalogued product the listing counts towards, if any.</summary>
+    public string? ProductSlug { get; set; }
+
     // Moderation (only set for the owner / admins; null fields are omitted from JSON)
     public NeedRejectionReason? RejectionReason { get; set; }
     public string? RejectionReasonText { get; set; }
@@ -153,4 +167,9 @@ public class PagedResult<T>
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     public bool HasNextPage => Page < TotalPages;
     public bool HasPreviousPage => Page > 1;
+}
+public class PriceWatchResponse
+{
+    public bool IsWatchingPrice { get; set; }
+    public int PriceWatchCount { get; set; }
 }

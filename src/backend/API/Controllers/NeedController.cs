@@ -84,7 +84,8 @@ public class NeedController : ControllerBase
         }
         catch (ValidationException ex)
         {
-            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+            var first = ex.Errors.Values.SelectMany(v => v).FirstOrDefault() ?? ex.Message;
+            return BadRequest(new { message = first, errors = ex.Errors });
         }
     }
 
@@ -218,6 +219,40 @@ public class NeedController : ControllerBase
         catch (ValidationException ex)
         {
             return BadRequest(new { message = ex.Message, errors = ex.Errors });
+        }
+    }
+
+    /// <summary>
+    /// "Fiyat artarsa haber ver": sabit fiyatlı ilanda fiyat değişikliğini bekle / beklemeyi bırak
+    /// </summary>
+    [HttpPost("{id}/price-watch")]
+    [Authorize]
+    [RegisteredUserOnly]
+    public Task<ActionResult<PriceWatchResponse>> WatchPrice(int id) => SetPriceWatch(id, true);
+
+    [HttpDelete("{id}/price-watch")]
+    [Authorize]
+    [RegisteredUserOnly]
+    public Task<ActionResult<PriceWatchResponse>> UnwatchPrice(int id) => SetPriceWatch(id, false);
+
+    private async Task<ActionResult<PriceWatchResponse>> SetPriceWatch(int id, bool watch)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("Kullanıcı kimliği bulunamadı.");
+            }
+            return Ok(await _needService.SetPriceWatchAsync(id, userId, watch));
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
     }
 

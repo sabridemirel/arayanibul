@@ -8,7 +8,10 @@ export interface NeedFormValues {
   categoryId: number | null;
   /** Raw digits, e.g. "15000" */
   minBudget: string;
+  /** In fixed-price mode this is the exact price */
   maxBudget: string;
+  /** "Bu fiyata hemen alırım" */
+  isFixedPrice: boolean;
   address: string;
   urgency: NeedUrgency;
   /** yyyy-mm-dd */

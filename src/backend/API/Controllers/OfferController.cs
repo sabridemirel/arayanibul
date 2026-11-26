@@ -46,7 +46,7 @@ public class OfferController : ControllerBase
         }
         catch (ValidationException ex)
         {
-            return BadRequest(new { message = ex.Message, errors = ex.Errors });
+            return BadRequest(new { message = FirstError(ex), errors = ex.Errors });
         }
         catch (NotFoundException ex)
         {
@@ -55,6 +55,46 @@ public class OfferController : ControllerBase
         catch (UnauthorizedException ex)
         {
             return Unauthorized(ex.Message);
+        }
+    }
+
+    private static string FirstError(ValidationException ex)
+        => ex.Errors.Values.SelectMany(v => v).FirstOrDefault() ?? ex.Message;
+
+    /// <summary>
+    /// "Bende var, bu fiyata satarım": ilandaki fiyata hazır teklif
+    /// </summary>
+    [HttpPost("at-price/{needId}")]
+    [Authorize]
+    [RegisteredUserOnly]
+    public async Task<ActionResult<OfferResponse>> CreateOfferAtListedPrice(int needId)
+    {
+        try
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized("Kullanıcı kimliği bulunamadı.");
+            }
+
+            var offer = await _offerService.CreateAtListedPriceOfferAsync(needId, userId);
+            return CreatedAtAction(nameof(GetOfferById), new { id = offer.Id }, offer);
+        }
+        catch (ForbiddenException ex)
+        {
+            return StatusCode(403, new { message = ex.Message });
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = FirstError(ex), errors = ex.Errors });
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
     }
 

@@ -34,6 +34,11 @@ const CreateOfferPage: React.FC = () => {
         setLoading(true);
         setError(null);
         const needData = await needAPI.getNeedById(parseInt(needId));
+        if (needData.isFixedPrice) {
+          // One firm price: the listing page has the "bu fiyata satarım" button instead of this form.
+          navigate(`/needs/${needId}`, { replace: true });
+          return;
+        }
         setNeed(needData);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'İhtiyaç detayları yüklenirken hata oluştu';
@@ -44,7 +49,7 @@ const CreateOfferPage: React.FC = () => {
     };
 
     loadNeed();
-  }, [needId]);
+  }, [needId, navigate]);
 
   const validate = (values: CreateOfferFormValues) => {
     const errors: Partial<Record<keyof CreateOfferFormValues, string>> = {};

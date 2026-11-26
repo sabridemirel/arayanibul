@@ -147,6 +147,9 @@ const MyNeedsPage: React.FC = () => {
   };
 
   const formatBudget = (need: Need) => {
+    if (need.isFixedPrice && need.maxBudget) {
+      return `Hemen alır: ${need.maxBudget.toLocaleString('tr-TR')} TL`;
+    }
     if (need.minBudget && need.maxBudget) {
       return `${need.minBudget.toLocaleString('tr-TR')} - ${need.maxBudget.toLocaleString('tr-TR')} ${need.currency}`;
     }

@@ -355,6 +355,9 @@ namespace API.Migrations
                     b.Property<DateTime?>("FollowersNotifiedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsFixedPrice")
+                        .HasColumnType("boolean");
+
                     b.Property<double?>("Latitude")
                         .HasColumnType("double precision");
 
@@ -371,6 +374,9 @@ namespace API.Migrations
 
                     b.Property<bool>("NeedsReview")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("PriceNudgeSentAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("ProductId")
                         .HasColumnType("integer");
@@ -457,6 +463,33 @@ namespace API.Migrations
                     b.HasIndex("NeedId");
 
                     b.ToTable("NeedImages");
+                });
+
+            modelBuilder.Entity("API.Models.NeedPriceWatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NeedId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NeedId", "UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_NeedPriceWatches_NeedId_UserId");
+
+                    b.ToTable("NeedPriceWatches");
                 });
 
             modelBuilder.Entity("API.Models.Notification", b =>
@@ -1261,6 +1294,17 @@ namespace API.Migrations
                     b.Navigation("Need");
                 });
 
+            modelBuilder.Entity("API.Models.NeedPriceWatch", b =>
+                {
+                    b.HasOne("API.Models.Need", "Need")
+                        .WithMany("PriceWatches")
+                        .HasForeignKey("NeedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Need");
+                });
+
             modelBuilder.Entity("API.Models.Notification", b =>
                 {
                     b.HasOne("API.Models.ApplicationUser", "User")
@@ -1521,6 +1565,8 @@ namespace API.Migrations
                     b.Navigation("Images");
 
                     b.Navigation("Offers");
+
+                    b.Navigation("PriceWatches");
                 });
 
             modelBuilder.Entity("API.Models.Offer", b =>

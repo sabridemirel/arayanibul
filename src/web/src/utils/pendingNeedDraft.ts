@@ -11,6 +11,8 @@ export interface PendingNeedDraft {
   categoryId: number | null;
   minBudget: string;
   maxBudget: string;
+  /** "Bu fiyata hemen alırım": maxBudget is the exact price */
+  isFixedPrice?: boolean;
   address: string;
   /** Answers to the category's one-tap questions, keyed by question label */
   answers: Record<string, string>;

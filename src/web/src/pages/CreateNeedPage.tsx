@@ -53,6 +53,7 @@ const CreateNeedPage: React.FC = () => {
       categoryId: detailedSeed?.categoryId ?? null,
       minBudget: detailedSeed?.minBudget ?? '',
       maxBudget: detailedSeed?.maxBudget ?? '',
+      isFixedPrice: detailedSeed?.isFixedPrice ?? false,
       address: detailedSeed?.address ?? '',
       urgency: 'Normal',
       expiryDate: defaultDate.toISOString().split('T')[0],
@@ -103,7 +104,8 @@ const CreateNeedPage: React.FC = () => {
         categoryId: draft.categoryId!,
         urgency: URGENCY_TO_API.Normal,
       };
-      if (draft.minBudget) requestData.minBudget = Number(draft.minBudget);
+      if (draft.isFixedPrice) requestData.isFixedPrice = true;
+      else if (draft.minBudget) requestData.minBudget = Number(draft.minBudget);
       if (draft.maxBudget) requestData.maxBudget = Number(draft.maxBudget);
       if (draft.address.trim()) requestData.address = draft.address.trim();
 
@@ -126,6 +128,7 @@ const CreateNeedPage: React.FC = () => {
         categoryId: values.categoryId,
         minBudget: values.minBudget,
         maxBudget: values.maxBudget,
+        isFixedPrice: values.isFixedPrice,
         address: values.address,
         answers: {},
       });
@@ -142,7 +145,9 @@ const CreateNeedPage: React.FC = () => {
         urgency: URGENCY_TO_API[values.urgency],
       };
 
-      if (values.minBudget) {
+      if (values.isFixedPrice) {
+        requestData.isFixedPrice = true;
+      } else if (values.minBudget) {
         requestData.minBudget = Number(values.minBudget);
       }
 

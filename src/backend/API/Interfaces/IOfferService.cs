@@ -6,6 +6,7 @@ public interface IOfferService
 {
     // Core CRUD operations
     Task<OfferResponse> CreateOfferAsync(CreateOfferRequest request, string providerId);
+    Task<OfferResponse> CreateAtListedPriceOfferAsync(int needId, string providerId);
     Task<OfferResponse?> GetOfferByIdAsync(int offerId, string? userId = null);
     Task<OfferResponse?> UpdateOfferAsync(int offerId, UpdateOfferRequest request, string providerId);
     Task<bool> DeleteOfferAsync(int offerId, string providerId);

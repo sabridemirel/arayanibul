@@ -27,6 +27,12 @@ public class Need
     public int? ProductId { get; set; }
     public Product? Product { get; set; }
 
+    /// <summary>"Bu fiyata hemen alırım": the buyer pays exactly MaxBudget and is closed to other prices.
+    /// Sellers can only say "I sell at this price" (an offer with AtListedPrice) or ask to hear about a raise.</summary>
+    public bool IsFixedPrice { get; set; }
+    /// <summary>When the buyer was told that nobody has sold at their fixed price yet (once per listing).</summary>
+    public DateTime? PriceNudgeSentAt { get; set; }
+
     // Moderation
     public NeedRejectionReason? RejectionReason { get; set; }
     public string? RejectionNote { get; set; }
@@ -47,4 +53,15 @@ public class Need
     public Category Category { get; set; } = null!;
     public List<NeedImage> Images { get; set; } = new();
     public List<Offer> Offers { get; set; } = new();
+    public List<NeedPriceWatch> PriceWatches { get; set; } = new();
+}
+
+/// <summary>A seller who found a fixed price too low and wants to hear when the buyer changes it.</summary>
+public class NeedPriceWatch
+{
+    public int Id { get; set; }
+    public int NeedId { get; set; }
+    public Need Need { get; set; } = null!;
+    public string UserId { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

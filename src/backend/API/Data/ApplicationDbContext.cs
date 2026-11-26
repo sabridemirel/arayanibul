@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserBlock> UserBlocks { get; set; }
     public DbSet<CategoryFollow> CategoryFollows { get; set; }
     public DbSet<Product> Products { get; set; }
+    public DbSet<NeedPriceWatch> NeedPriceWatches { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -353,6 +354,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<CategoryFollow>()
             .HasIndex(f => f.CategoryId)
             .HasDatabaseName("IX_CategoryFollows_CategoryId");
+
+        builder.Entity<NeedPriceWatch>()
+            .HasOne(w => w.Need)
+            .WithMany(n => n.PriceWatches)
+            .HasForeignKey(w => w.NeedId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<NeedPriceWatch>()
+            .HasIndex(w => new { w.NeedId, w.UserId })
+            .IsUnique()
+            .HasDatabaseName("IX_NeedPriceWatches_NeedId_UserId");
 
         builder.Entity<Product>()
             .HasOne(p => p.Category)

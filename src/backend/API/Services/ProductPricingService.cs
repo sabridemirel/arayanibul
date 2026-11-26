@@ -47,6 +47,8 @@ public class ProductPricingService : IProductPricingService
     private int ResponseDays => _configuration.GetValue("ProductPricing:ResponseDays", 7);
 
     /// <summary>Used when a product has no ceiling of its own yet.</summary>
+    /// <summary>Days a fixed-price listing may sit without any offer before the buyer is told.</summary>
+    private int NudgeDays => _configuration.GetValue("FixedPrice:NudgeDays", 3);
     private decimal DefaultCeiling => _configuration.GetValue("ProductPricing:DefaultCeilingPrice", 250_000m);
 
     // ------------------------------------------------------------ recognising products
@@ -297,13 +299,20 @@ public class ProductPricingService : IProductPricingService
             need.Status = NeedStatus.Active;
         }
 
+        var raised = need.IsFixedPrice && request.Price > need.MaxBudget;
         need.MaxBudget = request.Price;
         need.MinBudget = null;
+        need.IsFixedPrice = request.Price > 0;
+        need.PriceNudgeSentAt = null;
         if (address != null) need.Address = address;
         need.ExpiresAt = now.AddDays(ListingDays);
         need.UpdatedAt = now;
 
         await _context.SaveChangesAsync();
+        if (raised)
+        {
+            await NeedService.NotifyPriceWatchersAsync(_context, need, openedToOffers: false);
+        }
 
         return new ProductBidResponse { NeedId = need.Id, Page = await BuildPageAsync(product, userId) };
     }
@@ -352,20 +361,7 @@ public class ProductPricingService : IProductPricingService
         var target = await FindSellTargetAsync(listings, sellerId, alreadyOffered)
             ?? throw new BusinessException("Şu an bu ürüne fiyat veren başka bir alıcı yok.");
 
-        var price = target.Price.ToString("N0", Turkish);
-        var offer = await _offerService.CreateOfferAsync(new CreateOfferRequest
-        {
-            NeedId = target.NeedId,
-            Price = target.Price,
-            Currency = "TRY",
-            Description = $"Elimde {product.Name} var ve ilanınızdaki {price} TL fiyata satmaya hazırım. " +
-                          "Ürünün durumu ve teslimat için buradan mesajlaşabiliriz.",
-            DeliveryDays = 3
-        }, sellerId);
-
-        var stored = await _context.Offers.FirstAsync(o => o.Id == offer.Id);
-        stored.AtListedPrice = true;
-        await _context.SaveChangesAsync();
+        var offer = await _offerService.CreateAtListedPriceOfferAsync(target.NeedId, sellerId);
 
         return new ProductSellResponse { OfferId = offer.Id, NeedId = target.NeedId, Price = target.Price };
     }
@@ -383,7 +379,7 @@ public class ProductPricingService : IProductPricingService
         var unanswered = await _context.Offers
             .Include(o => o.Need)
             .Where(o => o.AtListedPrice && o.Status == OfferStatus.Pending && o.CreatedAt <= deadline &&
-                        o.Need.ProductId != null && o.Need.Status == NeedStatus.Active)
+                        (o.Need.ProductId != null || o.Need.IsFixedPrice) && o.Need.Status == NeedStatus.Active)
             .ToListAsync();
 
         foreach (var group in unanswered.GroupBy(o => o.NeedId))
@@ -399,15 +395,17 @@ public class ProductPricingService : IProductPricingService
                 offer.UpdatedAt = now;
                 AddNotification(offer.ProviderId, "offer_unanswered",
                     "Alıcı yanıt vermedi",
-                    $"\"{need.Title}\" ilanının sahibi {ResponseDays} gün içinde yanıt vermediği için ilan kapandı. " +
-                    "Fiyat sayfasından sıradaki alıcıya teklif verebilirsiniz.",
+                    $"\"{need.Title}\" ilanının sahibi {ResponseDays} gün içinde yanıt vermediği için ilan kapandı." +
+                    (need.ProductId != null ? " Fiyat sayfasından sıradaki alıcıya teklif verebilirsiniz." : string.Empty),
                     new { type = "offer_unanswered", needId = need.Id, offerId = offer.Id });
             }
 
             AddNotification(need.UserId, "need_expired",
                 "İlanınız kapandı",
                 $"\"{need.Title}\" ilanınıza gelen teklife {ResponseDays} gün içinde yanıt vermediğiniz için ilanınız kapandı. " +
-                "Hâlâ arıyorsanız fiyat sayfasından yenileyebilirsiniz.",
+                (need.ProductId != null
+                    ? "Hâlâ arıyorsanız fiyat sayfasından yenileyebilirsiniz."
+                    : "Hâlâ arıyorsanız İlanlarım'dan yeniden yayınlayabilirsiniz."),
                 new { type = "need_expired", needId = need.Id });
         }
 
@@ -430,10 +428,32 @@ public class ProductPricingService : IProductPricingService
                 new { type = "need_expired", needId = need.Id });
         }
 
-        if (closed > 0)
+        // 3) A fixed price nobody has taken for a few days: tell the buyer once, so the listing
+        //    does not sit silent. Sellers cannot say "a bit more" on these listings.
+        var nudgeBefore = now.AddDays(-NudgeDays);
+        var silent = await _context.Needs
+            .Include(n => n.PriceWatches)
+            .Where(n => n.IsFixedPrice && n.Status == NeedStatus.Active && n.PriceNudgeSentAt == null &&
+                        n.UpdatedAt <= nudgeBefore && !n.Offers.Any())
+            .ToListAsync();
+
+        foreach (var need in silent)
+        {
+            need.PriceNudgeSentAt = now;
+            var price = (need.MaxBudget ?? 0).ToString("N0", Turkish);
+            var watchers = need.PriceWatches.Count;
+            AddNotification(need.UserId, "price_nudge",
+                "Bu fiyata satan çıkmadı",
+                $"\"{need.Title}\" ilanınıza {price} TL fiyatla henüz teklif gelmedi." +
+                (watchers > 0 ? $" {watchers} satıcı fiyat artarsa haber bekliyor." : string.Empty) +
+                " Fiyatı artırabilir ya da ilanı pazarlığa açabilirsiniz.",
+                new { type = "price_nudge", needId = need.Id });
+        }
+
+        if (closed > 0 || silent.Count > 0)
         {
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Closed {Count} stale product listing(s)", closed);
+            _logger.LogInformation("Closed {Count} stale listing(s), nudged {Nudged} silent fixed-price listing(s)", closed, silent.Count);
         }
         return closed;
     }
@@ -470,6 +490,26 @@ public class ProductPricingService : IProductPricingService
                     $"Bu ürün için en fazla {ceiling.ToString("N0", Turkish)} TL fiyat verilebilir.");
             }
         }
+    }
+
+    public int ListingLifetimeDays => ListingDays;
+
+    public async Task<Product?> FindLinkableProductAsync(string title, decimal price, string userId, int? excludeNeedId = null)
+    {
+        var product = await FindProductInTextAsync(title);
+        if (product == null) return null;
+
+        var ceiling = product.CeilingPrice ?? DefaultCeiling;
+        if (price > ceiling)
+        {
+            throw new BusinessException(
+                $"{product.Name} için en fazla {ceiling.ToString("N0", Turkish)} TL fiyat verilebilir.");
+        }
+
+        // One listing per buyer per product: a second one stays an ordinary listing.
+        var hasListing = await LiveListings(product.Id)
+            .AnyAsync(n => n.UserId == userId && (excludeNeedId == null || n.Id != excludeNeedId));
+        return hasListing ? null : product;
     }
 
     // ------------------------------------------------------------ admin

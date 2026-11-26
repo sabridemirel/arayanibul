@@ -49,7 +49,10 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
   const [photoFailed, setPhotoFailed] = useState(false);
   const photo = photoFailed ? undefined : need.images?.[0];
   const isUrgent = need.urgency === 'Urgent';
-  const budget = formatBudget(need.minBudget, need.maxBudget, need.currency);
+  const isFixedPrice = Boolean(need.isFixedPrice && need.maxBudget);
+  const budget = isFixedPrice
+    ? `${need.maxBudget!.toLocaleString('tr-TR')} TL`
+    : formatBudget(need.minBudget, need.maxBudget, need.currency);
   const categoryName = need.category?.nameTr || need.category?.name;
   const offerCount = need.offerCount ?? 0;
 
@@ -99,6 +102,11 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
         <div className="mt-auto pt-2">
           <p className={budget ? 'font-bold text-primary' : 'text-sm text-text-secondary'}>
             {budget ?? 'Bütçe belirtilmemiş'}
+            {isFixedPrice && (
+              <span className="ml-2 rounded-full bg-primary-light px-2 py-0.5 align-middle text-xs font-semibold text-primary-dark">
+                Hemen alır
+              </span>
+            )}
           </p>
           <div className="mt-1 flex items-center justify-between gap-2 text-xs text-text-secondary">
             <span className="flex min-w-0 items-center gap-1">

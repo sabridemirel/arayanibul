@@ -74,6 +74,8 @@ public class OfferResponse
     public string Description { get; set; } = string.Empty;
     public int DeliveryDays { get; set; }
     public OfferStatus Status { get; set; }
+    /// <summary>The seller accepted the listing's own price ("bu fiyata satarım").</summary>
+    public bool AtListedPrice { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public List<OfferImageResponse> Images { get; set; } = new();

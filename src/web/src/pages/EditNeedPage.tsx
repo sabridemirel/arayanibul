@@ -18,6 +18,7 @@ const toFormValues = (need: Need): NeedFormValues => ({
   categoryId: need.categoryId ?? null,
   minBudget: need.minBudget != null ? String(Math.round(need.minBudget)) : '',
   maxBudget: need.maxBudget != null ? String(Math.round(need.maxBudget)) : '',
+  isFixedPrice: Boolean(need.isFixedPrice),
   address: need.address ?? '',
   urgency: need.urgency ?? 'Normal',
   expiryDate: need.expiresAt ? need.expiresAt.split('T')[0] : '',
@@ -33,7 +34,10 @@ const buildUpdateRequest = (initial: NeedFormValues, values: NeedFormValues): Up
   if (title !== initial.title.trim()) request.title = title;
   if (description !== initial.description.trim()) request.description = description;
   if (values.categoryId && values.categoryId !== initial.categoryId) request.categoryId = values.categoryId;
-  if (values.minBudget !== initial.minBudget && values.minBudget) request.minBudget = Number(values.minBudget);
+  if (values.isFixedPrice !== initial.isFixedPrice) request.isFixedPrice = values.isFixedPrice;
+  if (!values.isFixedPrice && values.minBudget !== initial.minBudget && values.minBudget) {
+    request.minBudget = Number(values.minBudget);
+  }
   if (values.maxBudget !== initial.maxBudget && values.maxBudget) request.maxBudget = Number(values.maxBudget);
   if (address !== initial.address.trim()) request.address = address;
   if (values.urgency !== initial.urgency) request.urgency = URGENCY_TO_API[values.urgency];

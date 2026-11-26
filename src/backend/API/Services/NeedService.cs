@@ -35,6 +35,7 @@ public class NeedService : INeedService
 
     /// <summary>How long an urgent need stays in the "Acil İlanlar" showcase.</summary>
     public const int UrgentShowcaseDays = 7;
+    private const string FixedPriceRequiredMessage = "\"Bu fiyata hemen alırım\" için bir fiyat yazın.";
 
     /// <summary>A user may hold one showcase slot at a time (the slot is the future paid product).</summary>
     private async Task EnsureUrgentSlotAvailableAsync(string userId, int? excludeNeedId = null)
@@ -119,10 +120,20 @@ public class NeedService : INeedService
             });
         }
 
+        if (request.IsFixedPrice && !(request.MaxBudget > 0))
+        {
+            throw new ValidationException("Budget", FixedPriceRequiredMessage);
+        }
+
         if (request.Urgency == UrgencyLevel.Urgent)
         {
             await EnsureUrgentSlotAvailableAsync(userId);
         }
+
+        // A fixed price for a catalogued product also counts on that product's price page.
+        var product = request.IsFixedPrice && _productPricing != null
+            ? await _productPricing.FindLinkableProductAsync(request.Title, request.MaxBudget!.Value, userId)
+            : null;
 
         var flaggedTerms = await GetFlaggedTermsAsync(request.Title, request.Description);
         var requiresReview = RequiresReview(flaggedTerms);
@@ -132,9 +143,11 @@ public class NeedService : INeedService
         {
             Title = request.Title,
             Description = request.Description,
-            CategoryId = request.CategoryId,
-            MinBudget = request.MinBudget,
+            CategoryId = product?.CategoryId ?? request.CategoryId,
+            MinBudget = request.IsFixedPrice ? null : request.MinBudget,
             MaxBudget = request.MaxBudget,
+            IsFixedPrice = request.IsFixedPrice,
+            ProductId = product?.Id,
             Currency = request.Currency,
             Latitude = request.Latitude,
             Longitude = request.Longitude,
@@ -149,7 +162,7 @@ public class NeedService : INeedService
             UserId = userId,
             CreatedAt = now,
             UpdatedAt = now,
-            ExpiresAt = request.ExpiresAt
+            ExpiresAt = request.ExpiresAt ?? (product != null ? now.AddDays(_productPricing!.ListingLifetimeDays) : null)
         };
 
         _context.Needs.Add(need);
@@ -312,6 +325,8 @@ public class NeedService : INeedService
             .Include(n => n.Category)
             .Include(n => n.Images.OrderBy(i => i.SortOrder))
             .Include(n => n.Offers)
+            .Include(n => n.Product)
+            .Include(n => n.PriceWatches)
             .FirstOrDefaultAsync(n => n.Id == needId);
 
         if (need == null)
@@ -319,7 +334,9 @@ public class NeedService : INeedService
             return null;
         }
 
-        return MapToNeedResponse(need);
+        var response = MapToNeedResponse(need);
+        response.IsWatchingPrice = !string.IsNullOrEmpty(userId) && need.PriceWatches.Any(w => w.UserId == userId);
+        return response;
     }
 
     public async Task<NeedResponse?> UpdateNeedAsync(int needId, UpdateNeedRequest request, string userId)
@@ -341,6 +358,7 @@ public class NeedService : INeedService
         // Content/detail edits are only allowed while the listing is live or under moderation.
         // (Status-only requests, e.g. closing a listing, are handled by the status rules below.)
         var editsDetails = request.Title != null || request.Description != null || request.CategoryId.HasValue ||
+                           request.IsFixedPrice.HasValue ||
                            request.MinBudget.HasValue || request.MaxBudget.HasValue || request.Currency != null ||
                            request.Latitude.HasValue || request.Longitude.HasValue || request.Address != null ||
                            request.Urgency.HasValue || request.ExpiresAt.HasValue || request.ImageUrls != null;
@@ -349,6 +367,8 @@ public class NeedService : INeedService
             throw new BusinessException(NotEditableMessage);
         }
 
+        var wasFixedPrice = need.IsFixedPrice;
+        var oldPrice = need.MaxBudget;
         var oldTitle = need.Title;
         var oldDescription = need.Description;
         var oldCategoryId = need.CategoryId;
@@ -389,6 +409,16 @@ public class NeedService : INeedService
             need.MaxBudget = request.MaxBudget.Value;
         }
 
+        need.IsFixedPrice = request.IsFixedPrice ?? need.IsFixedPrice;
+        if (need.IsFixedPrice)
+        {
+            if (!(need.MaxBudget > 0))
+            {
+                throw new ValidationException("Budget", FixedPriceRequiredMessage);
+            }
+            need.MinBudget = null;
+        }
+
         // Validate budget range
         if (need.MinBudget.HasValue && need.MaxBudget.HasValue && need.MinBudget > need.MaxBudget)
         {
@@ -396,6 +426,30 @@ public class NeedService : INeedService
             {
                 { "Budget", new[] { "Minimum bütçe maksimum bütçeden büyük olamaz." } }
             });
+        }
+
+        if (wasFixedPrice && !need.IsFixedPrice)
+        {
+            // Open to bargaining again: the price no longer counts on a product's price page.
+            need.ProductId = null;
+        }
+        else if (need.IsFixedPrice && need.ProductId == null && _productPricing != null &&
+                 (!wasFixedPrice || need.Title != oldTitle))
+        {
+            var product = await _productPricing.FindLinkableProductAsync(need.Title, need.MaxBudget!.Value, userId, need.Id);
+            if (product != null)
+            {
+                need.ProductId = product.Id;
+                need.CategoryId = product.CategoryId;
+                need.ExpiresAt ??= DateTime.UtcNow.AddDays(_productPricing.ListingLifetimeDays);
+            }
+        }
+
+        var priceRaised = wasFixedPrice && need.IsFixedPrice && need.MaxBudget > oldPrice;
+        var openedToOffers = wasFixedPrice && !need.IsFixedPrice;
+        if (need.IsFixedPrice != wasFixedPrice || need.MaxBudget != oldPrice)
+        {
+            need.PriceNudgeSentAt = null;
         }
 
         if (!string.IsNullOrEmpty(request.Currency))
@@ -516,7 +570,75 @@ public class NeedService : INeedService
 
         await _context.SaveChangesAsync();
 
+        if ((priceRaised || openedToOffers) && need.Status == NeedStatus.Active)
+        {
+            await NotifyPriceWatchersAsync(_context, need, openedToOffers);
+        }
+
         return await GetNeedByIdAsync(needId, userId);
+    }
+
+    // ------------------------------------------------------------ "fiyat artarsa haber ver"
+
+    public async Task<PriceWatchResponse> SetPriceWatchAsync(int needId, string userId, bool watch)
+    {
+        var need = await _context.Needs.Include(n => n.PriceWatches).FirstOrDefaultAsync(n => n.Id == needId)
+            ?? throw new NotFoundException("İlan bulunamadı.");
+
+        var existing = need.PriceWatches.FirstOrDefault(w => w.UserId == userId);
+        if (watch && existing == null)
+        {
+            if (need.UserId == userId)
+            {
+                throw new BusinessException("Kendi ilanınızı takip edemezsiniz.");
+            }
+            if (need.Status != NeedStatus.Active || !need.IsFixedPrice)
+            {
+                throw new BusinessException("Bu ilan için fiyat takibi açılamıyor.");
+            }
+            need.PriceWatches.Add(new NeedPriceWatch { NeedId = need.Id, UserId = userId, CreatedAt = DateTime.UtcNow });
+            await _context.SaveChangesAsync();
+        }
+        else if (!watch && existing != null)
+        {
+            _context.NeedPriceWatches.Remove(existing);
+            await _context.SaveChangesAsync();
+        }
+
+        return new PriceWatchResponse
+        {
+            IsWatchingPrice = watch,
+            PriceWatchCount = await _context.NeedPriceWatches.CountAsync(w => w.NeedId == needId)
+        };
+    }
+
+    /// <summary>
+    /// Tells the sellers who were waiting that the buyer raised the price or opened the listing to
+    /// bargaining. The watch is used up: they are told once per change they asked about.
+    /// </summary>
+    public static async Task NotifyPriceWatchersAsync(ApplicationDbContext context, Need need, bool openedToOffers)
+    {
+        var watches = await context.NeedPriceWatches.Where(w => w.NeedId == need.Id).ToListAsync();
+        if (watches.Count == 0) return;
+
+        var price = (need.MaxBudget ?? 0).ToString("N0", new System.Globalization.CultureInfo("tr-TR"));
+        var now = DateTime.UtcNow;
+        foreach (var watch in watches)
+        {
+            context.Notifications.Add(new Notification
+            {
+                UserId = watch.UserId,
+                Type = "price_raised",
+                Title = openedToOffers ? "İlan pazarlığa açıldı" : "Alıcı fiyatı artırdı",
+                Body = openedToOffers
+                    ? $"\"{need.Title}\" ilanının sahibi ilanı pazarlığa açtı. Artık kendi fiyatınızla teklif verebilirsiniz."
+                    : $"\"{need.Title}\" ilanının yeni fiyatı {price} TL. Uygunsa tek dokunuşla teklif verebilirsiniz.",
+                Data = System.Text.Json.JsonSerializer.Serialize(new { type = "price_raised", needId = need.Id }),
+                CreatedAt = now
+            });
+        }
+        context.NeedPriceWatches.RemoveRange(watches);
+        await context.SaveChangesAsync();
     }
 
     public const string NotEditableMessage = "Bu ilan artık düzenlenemez.";
@@ -644,6 +766,9 @@ public class NeedService : INeedService
                 SortOrder = i.SortOrder
             }).OrderBy(i => i.SortOrder).ToList() ?? new List<NeedImageResponse>(),
             OfferCount = need.Offers?.Count ?? 0,
+            IsFixedPrice = need.IsFixedPrice,
+            PriceWatchCount = need.PriceWatches?.Count ?? 0,
+            ProductSlug = need.Product?.Slug,
             RejectionReason = need.RejectionReason,
             RejectionReasonText = ModerationLabels.For(need.RejectionReason),
             RejectionNote = need.RejectionNote,

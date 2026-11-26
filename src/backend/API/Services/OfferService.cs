@@ -89,6 +89,12 @@ public class OfferService : IOfferService
             });
         }
 
+        // "Bu fiyata hemen alırım": the buyer is closed to any other price.
+        if (need.IsFixedPrice && request.Price != need.MaxBudget)
+        {
+            throw new ValidationException("Price", FixedPriceMessage(need));
+        }
+
         // Validate price is within budget range if specified
         if (need.MinBudget.HasValue && request.Price < need.MinBudget.Value)
         {
@@ -110,6 +116,7 @@ public class OfferService : IOfferService
         {
             NeedId = request.NeedId,
             ProviderId = providerId,
+            AtListedPrice = need.IsFixedPrice,
             Price = request.Price,
             Currency = request.Currency,
             Description = request.Description,
@@ -120,6 +127,14 @@ public class OfferService : IOfferService
         };
 
         _context.Offers.Add(offer);
+
+        // Someone who offers is no longer waiting for a better price.
+        var watch = await _context.NeedPriceWatches
+            .FirstOrDefaultAsync(w => w.NeedId == request.NeedId && w.UserId == providerId);
+        if (watch != null)
+        {
+            _context.NeedPriceWatches.Remove(watch);
+        }
         await _context.SaveChangesAsync();
 
         // Add images if provided
@@ -141,6 +156,45 @@ public class OfferService : IOfferService
         await NotifyNewOfferAsync(offer.Id);
 
         return await GetOfferByIdAsync(offer.Id, providerId) ?? throw new Exception("Teklif oluşturulduktan sonra bulunamadı.");
+    }
+
+    private static readonly System.Globalization.CultureInfo Turkish = new("tr-TR");
+
+    private static string FixedPriceMessage(Need need)
+    {
+        var price = (need.MaxBudget ?? 0).ToString("N0", Turkish);
+        return $"Bu alıcı yalnızca {price} TL fiyatla alıyor; farklı fiyatla teklif verilemez. " +
+               $"Bu fiyata satmak isterseniz teklif tutarını {price} TL yazın.";
+    }
+
+    /// <summary>"Bende var, bu fiyata satarım": a ready-made offer at the listing's own price.</summary>
+    public async Task<OfferResponse> CreateAtListedPriceOfferAsync(int needId, string providerId)
+    {
+        var need = await _context.Needs.AsNoTracking().FirstOrDefaultAsync(n => n.Id == needId)
+            ?? throw new NotFoundException("İhtiyaç bulunamadı.");
+        if (!(need.MaxBudget > 0))
+        {
+            throw new BusinessException("Bu ilanda belirlenmiş bir fiyat yok.");
+        }
+
+        var price = need.MaxBudget.Value.ToString("N0", Turkish);
+        var offer = await CreateOfferAsync(new CreateOfferRequest
+        {
+            NeedId = needId,
+            Price = need.MaxBudget.Value,
+            Currency = string.IsNullOrEmpty(need.Currency) ? "TRY" : need.Currency,
+            Description = $"\"{need.Title}\" ilanınızdaki {price} TL fiyata satmaya hazırım. " +
+                          "Ayrıntılar ve teslimat için buradan mesajlaşabiliriz.",
+            DeliveryDays = 3
+        }, providerId);
+
+        if (!need.IsFixedPrice)
+        {
+            var stored = await _context.Offers.FirstAsync(o => o.Id == offer.Id);
+            stored.AtListedPrice = true;
+            await _context.SaveChangesAsync();
+        }
+        return offer;
     }
 
     public async Task<OfferResponse?> GetOfferByIdAsync(int offerId, string? userId = null)
@@ -194,6 +248,11 @@ public class OfferService : IOfferService
         // Update fields if provided
         if (request.Price.HasValue)
         {
+            if (offer.Need.IsFixedPrice && request.Price.Value != offer.Price)
+            {
+                throw new ValidationException("Price", FixedPriceMessage(offer.Need));
+            }
+
             // Validate price is within budget range if specified
             if (offer.Need.MinBudget.HasValue && request.Price.Value < offer.Need.MinBudget.Value)
             {
@@ -771,6 +830,7 @@ public class OfferService : IOfferService
             ProviderRating = offer.Provider?.Rating ?? 0,
             ProviderReviewCount = offer.Provider?.ReviewCount ?? 0,
             Price = offer.Price,
+            AtListedPrice = offer.AtListedPrice,
             Currency = offer.Currency,
             Description = offer.Description,
             DeliveryDays = offer.DeliveryDays,

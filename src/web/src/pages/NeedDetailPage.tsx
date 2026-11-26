@@ -27,6 +27,7 @@ import ReportModal from '../components/ReportModal';
 import ImageLightbox from '../components/ImageLightbox';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import { NEED_STATUS_LABELS, NEED_STATUS_TONES, isNeedEditable } from '../services/moderation';
+import FixedPricePanel from '../components/need/FixedPricePanel';
 import { useToast } from '../hooks/useToast';
 
 // Loading Skeleton Component
@@ -139,6 +140,11 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, isOwner, onAccept, onRejec
             <CurrencyDollarIcon className="w-4 h-4" />
             <span>{offer.price.toLocaleString('tr-TR')} {offer.currency}</span>
           </div>
+          {offer.atListedPrice && (
+            <span className="rounded-full bg-primary-light px-2 py-0.5 text-xs font-semibold text-primary-dark">
+              İlandaki fiyatınıza
+            </span>
+          )}
           <div className="flex items-center gap-1 text-text-secondary">
             <ClockIcon className="w-4 h-4" />
             <span>{offer.deliveryDays} gün içinde</span>
@@ -626,14 +632,24 @@ const NeedDetailPage: React.FC = () => {
                       <span>{need.category?.nameTr || 'Kategori'}</span>
                     </div>
 
-                    {(need.minBudget || need.maxBudget) && (
+                    {need.isFixedPrice && need.maxBudget ? (
+                      <div className="flex items-center gap-3 text-text-secondary">
+                        <CurrencyDollarIcon className="w-5 h-5 flex-shrink-0" />
+                        <span>
+                          <span className="text-primary font-bold">
+                            {need.maxBudget.toLocaleString('tr-TR')} TL
+                          </span>{' '}
+                          fiyata hemen alır, pazarlık yok
+                        </span>
+                      </div>
+                    ) : (need.minBudget || need.maxBudget) ? (
                       <div className="flex items-center gap-3 text-text-secondary">
                         <CurrencyDollarIcon className="w-5 h-5 flex-shrink-0" />
                         <span className="text-primary font-medium">
                           {formatBudget(need.minBudget, need.maxBudget, need.currency)}
                         </span>
                       </div>
-                    )}
+                    ) : null}
 
                     {need.address && (
                       <div className="flex items-center gap-3 text-text-secondary">
@@ -773,6 +789,13 @@ const NeedDetailPage: React.FC = () => {
                           Tekliflerim
                         </Link>
                       </div>
+                    ) : canCreateOffer && need.isFixedPrice ? (
+                      <FixedPricePanel
+                        need={need}
+                        onOffered={setMyOffer}
+                        onWatchChange={(state) => setNeed((current) => (current ? { ...current, ...state } : current))}
+                        onMessage={showToast}
+                      />
                     ) : canCreateOffer ? (
                       <>
                         {myOffer?.status === 'Rejected' && (
@@ -792,6 +815,32 @@ const NeedDetailPage: React.FC = () => {
                           Bu ihtiyaca teklif vererek satıcı olarak başvurun
                         </p>
                       </>
+                    ) : isOwner && need.isFixedPrice && need.status === 'Active' ? (
+                      <div>
+                        <p className="text-sm font-medium text-text-secondary">Fiyatınız</p>
+                        <p className="text-3xl font-extrabold text-primary">
+                          {(need.maxBudget ?? 0).toLocaleString('tr-TR')} TL
+                        </p>
+                        <p className="mt-1 text-sm text-text-secondary">
+                          Satıcılar yalnızca bu fiyata teklif verebilir.
+                        </p>
+                        {(need.priceWatchCount ?? 0) > 0 && (
+                          <p className="mt-3 rounded-lg bg-[#FFF6E3] px-3 py-2 text-sm text-[#7C2D12]">
+                            {need.priceWatchCount} satıcı bu fiyatı düşük buldu; fiyat artarsa haber bekliyor.
+                          </p>
+                        )}
+                        <Button variant="outline" fullWidth className="mt-4" onClick={handleEdit}>
+                          Fiyatı Değiştir ya da Pazarlığa Aç
+                        </Button>
+                        {need.productSlug && (
+                          <Link
+                            to={`/fiyat/${need.productSlug}`}
+                            className="mt-3 block text-center text-sm text-primary hover:text-primary-dark"
+                          >
+                            Fiyat sıralamasındaki yerinizi görün
+                          </Link>
+                        )}
+                      </div>
                     ) : isOwner ? (
                       <div className="text-center">
                         <p className="text-text-secondary text-sm">

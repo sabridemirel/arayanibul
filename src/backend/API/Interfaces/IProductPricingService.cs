@@ -26,6 +26,16 @@ public interface IProductPricingService
     /// also when edited through the ordinary listing form (older app versions).</summary>
     Task EnsureEditAllowedAsync(Need need, UpdateNeedRequest request);
 
+    /// <summary>
+    /// The catalogued product a fixed-price listing with this title should count towards, or null when
+    /// the title names none or the buyer already has a live listing for it. Throws when the price is above
+    /// the product's ceiling.
+    /// </summary>
+    Task<Product?> FindLinkableProductAsync(string title, decimal price, string userId, int? excludeNeedId = null);
+
+    /// <summary>How long a product listing stays live before it has to be renewed.</summary>
+    int ListingLifetimeDays { get; }
+
     Task<List<Product>> GetAllProductsAsync();
     Task<Product> UpdateProductAsync(int productId, AdminProductRequest request);
 }
