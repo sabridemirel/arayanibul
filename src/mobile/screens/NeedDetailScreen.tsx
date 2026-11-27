@@ -428,7 +428,7 @@ const NeedDetailScreen: React.FC = () => {
                   {(need.priceWatchCount ?? 0) > 0
                     ? ` ${need.priceWatchCount} satıcı bu fiyatı düşük buldu; fiyat artarsa haber bekliyor.`
                     : ''}
-                  {' '}Fiyatı değiştirmek ya da ilanı pazarlığa açmak için ilanı düzenleyin.
+                  {' '}Fiyatı değiştirmek ya da ilanı tekliflere açmak için ilanı düzenleyin.
                 </Text>
               </View>
             ) : null}
@@ -541,12 +541,12 @@ const NeedDetailScreen: React.FC = () => {
             accessibilityHint={
               need.isWatchingPrice
                 ? 'Fiyat değişikliği bildirimini kapatır'
-                : 'Alıcı fiyatı artırır ya da ilanı pazarlığa açarsa size bildirim gelir'
+                : 'Alıcı fiyatı artırır ya da ilanı tekliflere açarsa size bildirim gelir'
             }
           />
           {need.isWatchingPrice ? (
             <Text style={styles.watchHint}>
-              Alıcı fiyatı artırır ya da ilanı pazarlığa açarsa size haber vereceğiz.
+              Alıcı fiyatı artırır ya da ilanı tekliflere açarsa size haber vereceğiz.
             </Text>
           ) : null}
         </View>

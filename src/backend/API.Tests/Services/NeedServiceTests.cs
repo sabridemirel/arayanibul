@@ -234,7 +234,7 @@ public class NeedServiceTests : IDisposable
         {
             Title = "Updated Title",
             Description = "Updated Description",
-            MinBudget = 15000,
+            IsFixedPrice = true,
             MaxBudget = 20000
         };
 
@@ -245,7 +245,8 @@ public class NeedServiceTests : IDisposable
         result.Should().NotBeNull();
         result!.Title.Should().Be(updateRequest.Title);
         result.Description.Should().Be(updateRequest.Description);
-        result.MinBudget.Should().Be(updateRequest.MinBudget);
+        result.IsFixedPrice.Should().BeTrue();
+        result.MinBudget.Should().BeNull();
         result.MaxBudget.Should().Be(updateRequest.MaxBudget);
     }
 

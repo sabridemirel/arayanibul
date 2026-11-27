@@ -82,7 +82,7 @@ const FixedPricePanel: React.FC<FixedPricePanelProps> = ({ need, onOffered, onWa
       <div className="mt-4 border-t border-border pt-4">
         <p className="mb-2 text-sm text-text-secondary">
           {need.isWatchingPrice
-            ? 'Alıcı fiyatı artırır ya da ilanı pazarlığa açarsa size haber vereceğiz.'
+            ? 'Alıcı fiyatı artırır ya da ilanı tekliflere açarsa size haber vereceğiz.'
             : 'Fiyat size düşük mü geliyor? Alıcıya bunu bildirelim; fiyat değişince haber verelim.'}
         </p>
         <Button

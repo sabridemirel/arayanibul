@@ -446,7 +446,7 @@ public class ProductPricingService : IProductPricingService
                 "Bu fiyata satan çıkmadı",
                 $"\"{need.Title}\" ilanınıza {price} TL fiyatla henüz teklif gelmedi." +
                 (watchers > 0 ? $" {watchers} satıcı fiyat artarsa haber bekliyor." : string.Empty) +
-                " Fiyatı artırabilir ya da ilanı pazarlığa açabilirsiniz.",
+                " Fiyatı artırabilir ya da ilanı tekliflere açabilirsiniz.",
                 new { type = "price_nudge", needId = need.Id });
         }
 

@@ -75,6 +75,8 @@ public class NeedDraftService : INeedDraftService
             {
                 response.ProductSlug = product.Slug;
                 response.ProductName = product.Name;
+                // Shown next to the price field: what buyers are offering for this product right now
+                response.ProductRealPrice = (await _productPricing.GetPageAsync(product.Slug, null))?.RealPrice;
             }
         }
 

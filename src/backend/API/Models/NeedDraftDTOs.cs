@@ -34,6 +34,8 @@ public class NeedDraftResponse
     /// its price page (/fiyat/{slug}) instead of creating an ordinary listing.</summary>
     public string? ProductSlug { get; set; }
     public string? ProductName { get; set; }
+    /// <summary>Highest live price buyers name for that product ("gerçek fiyat"), if any.</summary>
+    public decimal? ProductRealPrice { get; set; }
 
     /// <summary>One-tap questions for the recognised category (condition, warranty...).</summary>
     public List<NeedDraftQuestion> Questions { get; set; } = new();

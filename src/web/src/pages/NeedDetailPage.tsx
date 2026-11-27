@@ -830,7 +830,7 @@ const NeedDetailPage: React.FC = () => {
                           </p>
                         )}
                         <Button variant="outline" fullWidth className="mt-4" onClick={handleEdit}>
-                          Fiyatı Değiştir ya da Pazarlığa Aç
+                          Fiyatı Değiştir ya da Tekliflere Aç
                         </Button>
                         {need.productSlug && (
                           <Link

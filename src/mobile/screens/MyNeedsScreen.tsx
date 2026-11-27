@@ -20,6 +20,7 @@ import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
+import BackButton from '../components/BackButton';
 import { RootStackParamList } from '../types';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import { getNeedStatusColor, getNeedStatusText, isNeedEditable } from '../utils/needStatus';
@@ -379,7 +380,10 @@ const MyNeedsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
+          <View style={styles.headerLeft}>
+          <BackButton />
           <Text style={styles.headerTitle}>İlanlarım</Text>
+        </View>
         </View>
         <ErrorMessage 
           message="Bu sayfayı görüntülemek için giriş yapmanız gerekiyor." 
@@ -392,7 +396,10 @@ const MyNeedsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
+          <View style={styles.headerLeft}>
+          <BackButton />
           <Text style={styles.headerTitle}>İlanlarım</Text>
+        </View>
         </View>
         <Loading text="İhtiyaçlarınız yükleniyor..." />
       </SafeAreaView>
@@ -403,7 +410,10 @@ const MyNeedsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
+          <View style={styles.headerLeft}>
+          <BackButton />
           <Text style={styles.headerTitle}>İlanlarım</Text>
+        </View>
         </View>
         <ErrorMessage 
           message={error} 
@@ -419,7 +429,10 @@ const MyNeedsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>İlanlarım</Text>
+        <View style={styles.headerLeft}>
+          <BackButton />
+          <Text style={styles.headerTitle}>İlanlarım</Text>
+        </View>
         <TouchableOpacity
           onPress={handleCreateNeed}
           style={styles.headerButton}
@@ -469,6 +482,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   headerTitle: {
     fontSize: typography.h2.fontSize,
     fontWeight: typography.h2.fontWeight as any,

@@ -26,6 +26,7 @@ import Input from '../components/ui/Input';
 import Loading from '../components/ui/Loading';
 import ErrorMessage from '../components/ui/ErrorMessage';
 import { colors, spacing, typography } from '../theme';
+import BackButton from '../components/BackButton';
 import { RootStackParamList } from '../types';
 
 type SearchScreenNavigationProp = StackNavigationProp<RootStackParamList>;
@@ -665,7 +666,10 @@ const SearchScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Arama</Text>
+        <View style={styles.headerLeft}>
+          <BackButton />
+          <Text style={styles.headerTitle}>Arama</Text>
+        </View>
       </View>
 
       {renderSearchBar()}
@@ -919,6 +923,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   headerTitle: {
     fontSize: typography.h2.fontSize,
     fontWeight: typography.h2.fontWeight as any,

@@ -35,6 +35,10 @@ public class NeedService : INeedService
 
     /// <summary>How long an urgent need stays in the "Acil İlanlar" showcase.</summary>
     public const int UrgentShowcaseDays = 7;
+
+    /// <summary>Listings are either "Acil" or "Normal"; the old "Esnek" level counts as normal.</summary>
+    private static UrgencyLevel Normalize(UrgencyLevel urgency)
+        => urgency == UrgencyLevel.Urgent ? UrgencyLevel.Urgent : UrgencyLevel.Normal;
     private const string FixedPriceRequiredMessage = "\"Bu fiyata hemen alırım\" için bir fiyat yazın.";
 
     /// <summary>A user may hold one showcase slot at a time (the slot is the future paid product).</summary>
@@ -143,14 +147,14 @@ public class NeedService : INeedService
             });
         }
 
-        // Validate budget range
-        if (request.MinBudget.HasValue && request.MaxBudget.HasValue && request.MinBudget > request.MaxBudget)
+        // Two kinds of listing: "bu fiyata hemen alırım" carries one price, "tekliflere açığım" none.
+        // Older app versions still send a budget range with open listings; it is not stored.
+        if (!request.IsFixedPrice)
         {
-            throw new ValidationException(new Dictionary<string, string[]>
-            {
-                { "Budget", new[] { "Minimum bütçe maksimum bütçeden büyük olamaz." } }
-            });
+            request.MinBudget = null;
+            request.MaxBudget = null;
         }
+        request.Urgency = Normalize(request.Urgency);
 
         // Validate location
         if ((request.Latitude.HasValue && !request.Longitude.HasValue) || 
@@ -446,17 +450,21 @@ public class NeedService : INeedService
             need.CategoryId = request.CategoryId.Value;
         }
 
-        if (request.MinBudget.HasValue)
-        {
-            need.MinBudget = request.MinBudget.Value;
-        }
-
-        if (request.MaxBudget.HasValue)
+        // Prices only exist on "hemen alırım" listings. An open listing keeps whatever budget it was
+        // created with before the change (older listings), but no new budget is accepted for it.
+        var staysOrBecomesFixed = request.IsFixedPrice ?? need.IsFixedPrice;
+        if (staysOrBecomesFixed && request.MaxBudget.HasValue)
         {
             need.MaxBudget = request.MaxBudget.Value;
         }
+        if (wasFixedPrice && !staysOrBecomesFixed)
+        {
+            // Opened to offers: the fixed price no longer applies
+            need.MaxBudget = null;
+            need.MinBudget = null;
+        }
 
-        need.IsFixedPrice = request.IsFixedPrice ?? need.IsFixedPrice;
+        need.IsFixedPrice = staysOrBecomesFixed;
         if (need.IsFixedPrice)
         {
             if (!(need.MaxBudget > 0))
@@ -519,6 +527,10 @@ public class NeedService : INeedService
             need.Address = request.Address;
         }
 
+        if (request.Urgency.HasValue)
+        {
+            request.Urgency = Normalize(request.Urgency.Value);
+        }
         if (request.Urgency.HasValue && request.Urgency.Value != need.Urgency)
         {
             if (request.Urgency.Value == UrgencyLevel.Urgent)
@@ -680,9 +692,9 @@ public class NeedService : INeedService
             {
                 UserId = watch.UserId,
                 Type = "price_raised",
-                Title = openedToOffers ? "İlan pazarlığa açıldı" : "Alıcı fiyatı artırdı",
+                Title = openedToOffers ? "İlan tekliflere açıldı" : "Alıcı fiyatı artırdı",
                 Body = openedToOffers
-                    ? $"\"{need.Title}\" ilanının sahibi ilanı pazarlığa açtı. Artık kendi fiyatınızla teklif verebilirsiniz."
+                    ? $"\"{need.Title}\" ilanının sahibi ilanı tekliflere açtı. Artık kendi fiyatınızla teklif verebilirsiniz."
                     : $"\"{need.Title}\" ilanının yeni fiyatı {price} TL. Uygunsa tek dokunuşla teklif verebilirsiniz.",
                 Data = System.Text.Json.JsonSerializer.Serialize(new { type = "price_raised", needId = need.Id }),
                 CreatedAt = now

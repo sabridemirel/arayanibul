@@ -99,13 +99,45 @@ public class FixedPriceListingTests : IDisposable
     }
 
     [Fact]
-    public async Task OpenListing_IsUnchanged()
+    public async Task OpenListing_CarriesNoPrice_EvenWhenAnOlderAppSendsABudget()
     {
         var need = await Create("RTX 3080 arıyorum", 15000, isFixed: false, min: 12000);
 
         need.IsFixedPrice.Should().BeFalse();
-        need.MinBudget.Should().Be(12000);
+        need.MinBudget.Should().BeNull();
+        need.MaxBudget.Should().BeNull();
         need.ProductSlug.Should().BeNull(); // only firm prices count on a price page
+    }
+
+    [Fact]
+    public async Task OpenListing_DoesNotTakeABudgetOnEdit_ButAnOldBudgetStays()
+    {
+        var need = await Create("Bebek arabası arıyorum", null, isFixed: false);
+        var stored = await _context.Needs.FindAsync(need.Id);
+        stored!.MinBudget = 1000; stored.MaxBudget = 2000; // a listing from before the change
+        await _context.SaveChangesAsync();
+
+        var updated = await _needs.UpdateNeedAsync(need.Id, new UpdateNeedRequest { MaxBudget = 5000, Address = "İzmir" }, "buyer");
+
+        updated!.MinBudget.Should().Be(1000);
+        updated.MaxBudget.Should().Be(2000);
+    }
+
+    [Theory]
+    [InlineData(UrgencyLevel.Flexible, UrgencyLevel.Normal)]
+    [InlineData(UrgencyLevel.Normal, UrgencyLevel.Normal)]
+    [InlineData(UrgencyLevel.Urgent, UrgencyLevel.Urgent)]
+    public async Task Urgency_IsEitherNormalOrUrgent(UrgencyLevel sent, UrgencyLevel stored)
+    {
+        var need = await _needs.CreateNeedAsync(new CreateNeedRequest
+        {
+            Title = "Bebek arabası arıyorum",
+            Description = "Temiz, az kullanılmış olsun. Elden teslim tercihimdir.",
+            CategoryId = 1,
+            Urgency = sent
+        }, "buyer");
+
+        need.Urgency.Should().Be(stored);
     }
 
     [Fact]
@@ -324,7 +356,7 @@ public class FixedPriceListingTests : IDisposable
         updated!.IsFixedPrice.Should().BeFalse();
         updated.ProductSlug.Should().BeNull();
         (await _pricing.GetPageAsync("rtx-3080", null))!.RealPrice.Should().BeNull();
-        NotificationsFor("seller", "price_raised").Should().ContainSingle().Which.Title.Should().Be("İlan pazarlığa açıldı");
+        NotificationsFor("seller", "price_raised").Should().ContainSingle().Which.Title.Should().Be("İlan tekliflere açıldı");
 
         var offer = await _offers.CreateOfferAsync(OfferAt(need.Id, 14500), "seller");
         offer.AtListedPrice.Should().BeFalse();
@@ -337,8 +369,8 @@ public class FixedPriceListingTests : IDisposable
         var act = () => _needs.UpdateNeedAsync(noPrice.Id, new UpdateNeedRequest { IsFixedPrice = true }, "buyer");
         await act.Should().ThrowAsync<ValidationException>();
 
-        var card = await Create("RTX 3080 arıyorum", 15000, isFixed: false, min: 10000, userId: "buyer2");
-        var updated = await _needs.UpdateNeedAsync(card.Id, new UpdateNeedRequest { IsFixedPrice = true }, "buyer2");
+        var card = await Create("RTX 3080 arıyorum", null, isFixed: false, userId: "buyer2");
+        var updated = await _needs.UpdateNeedAsync(card.Id, new UpdateNeedRequest { IsFixedPrice = true, MaxBudget = 15000 }, "buyer2");
 
         updated!.IsFixedPrice.Should().BeTrue();
         updated.MinBudget.Should().BeNull();
