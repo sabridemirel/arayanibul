@@ -41,7 +41,7 @@ const MyNeedsScreen: React.FC = () => {
 
   const statusOptions: { key: NeedStatus; label: string; count?: number }[] = [
     { key: 'All', label: 'Tümü' },
-    { key: 'PendingReview', label: 'İncelemede' },
+    { key: 'PendingReview', label: 'Onay Bekleyen' },
     { key: 'Active', label: 'Aktif' },
     { key: 'InProgress', label: 'Devam Eden' },
     { key: 'Completed', label: 'Tamamlanan' },

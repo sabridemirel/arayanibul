@@ -87,14 +87,14 @@ public class AdminService
 
         if (flaggedOnly)
         {
-            query = query.Where(n => n.FlaggedTerms != null && n.FlaggedTerms != "");
+            query = query.Where(n => (n.FlaggedTerms != null && n.FlaggedTerms != "") || n.SuggestedCategoryId != null);
         }
 
         var totalCount = await query.CountAsync();
 
         query = status == NeedStatus.PendingReview
             // Review queue: flagged first, then oldest submission first
-            ? query.OrderByDescending(n => n.FlaggedTerms != null && n.FlaggedTerms != "")
+            ? query.OrderByDescending(n => (n.FlaggedTerms != null && n.FlaggedTerms != "") || n.SuggestedCategoryId != null)
                    .ThenBy(n => n.UpdatedAt)
                    .ThenBy(n => n.Id)
             : query.OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id);
@@ -135,12 +135,23 @@ public class AdminService
             })
             .ToDictionaryAsync(x => x.UserId);
 
+        var suggestedIds = needs.Where(n => n.SuggestedCategoryId != null).Select(n => n.SuggestedCategoryId!.Value).Distinct().ToList();
+        var suggestedNames = await _context.Categories.AsNoTracking()
+            .Where(c => suggestedIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.NameTr);
+
         var byId = needs.ToDictionary(n => n.Id);
         return needIds.Where(byId.ContainsKey).Select(id =>
         {
             var n = byId[id];
             userStats.TryGetValue(n.UserId, out var stats);
-            return MapAdminNeed(n, stats?.Total ?? 0, stats?.Rejected ?? 0);
+            var item = MapAdminNeed(n, stats?.Total ?? 0, stats?.Rejected ?? 0);
+            if (n.SuggestedCategoryId is int suggested && suggestedNames.TryGetValue(suggested, out var name))
+            {
+                item.SuggestedCategoryId = suggested;
+                item.SuggestedCategoryName = name;
+            }
+            return item;
         }).ToList();
     }
 
@@ -149,6 +160,7 @@ public class AdminService
         Id = n.Id,
         Title = n.Title,
         Description = n.Description,
+        CategoryId = n.CategoryId,
         CategoryName = n.Category?.NameTr ?? n.Category?.Name ?? string.Empty,
         MinBudget = n.MinBudget,
         MaxBudget = n.MaxBudget,
@@ -186,7 +198,7 @@ public class AdminService
     private async Task<AdminNeedItem> GetAdminNeedAsync(int needId) =>
         (await LoadAdminNeedItemsAsync(new List<int> { needId })).First();
 
-    public async Task<AdminNeedItem> ApproveNeedAsync(int needId, string adminId)
+    public async Task<AdminNeedItem> ApproveNeedAsync(int needId, string adminId, int? categoryId = null)
     {
         var need = await _context.Needs.Include(n => n.User).FirstOrDefaultAsync(n => n.Id == needId)
                    ?? throw new NotFoundException("İlan bulunamadı.");
@@ -204,6 +216,13 @@ public class AdminService
             need.ExpiresAt = need.ExpiresAt.Value + (now - need.CreatedAt);
         }
 
+        if (categoryId.HasValue)
+        {
+            await ApplyCategoryAsync(need, categoryId.Value);
+        }
+        // An admin has looked at it: the category question is settled either way.
+        need.SuggestedCategoryId = null;
+
         need.Status = NeedStatus.Active;
         need.NeedsReview = false;
         need.ApprovedAt = now;
@@ -219,6 +238,31 @@ public class AdminService
             $"\"{need.Title}\" başlıklı ilanınız incelendi ve yayına alındı. Artık teklif alabilirsiniz.");
 
         return await GetAdminNeedAsync(needId);
+    }
+
+    /// <summary>Moves a listing to another category without approving or rejecting it.</summary>
+    public async Task<AdminNeedItem> ChangeNeedCategoryAsync(int needId, int categoryId)
+    {
+        var need = await _context.Needs.FirstOrDefaultAsync(n => n.Id == needId)
+                   ?? throw new NotFoundException("İlan bulunamadı.");
+        if (need.ProductId != null)
+        {
+            throw new BusinessException("Ürün fiyat sayfasına bağlı ilanın kategorisi değiştirilemez.");
+        }
+
+        await ApplyCategoryAsync(need, categoryId);
+        need.SuggestedCategoryId = null;
+        need.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return (await LoadAdminNeedItemsAsync(new List<int> { need.Id })).Single();
+    }
+
+    private async Task ApplyCategoryAsync(Need need, int categoryId)
+    {
+        if (categoryId == need.CategoryId) return;
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == categoryId && c.IsActive)
+                       ?? throw new ValidationException("CategoryId", "Geçersiz kategori seçimi.");
+        need.CategoryId = category.Id;
     }
 
     public async Task<AdminNeedItem> RejectNeedAsync(int needId, NeedRejectionReason reason, string? note, string adminId, bool takeDown)

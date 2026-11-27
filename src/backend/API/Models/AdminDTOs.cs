@@ -33,6 +33,7 @@ public class AdminNeedItem
     public int Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public decimal? MinBudget { get; set; }
     public decimal? MaxBudget { get; set; }
@@ -46,8 +47,23 @@ public class AdminNeedItem
     public string? RejectionReasonText { get; set; }
     public string? RejectionNote { get; set; }
     public List<string> FlaggedTerms { get; set; } = new();
+    /// <summary>The category the listing's words point to, when it differs from CategoryName.</summary>
+    public int? SuggestedCategoryId { get; set; }
+    public string? SuggestedCategoryName { get; set; }
     public List<AdminNeedImage> Images { get; set; } = new();
     public AdminNeedUser User { get; set; } = new();
+}
+
+public class AdminChangeCategoryRequest
+{
+    [Required]
+    public int? CategoryId { get; set; }
+}
+
+public class AdminApproveNeedRequest
+{
+    /// <summary>Optional: approve the listing under this category instead of the one it was filed under.</summary>
+    public int? CategoryId { get; set; }
 }
 
 public class AdminRejectNeedRequest

@@ -60,8 +60,14 @@ public class AdminController : ControllerBase
         => Ok(await _adminService.GetNeedsAsync(status, search, flaggedOnly, page, pageSize));
 
     [HttpPost("needs/{id:int}/approve")]
-    public Task<ActionResult> ApproveNeed(int id)
-        => Run(() => _adminService.ApproveNeedAsync(id, AdminId));
+    public Task<ActionResult> ApproveNeed(
+        int id,
+        [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] AdminApproveNeedRequest? request)
+        => Run(() => _adminService.ApproveNeedAsync(id, AdminId, request?.CategoryId));
+
+    [HttpPut("needs/{id:int}/category")]
+    public Task<ActionResult> ChangeNeedCategory(int id, [FromBody] AdminChangeCategoryRequest request)
+        => Run(() => _adminService.ChangeNeedCategoryAsync(id, request.CategoryId!.Value));
 
     [HttpPost("needs/{id:int}/reject")]
     public Task<ActionResult> RejectNeed(int id, [FromBody] AdminRejectNeedRequest request)

@@ -83,6 +83,7 @@ public static class ModerationLabels
         NeedRejectionReason.InappropriateLanguage => "Uygunsuz dil",
         NeedRejectionReason.ContactInfo => "İlanda iletişim bilgisi paylaşımı",
         NeedRejectionReason.Duplicate => "Tekrarlanan ilan",
+        NeedRejectionReason.WrongCategory => "Yanlış kategori",
         _ => "Diğer"
     };
 

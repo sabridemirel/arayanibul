@@ -19,12 +19,15 @@ import { adminAPI } from '../../services/moderation';
 import type { AdminNeedItem, ModerationReason } from '../../services/moderation';
 import { getApiErrorMessage, resolveMediaUrl } from '../../services/api';
 import { useAdmin } from './adminContext';
+import { useCategories } from '../../utils/categoryVisual';
 import { Highlighted, LoadError, ReasonDialog } from './AdminWidgets';
 import { formatBudget, formatDate, formatDateTime, formatRelative, URGENCY_LABELS } from './format';
 
 const sortQueue = (items: AdminNeedItem[]) =>
   [...items].sort((a, b) => {
-    const flagDiff = Number(b.flaggedTerms.length > 0) - Number(a.flaggedTerms.length > 0);
+    // Flagged words or a category that does not fit the words: both need a closer look first
+    const needsLook = (n: AdminNeedItem) => n.flaggedTerms.length > 0 || Boolean(n.suggestedCategoryId);
+    const flagDiff = Number(needsLook(b)) - Number(needsLook(a));
     if (flagDiff !== 0) return flagDiff;
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
@@ -122,19 +125,36 @@ const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 interface DetailProps {
   item: AdminNeedItem;
+  /** Category the admin picked for this listing (approve uses it) */
+  categoryId: number;
+  onCategoryChange: (categoryId: number) => void;
+  onSaveCategory: () => void;
+  isSavingCategory: boolean;
   onApprove: () => void;
   onReject: () => void;
   onOpenImage: (index: number) => void;
 }
 
-const NeedReviewDetail: React.FC<DetailProps> = ({ item, onApprove, onReject, onOpenImage }) => {
+const NeedReviewDetail: React.FC<DetailProps> = ({
+  item,
+  categoryId,
+  onCategoryChange,
+  onSaveCategory,
+  isSavingCategory,
+  onApprove,
+  onReject,
+  onOpenImage,
+}) => {
   const owner = item.user;
+  const categories = useCategories();
+  const roots = categories.filter((c) => !c.parentCategoryId).sort((a, b) => a.sortOrder - b.sortOrder);
+  const categoryChanged = categoryId !== item.categoryId;
   return (
     <Card padding="lg" className="h-full overflow-y-auto">
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3 pb-4 mb-4 border-b border-border">
         <Button onClick={onApprove} leftIcon={<CheckIcon className="h-5 w-5" />}>
-          Onayla
+          {categoryChanged ? 'Seçilen Kategoriyle Onayla' : 'Onayla'}
         </Button>
         <Button variant="outline" onClick={onReject} className="!border-error !text-error hover:!bg-red-50">
           Reddet
@@ -152,6 +172,17 @@ const NeedReviewDetail: React.FC<DetailProps> = ({ item, onApprove, onReject, on
           </span>
         </div>
       </div>
+
+      {item.suggestedCategoryId && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 mb-4">
+          <ExclamationTriangleIcon className="h-5 w-5 text-amber-700 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-900">
+            <span className="font-semibold">Kategori ilana uymuyor gibi.</span> Yazılanlar{' '}
+            <strong>{item.suggestedCategoryName}</strong> kategorisini gösteriyor; ilan{' '}
+            <strong>{item.categoryName}</strong> altında açılmış. Önerilen kategori aşağıda seçili geldi.
+          </p>
+        </div>
+      )}
 
       {item.flaggedTerms.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 mb-4">
@@ -199,10 +230,43 @@ const NeedReviewDetail: React.FC<DetailProps> = ({ item, onApprove, onReject, on
       </p>
 
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm mb-6">
-        <div className="flex items-center gap-2">
-          <TagIcon className="h-4 w-4 text-text-secondary" />
-          <dt className="sr-only">Kategori</dt>
-          <dd className="text-text">{item.categoryName || 'Kategori yok'}</dd>
+        <div className="sm:col-span-2">
+          <dt className="flex items-center gap-2 text-text-secondary mb-1">
+            <TagIcon className="h-4 w-4" />
+            <label htmlFor={`review-category-${item.id}`}>Kategori</label>
+          </dt>
+          <dd className="flex flex-wrap items-center gap-2">
+            <select
+              id={`review-category-${item.id}`}
+              value={categoryId}
+              onChange={(event) => onCategoryChange(Number(event.target.value))}
+              className="min-h-10 flex-1 min-w-[14rem] rounded-lg border border-border bg-surface px-3 py-2 text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              {roots.length === 0 && <option value={item.categoryId}>{item.categoryName}</option>}
+              {roots.map((root) => {
+                const subs = categories.filter((c) => c.parentCategoryId === root.id).sort((a, b) => a.sortOrder - b.sortOrder);
+                return subs.length > 0 ? (
+                  <optgroup key={root.id} label={root.nameTr || root.name}>
+                    {subs.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nameTr || c.name}
+                        {c.id === item.categoryId ? ' (ilanın kategorisi)' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : (
+                  <option key={root.id} value={root.id}>
+                    {root.nameTr || root.name}
+                  </option>
+                );
+              })}
+            </select>
+            {categoryChanged && (
+              <Button variant="outline" size="sm" onClick={onSaveCategory} isLoading={isSavingCategory}>
+                Yalnızca Kategoriyi Kaydet
+              </Button>
+            )}
+          </dd>
         </div>
         <div className="flex items-center gap-2">
           <CurrencyDollarIcon className="h-4 w-4 text-text-secondary" />
@@ -295,6 +359,28 @@ const ReviewQueuePage: React.FC = () => {
   }, [items, selectedId]);
   const selected = selectedIndex >= 0 ? items[selectedIndex] : null;
 
+  // Category the admin picked per listing; defaults to the suggested one when the words point elsewhere
+  const [categoryChoice, setCategoryChoice] = useState<Record<number, number>>({});
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const chosenCategoryId = selected
+    ? categoryChoice[selected.id] ?? selected.suggestedCategoryId ?? selected.categoryId
+    : 0;
+
+  const saveCategory = async () => {
+    if (!selected) return;
+    setIsSavingCategory(true);
+    try {
+      const updated = await adminAPI.changeNeedCategory(selected.id, chosenCategoryId);
+      setItems((current) => current.map((n) => (n.id === updated.id ? updated : n)));
+      setCategoryChoice((current) => ({ ...current, [updated.id]: updated.categoryId }));
+      showToast(`"${updated.title}" ${updated.categoryName} kategorisine taşındı.`);
+    } catch (err) {
+      showToast(getApiErrorMessage(err) || 'Kategori değiştirilemedi. Tekrar deneyin.', 'error');
+    } finally {
+      setIsSavingCategory(false);
+    }
+  };
+
   const images = useMemo(() => (selected ? selected.images.map((i) => resolveMediaUrl(i.imageUrl)) : []), [selected]);
 
   const move = useCallback(
@@ -342,8 +428,9 @@ const ReviewQueuePage: React.FC = () => {
 
   const approve = useCallback(() => {
     if (!selected) return;
-    void runAction(selected, () => adminAPI.approveNeed(selected.id), 'approve');
-  }, [selected, runAction]);
+    const categoryId = chosenCategoryId !== selected.categoryId ? chosenCategoryId : undefined;
+    void runAction(selected, () => adminAPI.approveNeed(selected.id, categoryId), 'approve');
+  }, [selected, chosenCategoryId, runAction]);
 
   const confirmReject = async (reason: ModerationReason, note: string) => {
     if (!selected) return;
@@ -428,10 +515,10 @@ const ReviewQueuePage: React.FC = () => {
                     >
                       <div className="flex items-start gap-2">
                         <p className="flex-1 min-w-0 font-medium text-text text-sm line-clamp-2">{item.title}</p>
-                        {item.flaggedTerms.length > 0 && (
+                        {(item.flaggedTerms.length > 0 || item.suggestedCategoryId) && (
                           <ExclamationTriangleIcon
                             className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5"
-                            aria-label="İşaretlendi"
+                            aria-label={item.suggestedCategoryId ? 'Kategori uymuyor' : 'İşaretlendi'}
                           />
                         )}
                       </div>
@@ -451,6 +538,10 @@ const ReviewQueuePage: React.FC = () => {
               <NeedReviewDetail
                 key={selected.id}
                 item={selected}
+                categoryId={chosenCategoryId}
+                onCategoryChange={(id) => setCategoryChoice((current) => ({ ...current, [selected.id]: id }))}
+                onSaveCategory={saveCategory}
+                isSavingCategory={isSavingCategory}
                 onApprove={approve}
                 onReject={() => setRejecting(true)}
                 onOpenImage={setLightboxIndex}

@@ -223,6 +223,14 @@ public class NeedController : ControllerBase
     }
 
     /// <summary>
+    /// İlan metninin seçilen kategoriye uyup uymadığını kontrol eder (ilan verilmeden önce)
+    /// </summary>
+    [HttpPost("category-check")]
+    [AllowAnonymous]
+    public async Task<ActionResult<CategoryCheckResponse>> CheckCategory([FromBody] CategoryCheckRequest request)
+        => Ok(await _needService.CheckCategoryAsync(request));
+
+    /// <summary>
     /// "Fiyat artarsa haber ver": sabit fiyatlı ilanda fiyat değişikliğini bekle / beklemeyi bırak
     /// </summary>
     [HttpPost("{id}/price-watch")]

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useCategoryConfirm } from '../hooks/useCategoryConfirm';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { InformationCircleIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +43,7 @@ const CreateNeedPage: React.FC = () => {
   const [detailedSeed, setDetailedSeed] = useState<PendingNeedDraft | null>(null);
 
   const canPublish = isAuthenticated && !isGuest && Boolean(user);
+  const { confirmCategory, categoryDialog } = useCategoryConfirm();
 
   // Default expiry date: 30 days from now
   const initialValues = useMemo<NeedFormValues>(() => {
@@ -96,12 +98,18 @@ const CreateNeedPage: React.FC = () => {
       return;
     }
 
+    setIsLoading(true);
+    const categoryId = await confirmCategory(draft.title.trim(), describe(draft), draft.categoryId!);
+    if (categoryId === null) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      setIsLoading(true);
       const requestData: CreateNeedRequest = {
         title: draft.title.trim(),
         description: describe(draft),
-        categoryId: draft.categoryId!,
+        categoryId,
         urgency: URGENCY_TO_API.Normal,
       };
       if (draft.isFixedPrice) requestData.isFixedPrice = true;
@@ -135,13 +143,18 @@ const CreateNeedPage: React.FC = () => {
       return;
     }
 
-    try {
-      setIsLoading(true);
+    setIsLoading(true);
+    const categoryId = await confirmCategory(values.title.trim(), values.description.trim(), values.categoryId!);
+    if (categoryId === null) {
+      setIsLoading(false);
+      return;
+    }
 
+    try {
       const requestData: CreateNeedRequest = {
         title: values.title.trim(),
         description: values.description.trim(),
-        categoryId: values.categoryId!,
+        categoryId,
         urgency: URGENCY_TO_API[values.urgency],
       };
 
@@ -182,6 +195,7 @@ const CreateNeedPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {categoryDialog}
       <Header />
 
       <main className="flex-1 py-8">

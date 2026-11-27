@@ -33,6 +33,13 @@ public class Need
     /// <summary>When the buyer was told that nobody has sold at their fixed price yet (once per listing).</summary>
     public DateTime? PriceNudgeSentAt { get; set; }
 
+    /// <summary>
+    /// Set when the listing's words point to a category outside the one it was filed under (e.g.
+    /// "kiralık ev" under computer parts). Such a listing waits for review; admins can approve it
+    /// under this category.
+    /// </summary>
+    public int? SuggestedCategoryId { get; set; }
+
     // Moderation
     public NeedRejectionReason? RejectionReason { get; set; }
     public string? RejectionNote { get; set; }

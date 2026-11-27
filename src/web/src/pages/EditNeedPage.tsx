@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useCategoryConfirm } from '../hooks/useCategoryConfirm';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, InformationCircleIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,6 +61,7 @@ const EditNeedPage: React.FC = () => {
   const { user } = useAuth();
 
   const [need, setNeed] = useState<Need | null>(null);
+  const { confirmCategory, categoryDialog } = useCategoryConfirm();
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -95,9 +97,20 @@ const EditNeedPage: React.FC = () => {
     setSubmitError(null);
     setIsSaving(true);
 
+    const request = buildUpdateRequest(toFormValues(need), values);
+    // Only a change to the words or the category can make them stop fitting each other
+    if (request.title !== undefined || request.description !== undefined || request.categoryId !== undefined) {
+      const chosen = values.categoryId ?? need.categoryId;
+      const categoryId = await confirmCategory(values.title.trim(), values.description.trim(), chosen);
+      if (categoryId === null) {
+        setIsSaving(false);
+        return;
+      }
+      if (categoryId !== need.categoryId) request.categoryId = categoryId;
+    }
+
     let detailsSaved = false;
     try {
-      const request = buildUpdateRequest(toFormValues(need), values);
       if (Object.keys(request).length > 0) {
         await needAPI.updateNeed(need.id, request);
       }
@@ -172,7 +185,7 @@ const EditNeedPage: React.FC = () => {
           <LockClosedIcon className="h-10 w-10 text-text-secondary mx-auto mb-3" />
           <p className="text-text font-medium">Bu ilan artık düzenlenemez.</p>
           <p className="mt-1 text-sm text-text-secondary">
-            Yalnızca aktif, incelemede veya yayınlanmamış ilanlar düzenlenebilir.
+            Yalnızca aktif, onay bekleyen veya yayınlanmamış ilanlar düzenlenebilir.
           </p>
           <div className="mt-5">
             <Link to={`/needs/${need.id}`} className="text-primary font-medium hover:underline">
@@ -225,6 +238,7 @@ const EditNeedPage: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {categoryDialog}
       <Header />
 
       <main className="flex-1 py-8">

@@ -29,7 +29,7 @@ interface StatusOption {
 
 const statusOptions: StatusOption[] = [
   { key: 'All', label: 'Tümü' },
-  { key: 'PendingReview', label: 'İncelemede' },
+  { key: 'PendingReview', label: 'Onay Bekleyen' },
   { key: 'Active', label: 'Aktif' },
   { key: 'InProgress', label: 'Devam Eden' },
   { key: 'Completed', label: 'Tamamlanmış' },

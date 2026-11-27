@@ -23,6 +23,7 @@ import Loading from '../components/ui/Loading';
 import NeedModerationNotice from '../components/NeedModerationNotice';
 import ImagePickerField from '../components/ImagePickerField';
 import PriceModeSelector from '../components/PriceModeSelector';
+import { confirmCategory } from '../utils/confirmCategory';
 import type { PickedImage } from '../utils/prepareImage';
 import { colors, spacing, typography } from '../theme';
 import { RootStackParamList } from '../types';
@@ -299,16 +300,21 @@ const CreateNeedScreen: React.FC = () => {
       return;
     }
 
-    try {
-      setLoading(true);
+    setLoading(true);
+    const categoryId = await confirmCategory(formData.title.trim(), formData.description.trim(), formData.categoryId!);
+    if (categoryId === null) {
+      setLoading(false);
+      return;
+    }
 
+    try {
       // Map urgency string to backend enum value
       const urgencyMap = URGENCY_TO_API;
 
       const requestData: CreateNeedRequest = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        categoryId: formData.categoryId!,
+        categoryId,
         urgency: urgencyMap[formData.urgency] as unknown as 'Flexible' | 'Normal' | 'Urgent',
       };
 
@@ -397,8 +403,19 @@ const CreateNeedScreen: React.FC = () => {
       return;
     }
 
+    setLoading(true);
+    // Only a change to the words or the category can make them stop fitting each other
+    if ('title' in changes || 'description' in changes || 'categoryId' in changes) {
+      const categoryId = await confirmCategory(title, description, formData.categoryId!);
+      if (categoryId === null) {
+        setLoading(false);
+        return;
+      }
+      if (categoryId !== initialFormData.categoryId) changes.categoryId = categoryId;
+      else delete changes.categoryId;
+    }
+
     try {
-      setLoading(true);
       const updated = await needAPI.updateNeed(
         editNeedId,
         changes as Partial<CreateNeedRequest>

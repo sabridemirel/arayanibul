@@ -173,3 +173,24 @@ public class PriceWatchResponse
     public bool IsWatchingPrice { get; set; }
     public int PriceWatchCount { get; set; }
 }
+
+public class CategoryCheckRequest
+{
+    [StringLength(200)]
+    public string? Title { get; set; }
+
+    [StringLength(2000)]
+    public string? Description { get; set; }
+
+    [Required]
+    public int CategoryId { get; set; }
+}
+
+public class CategoryCheckResponse
+{
+    /// <summary>False when the text points to a different category group than the chosen one.</summary>
+    public bool Matches { get; set; } = true;
+    public int? SuggestedCategoryId { get; set; }
+    public string? SuggestedCategoryName { get; set; }
+    public string? SuggestedParentName { get; set; }
+}

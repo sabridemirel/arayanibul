@@ -4,7 +4,7 @@ import type { Need } from './api';
 // ---------- labels ----------
 
 export const NEED_STATUS_LABELS: Record<string, string> = {
-  PendingReview: 'İncelemede',
+  PendingReview: 'Onay Bekliyor',
   Active: 'Aktif',
   InProgress: 'Devam Ediyor',
   Completed: 'Tamamlandı',
@@ -37,6 +37,7 @@ export type ModerationReason =
   | 'InappropriateLanguage'
   | 'ContactInfo'
   | 'Duplicate'
+  | 'WrongCategory'
   | 'Other';
 
 export const MODERATION_REASONS: { value: ModerationReason; label: string }[] = [
@@ -45,6 +46,7 @@ export const MODERATION_REASONS: { value: ModerationReason; label: string }[] = 
   { value: 'InappropriateLanguage', label: 'Uygunsuz dil' },
   { value: 'ContactInfo', label: 'İlanda iletişim bilgisi paylaşımı' },
   { value: 'Duplicate', label: 'Tekrarlanan ilan' },
+  { value: 'WrongCategory', label: 'Yanlış kategori' },
   { value: 'Other', label: 'Diğer' },
 ];
 
@@ -135,6 +137,10 @@ export interface AdminNeedItem {
   rejectionReasonText?: string;
   rejectionNote?: string;
   flaggedTerms: string[];
+  categoryId: number;
+  /** Category the listing's words point to, when it differs from the one it was filed under */
+  suggestedCategoryId?: number;
+  suggestedCategoryName?: string;
   images: { id: number; imageUrl: string }[];
   user: AdminNeedOwner;
 }
@@ -227,7 +233,13 @@ export const adminAPI = {
       return { ...paged, items: paged.items.map(toAdminNeed) };
     }),
 
-  approveNeed: (id: number): Promise<void> => api.post(`/admin/needs/${id}/approve`).then(() => undefined),
+  /** Approves a listing; with categoryId it goes live under that category */
+  approveNeed: (id: number, categoryId?: number): Promise<void> =>
+    api.post(`/admin/needs/${id}/approve`, categoryId ? { categoryId } : undefined).then(() => undefined),
+
+  /** Moves a listing to another category without approving or rejecting it */
+  changeNeedCategory: (id: number, categoryId: number): Promise<AdminNeedItem> =>
+    api.put(`/admin/needs/${id}/category`, { categoryId }).then(res => toAdminNeed(res.data)),
 
   rejectNeed: (id: number, reason: ModerationReason, note?: string): Promise<void> =>
     api.post(`/admin/needs/${id}/reject`, { reason, note: note || undefined }).then(() => undefined),

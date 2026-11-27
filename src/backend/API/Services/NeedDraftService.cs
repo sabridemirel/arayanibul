@@ -494,6 +494,30 @@ public class NeedDraftService : INeedDraftService
             .OrderByDescending(p => p.Weight)
             .ToList();
 
+    /// <summary>
+    /// Every category the text mentions (English seed names), most specific first. Used to tell
+    /// whether a listing's words fit the category it was filed under.
+    /// </summary>
+    public static List<string> FindCategoryNames(string folded)
+    {
+        var names = new List<string>();
+        // Text already claimed by a longer keyword: "araba" inside "bebek arabası" is not a car.
+        var claimed = new List<(int Start, int End)>();
+        foreach (var (pattern, category, _) in CategoryPatterns)
+        {
+            foreach (Match match in pattern.Matches(folded))
+            {
+                var start = match.Index;
+                var end = match.Index + match.Length;
+                if (claimed.Any(span => start < span.End && end > span.Start)) continue;
+
+                claimed.Add((start, end));
+                if (!names.Contains(category)) names.Add(category);
+            }
+        }
+        return names;
+    }
+
     private static string? FindCategoryName(string folded)
     {
         foreach (var (pattern, category, _) in CategoryPatterns)

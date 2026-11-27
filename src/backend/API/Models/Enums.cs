@@ -25,7 +25,8 @@ public enum NeedRejectionReason
     InappropriateLanguage = 3,
     ContactInfo = 4,
     Duplicate = 5,
-    Other = 6
+    Other = 6,
+    WrongCategory = 7
 }
 
 public enum ReportTargetType

@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import PriceModeSelector from '../components/PriceModeSelector';
+import { confirmCategory } from '../utils/confirmCategory';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { needAPI, categoryAPI } from '../services/api';
@@ -205,11 +206,16 @@ const QuickNeedScreen: React.FC = () => {
 
     setError(null);
     setIsPublishing(true);
+    const categoryId = await confirmCategory(draft.title.trim(), describe(draft), draft.categoryId!);
+    if (categoryId === null) {
+      setIsPublishing(false);
+      return;
+    }
     try {
       const request: CreateNeedRequest = {
         title: draft.title.trim(),
         description: describe(draft),
-        categoryId: draft.categoryId!,
+        categoryId,
         urgency: URGENCY_NORMAL as unknown as CreateNeedRequest['urgency'],
       };
       if (draft.isFixedPrice) request.isFixedPrice = true;

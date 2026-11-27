@@ -82,6 +82,48 @@ public class NeedService : INeedService
         return expired.Count;
     }
 
+    /// <summary>
+    /// The category a listing's words point to when none of them fits the group (root category) it
+    /// was filed under; null when they fit or when the text names no category at all.
+    /// </summary>
+    public async Task<Category?> FindBetterCategoryAsync(string? title, string? description, int categoryId)
+    {
+        var names = NeedDraftService.FindCategoryNames(NeedDraftService.Fold($"{title} {description}"));
+        if (names.Count == 0) return null;
+
+        var categories = await _context.Categories.AsNoTracking().Where(c => c.IsActive).ToListAsync();
+        var chosen = categories.FirstOrDefault(c => c.Id == categoryId);
+        if (chosen == null) return null;
+
+        static int RootOf(Category c) => c.ParentCategoryId ?? c.Id;
+        var chosenRoot = RootOf(chosen);
+        var matched = names
+            .Select(name => categories.FirstOrDefault(c => c.Name == name))
+            .OfType<Category>()
+            .ToList();
+
+        // One word that fits the chosen group is enough ("bilgisayar masası" under furniture).
+        if (matched.Count == 0 || matched.Any(c => RootOf(c) == chosenRoot)) return null;
+        return matched[0];
+    }
+
+    public async Task<CategoryCheckResponse> CheckCategoryAsync(CategoryCheckRequest request)
+    {
+        var better = await FindBetterCategoryAsync(request.Title, request.Description, request.CategoryId);
+        if (better == null) return new CategoryCheckResponse();
+
+        var parent = better.ParentCategoryId.HasValue
+            ? await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == better.ParentCategoryId)
+            : null;
+        return new CategoryCheckResponse
+        {
+            Matches = false,
+            SuggestedCategoryId = better.Id,
+            SuggestedCategoryName = better.NameTr,
+            SuggestedParentName = parent?.NameTr
+        };
+    }
+
     private async Task<string?> GetFlaggedTermsAsync(string title, string description)
     {
         if (_moderation == null) return null;
@@ -136,7 +178,11 @@ public class NeedService : INeedService
             : null;
 
         var flaggedTerms = await GetFlaggedTermsAsync(request.Title, request.Description);
-        var requiresReview = RequiresReview(flaggedTerms);
+        // Listings filed under an unrelated category ("kiralık ev" under computer parts) wait for an admin.
+        var betterCategory = product == null
+            ? await FindBetterCategoryAsync(request.Title, request.Description, request.CategoryId)
+            : null;
+        var requiresReview = RequiresReview(flaggedTerms) || (ModerationEnabled && betterCategory != null);
         var now = DateTime.UtcNow;
 
         var need = new Need
@@ -159,6 +205,7 @@ public class NeedService : INeedService
             // Auto-approved listings carry an approval time but no reviewer.
             ApprovedAt = ModerationEnabled && !requiresReview ? now : null,
             FlaggedTerms = flaggedTerms,
+            SuggestedCategoryId = betterCategory?.Id,
             UserId = userId,
             CreatedAt = now,
             UpdatedAt = now,
@@ -523,12 +570,16 @@ public class NeedService : INeedService
         if (contentChanged)
         {
             need.FlaggedTerms = await GetFlaggedTermsAsync(need.Title, need.Description);
+            need.SuggestedCategoryId = need.ProductId == null
+                ? (await FindBetterCategoryAsync(need.Title, need.Description, need.CategoryId))?.Id
+                : null;
 
             // A clean edit of a live listing stays live. Anything an admin has rejected, or that
             // is still waiting, goes back through review however clean the new text looks.
             var wasHeldByModeration = need.NeedsReview || need.Status == NeedStatus.Rejected ||
                                       need.Status == NeedStatus.PendingReview;
-            if (ModerationEnabled && (wasHeldByModeration || RequiresReview(need.FlaggedTerms)))
+            if (ModerationEnabled && (wasHeldByModeration || RequiresReview(need.FlaggedTerms) ||
+                                      need.SuggestedCategoryId != null))
             {
                 need.NeedsReview = true;
                 if (need.Status == NeedStatus.Active || need.Status == NeedStatus.Rejected)

@@ -2,7 +2,7 @@ import { colors } from '../theme';
 
 // Badge labels for every need status (see turkish-ui-copy skill)
 export const NEED_STATUS_LABELS: Record<string, string> = {
-  PendingReview: 'İncelemede',
+  PendingReview: 'Onay Bekliyor',
   Rejected: 'Yayınlanmadı',
   Active: 'Aktif',
   InProgress: 'Devam Ediyor',

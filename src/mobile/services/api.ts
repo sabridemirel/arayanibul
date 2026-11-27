@@ -295,6 +295,13 @@ export interface CreateNeedRequest {
   images?: string[];
 }
 
+export interface CategoryCheck {
+  matches: boolean;
+  suggestedCategoryId?: number;
+  suggestedCategoryName?: string;
+  suggestedParentName?: string;
+}
+
 export interface PriceWatchState {
   isWatchingPrice: boolean;
   priceWatchCount: number;
@@ -606,6 +613,10 @@ export const needAPI = {
   
   deleteNeed: (id: number): Promise<void> =>
     api.delete(`/need/${id}`).then(res => res.data),
+
+  /** Whether the listing's words fit the chosen category; suggests a better one when they do not */
+  checkCategory: (data: { title: string; description: string; categoryId: number }): Promise<CategoryCheck> =>
+    api.post('/need/category-check', data).then(res => res.data),
 
   /** "Fiyat artarsa haber ver" on a fixed-price listing */
   watchPrice: (id: number): Promise<PriceWatchState> =>
