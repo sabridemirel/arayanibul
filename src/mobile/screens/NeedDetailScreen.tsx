@@ -232,7 +232,7 @@ const NeedDetailScreen: React.FC = () => {
       case 'Normal':
         return 'Normal';
       case 'Flexible':
-        return 'Esnek';
+        return 'Normal';
       default:
         return urgency;
     }
@@ -242,7 +242,7 @@ const NeedDetailScreen: React.FC = () => {
   const getStatusColor = getNeedStatusColor;
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
-    if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
+    if (!minBudget && !maxBudget) return 'Teklife açık';
     if (minBudget && maxBudget) {
       return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currency}`;
     }
@@ -272,7 +272,12 @@ const NeedDetailScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
+            hitSlop={12}
+          >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>İhtiyaç Detayı</Text>
@@ -287,7 +292,12 @@ const NeedDetailScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Geri"
+            hitSlop={12}
+          >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>İhtiyaç Detayı</Text>

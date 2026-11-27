@@ -39,6 +39,9 @@ public class NeedService : INeedService
     /// <summary>Listings are either "Acil" or "Normal"; the old "Esnek" level counts as normal.</summary>
     private static UrgencyLevel Normalize(UrgencyLevel urgency)
         => urgency == UrgencyLevel.Urgent ? UrgencyLevel.Urgent : UrgencyLevel.Normal;
+    /// <summary>Catches typos ("27002100"); houses and cars stay well below it.</summary>
+    public const decimal MaxFixedPrice = 100_000_000m;
+    private const string FixedPriceTooHighMessage = "Fiyat en fazla 100.000.000 TL olabilir; yazdığınız fiyatı kontrol edin.";
     private const string FixedPriceRequiredMessage = "\"Bu fiyata hemen alırım\" için bir fiyat yazın.";
 
     /// <summary>A user may hold one showcase slot at a time (the slot is the future paid product).</summary>
@@ -169,6 +172,10 @@ public class NeedService : INeedService
         if (request.IsFixedPrice && !(request.MaxBudget > 0))
         {
             throw new ValidationException("Budget", FixedPriceRequiredMessage);
+        }
+        if (request.IsFixedPrice && request.MaxBudget > MaxFixedPrice)
+        {
+            throw new ValidationException("Budget", FixedPriceTooHighMessage);
         }
 
         if (request.Urgency == UrgencyLevel.Urgent)
@@ -470,6 +477,10 @@ public class NeedService : INeedService
             if (!(need.MaxBudget > 0))
             {
                 throw new ValidationException("Budget", FixedPriceRequiredMessage);
+            }
+            if (need.MaxBudget > MaxFixedPrice)
+            {
+                throw new ValidationException("Budget", FixedPriceTooHighMessage);
             }
             need.MinBudget = null;
         }

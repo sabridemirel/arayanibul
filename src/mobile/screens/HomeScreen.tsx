@@ -225,14 +225,14 @@ const HomeScreen: React.FC = () => {
       case 'Normal':
         return 'Normal';
       case 'Flexible':
-        return 'Esnek';
+        return 'Normal';
       default:
         return urgency;
     }
   };
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
-    if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
+    if (!minBudget && !maxBudget) return 'Teklife açık';
     if (minBudget && maxBudget) {
       return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currency}`;
     }

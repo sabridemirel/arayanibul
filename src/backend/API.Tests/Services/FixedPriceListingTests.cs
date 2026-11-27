@@ -87,6 +87,17 @@ public class FixedPriceListingTests : IDisposable
     }
 
     [Fact]
+    public async Task FixedPrice_HasASanityCeiling()
+    {
+        var act = () => Create("Bebek arabası arıyorum", 270_021_000);
+        (await act.Should().ThrowAsync<ValidationException>()).Which.Errors["Budget"][0].Should().Contain("100.000.000");
+
+        var need = await Create("Bebek arabası arıyorum", 3000);
+        var edit = () => _needs.UpdateNeedAsync(need.Id, new UpdateNeedRequest { MaxBudget = 200_000_000 }, "buyer");
+        await edit.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
     public async Task FixedPrice_KeepsOnePrice_AndIsNotLinkedWithoutAProduct()
     {
         var need = await Create("Bebek arabası arıyorum", 3000, min: 1000);

@@ -110,6 +110,25 @@ Mağazalardaki eski uygulama sürümleri aynı API'yi kullanır. API'de değişi
 
 ## 7. Değişiklik günlüğü
 
+### 26–27 Kasım 2026 (sunucu + web, mobil 1.0.6)
+
+- İlan iki türdür: **Bu fiyata hemen alırım** (tek fiyat, `Need.IsFixedPrice`, fiyat `MaxBudget`,
+  en fazla 100.000.000 TL) ve **Tekliflere açığım** (fiyat yok). Eski sürümlerin tekliflere açık ilanla
+  gönderdiği bütçe saklanmaz; daha önce açılmış ilanların bütçesi kalır. Aciliyet Normal/Acil;
+  eski "Esnek" Normal sayılır. Ayrıntı: `docs/superpowers/specs/2026-11-26-hemen-alirim-design.md`,
+  `docs/superpowers/specs/2026-11-27-ilan-akisi-design.md`.
+- Tek ilan formu (web ve mobil): hızlı ilan yalnızca cümle adımı; aynı form ayrıntılı ilan ve
+  düzenlemede kullanılır, "Ayrıntılar" (açıklama, ürün soruları, web'de bitiş tarihi) açılır bölüm.
+- Kategori uyuşmazlığı: metin seçilen kategorinin ana grubuna uymuyorsa ilan verirken uyarı
+  (`POST /api/need/category-check`); kullanıcı kategorisini korursa ilan onaya düşer
+  (`Need.SuggestedCategoryId`). Onay kuyruğunda kategori değiştirilebilir
+  (`PUT /api/admin/needs/{id}/category`, onaylarken `categoryId`), yeni ret nedeni "Yanlış kategori".
+- Onay bekleyen ilan sahibine "Onay Bekliyor" olarak görünür; başkalarına hiçbir listede görünmez.
+- Teklif mesajı zorunlu ama en az 50 karakter kuralı kalktı.
+- Mobil: Değerlendirmelerim çökmesi, profil kaydının görünmemesi, iOS'ta klavye açıkken ilk dokunuşun
+  kaybolması düzeltildi; bütün alt sayfalarda sol üstte geri düğmesi.
+- `api.arayanibul.com` arama motorlarına `X-Robots-Tag: noindex` döner.
+
 ### 25 Kasım 2026
 
 - "Gerçek Fiyat" (API + web): ürün fiyat sayfaları `/fiyat/{slug}` (`ProductPricingService`,

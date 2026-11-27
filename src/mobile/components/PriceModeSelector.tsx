@@ -10,20 +10,20 @@ interface PriceModeSelectorProps {
 
 const MODES = [
   {
-    fixed: false,
-    title: 'Pazarlığa açık',
-    text: 'Satıcılar kendi fiyatlarıyla teklif verir, en uygununu siz seçersiniz.',
-  },
-  {
     fixed: true,
     title: 'Bu fiyata hemen alırım',
-    text: 'Fiyatınız kesindir. Satıcılar yalnızca bu fiyata “bende var” diyebilir.',
+    text: 'Fiyatınızı yazın. Satıcılar yalnızca bu fiyata “bende var” diyebilir.',
+  },
+  {
+    fixed: false,
+    title: 'Tekliflere açığım',
+    text: 'Fiyat yazmayın; satıcılar kendi fiyatlarıyla teklif versin, en uygununu siz seçin.',
   },
 ] as const;
 
-/** The one price question of a listing: open to bargaining, or one firm price. */
+/** The listing type: one firm price ("hemen alırım"), or no price and offers from sellers. */
 const PriceModeSelector: React.FC<PriceModeSelectorProps> = ({ isFixedPrice, onChange }) => (
-  <View accessibilityRole="radiogroup" accessibilityLabel="Fiyat tercihi">
+  <View accessibilityRole="radiogroup" accessibilityLabel="İlan türü">
     {MODES.map((mode) => {
       const selected = mode.fixed === isFixedPrice;
       return (

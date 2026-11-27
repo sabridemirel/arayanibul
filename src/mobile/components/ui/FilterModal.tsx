@@ -86,7 +86,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   // Urgency levels matching backend enum
   const urgencyLevels: Array<{ label: string; value: UrgencyType }> = [
-    { label: 'Esnek', value: 'Flexible' },
     { label: 'Normal', value: 'Normal' },
     { label: 'Acil', value: 'Urgent' },
   ];

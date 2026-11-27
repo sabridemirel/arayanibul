@@ -62,7 +62,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Geri git"
+          accessibilityLabel="Geri"
         >
           <MaterialIcons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>

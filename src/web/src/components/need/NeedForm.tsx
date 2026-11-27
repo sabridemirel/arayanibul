@@ -52,6 +52,7 @@ const validate = (values: NeedFormValues): FormErrors => {
   else if (title.length > 200) errors.title = 'Başlık en fazla 200 karakter olabilir';
   if (!values.categoryId) errors.categoryId = 'İlanınız için bir kategori seçin';
   if (values.isFixedPrice && !(Number(values.price) > 0)) errors.price = 'Hemen almak istediğiniz fiyatı yazın';
+  else if (values.isFixedPrice && Number(values.price) > 100_000_000) errors.price = 'Fiyat en fazla 100.000.000 TL olabilir; kontrol edin';
   if (values.description.length > 1500) errors.description = 'Açıklama en fazla 1500 karakter olabilir';
   if (values.expiryDate) {
     const today = new Date();

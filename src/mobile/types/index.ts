@@ -43,7 +43,8 @@ export type RootStackParamList = {
   /** Quick listing: one sentence, then confirm. `initialText` pre-fills the sentence (e.g. a search). */
   CreateNeed: { initialText?: string } | undefined;
   /** The long listing form, optionally carrying over what the quick flow already understood. */
-  CreateNeedDetailed: { prefill?: NeedPrefill } | undefined;
+  /** The listing form; detailsOpen when it was opened as "Ayrıntılı formu kullan" */
+  CreateNeedDetailed: { prefill?: NeedPrefill; detailsOpen?: boolean } | undefined;
   EditNeed: { needId: number };
   /** "Gerçek Fiyat" page of a catalogued product; the buyer panel can arrive opened and pre-filled */
   ProductPrice: { slug: string; openBid?: boolean; price?: string; address?: string };
@@ -169,13 +170,9 @@ export interface ApiError {
   code?: string;
 }
 
-/** Listing fields handed from the quick flow to the long form */
+/** What the quick-listing sentence gives the listing form */
 export interface NeedPrefill {
-  title: string;
-  description: string;
-  categoryId: number | null;
-  minBudget: string;
-  maxBudget: string;
-  isFixedPrice?: boolean;
-  address: string;
+  values: import('../components/need/listingForm').ListingFormValues;
+  questions: import('../services/api').NeedDraftQuestion[];
+  product: import('../components/need/listingForm').ProductHint | null;
 }

@@ -19,10 +19,10 @@ public class CreateNeedRequest
     [Range(1, int.MaxValue)]
     public int CategoryId { get; set; }
     
-    [PriceRange(0, 1000000)]
+    [PriceRange(0, 100000000)]
     public decimal? MinBudget { get; set; }
     
-    [PriceRange(0, 1000000)]
+    [PriceRange(0, 100000000)]
     public decimal? MaxBudget { get; set; }
     
     [SafeString]

@@ -185,7 +185,7 @@ const ProfileScreen: React.FC<Props> = ({ navigation, route }) => {
           style={styles.backButton}
           onPress={handleBackPress}
           accessibilityRole="button"
-          accessibilityLabel="Geri git"
+          accessibilityLabel="Geri"
         >
           <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>

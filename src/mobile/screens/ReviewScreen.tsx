@@ -58,6 +58,8 @@ export const ReviewScreen: React.FC = () => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Geri"
         >
           <MaterialIcons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>

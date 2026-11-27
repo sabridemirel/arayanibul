@@ -63,7 +63,7 @@ public class PriceRangeAttribute : ValidationAttribute
     private readonly decimal _minimum;
     private readonly decimal _maximum;
 
-    public PriceRangeAttribute(double minimum = 0, double maximum = 1000000)
+    public PriceRangeAttribute(double minimum = 0, double maximum = 100000000)
     {
         _minimum = (decimal)minimum;
         _maximum = (decimal)maximum;
@@ -78,7 +78,10 @@ public class PriceRangeAttribute : ValidationAttribute
         {
             if (decimalValue < _minimum || decimalValue > _maximum)
             {
-                ErrorMessage = $"Fiyat {_minimum:C} ile {_maximum:C} arasında olmalıdır.";
+                var turkish = new System.Globalization.CultureInfo("tr-TR");
+                ErrorMessage = decimalValue < _minimum
+                    ? "Fiyat sıfırdan küçük olamaz."
+                    : $"Fiyat en fazla {_maximum.ToString("N0", turkish)} TL olabilir; yazdığınız fiyatı kontrol edin.";
                 return false;
             }
         }

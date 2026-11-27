@@ -120,7 +120,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
   // Accessibility label for screen readers
   const accessibilityLabel = `${need.title}. ${need.description}. ${isUrgent ? 'Acil ilan. ' : ''}${
     need.category?.nameTr || 'Kategori belirtilmemiş'
-  }. ${budgetText || 'Bütçe belirtilmemiş'}. ${
+  }. ${budgetText || 'Teklife açık'}. ${
     need.user?.firstName || 'Kullanıcı'
   } tarafından ${formatDate(need.createdAt)} paylaşıldı${
     need.offerCount ? `. ${need.offerCount} teklif var` : ''

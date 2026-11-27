@@ -569,6 +569,8 @@ export interface NeedDraft {
   /** Set when the text names a catalogued product with its own price page */
   productSlug?: string | null;
   productName?: string | null;
+  /** What buyers offer for that product right now ("gerçek fiyat") */
+  productRealPrice?: number | null;
   questions: NeedDraftQuestion[];
 }
 
