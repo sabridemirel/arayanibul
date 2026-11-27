@@ -117,7 +117,7 @@ const CreateOfferPage: React.FC = () => {
 
   const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
     const currencySymbol = currency === 'TRY' ? 'TL' : currency;
-    if (!minBudget && !maxBudget) return 'Bütçe belirtilmemiş';
+    if (!minBudget && !maxBudget) return 'Teklife açık';
     if (minBudget && maxBudget) {
       return `${minBudget.toLocaleString('tr-TR')} - ${maxBudget.toLocaleString('tr-TR')} ${currencySymbol}`;
     }
@@ -137,7 +137,7 @@ const CreateOfferPage: React.FC = () => {
       case 'Normal':
         return <Badge variant="info">Normal</Badge>;
       case 'Flexible':
-        return <Badge variant="success">Esnek</Badge>;
+        return <Badge variant="warning">Normal</Badge>;
       default:
         return <Badge variant="default">{urgency}</Badge>;
     }

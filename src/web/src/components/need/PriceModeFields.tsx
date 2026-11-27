@@ -1,15 +1,18 @@
+import { Link } from 'react-router-dom';
 import Input from '../ui/Input';
+import type { ProductHint } from './needFormTypes';
 
 interface PriceModeFieldsProps {
   /** Prefix for input ids/names, so two forms on one page never collide */
   idPrefix: string;
   isFixedPrice: boolean;
   /** Raw digits */
-  minBudget: string;
-  maxBudget: string;
-  onChange: (patch: { isFixedPrice?: boolean; minBudget?: string; maxBudget?: string }) => void;
-  onBlur?: (field: 'minBudget' | 'maxBudget') => void;
-  errors?: { minBudget?: string; maxBudget?: string };
+  price: string;
+  onChange: (patch: { isFixedPrice?: boolean; price?: string }) => void;
+  error?: string;
+  product?: ProductHint | null;
+  /** Budget an older listing was created with (open listings no longer take one) */
+  legacyBudget?: string | null;
 }
 
 const digitsOnly = (value: string) => value.replace(/\D/g, '').slice(0, 9);
@@ -17,36 +20,33 @@ const withDots = (value: string) => (value ? Number(value).toLocaleString('tr-TR
 
 const MODES = [
   {
-    fixed: false,
-    title: 'Pazarlığa açık',
-    text: 'Satıcılar kendi fiyatlarıyla teklif verir, en uygununu siz seçersiniz.',
-  },
-  {
     fixed: true,
     title: 'Bu fiyata hemen alırım',
-    text: 'Fiyatınız kesindir. Satıcılar yalnızca bu fiyata “bende var” diyebilir.',
+    text: 'Fiyatınızı yazın. Satıcılar yalnızca bu fiyata “bende var” diyebilir.',
+  },
+  {
+    fixed: false,
+    title: 'Tekliflere açığım',
+    text: 'Fiyat yazmayın; satıcılar kendi fiyatlarıyla teklif versin, en uygununu siz seçin.',
   },
 ] as const;
 
-/**
- * The one price question of a listing: open to bargaining (optional budget range) or one firm
- * price. The firm price is stored in maxBudget.
- */
+/** The listing's one price question: one firm price, or no price and offers from sellers. */
 const PriceModeFields: React.FC<PriceModeFieldsProps> = ({
   idPrefix,
   isFixedPrice,
-  minBudget,
-  maxBudget,
+  price,
   onChange,
-  onBlur,
-  errors = {},
+  error,
+  product,
+  legacyBudget,
 }) => (
   <fieldset>
-    <legend className="sr-only">Fiyat tercihi</legend>
+    <legend className="mb-2 block text-sm font-medium text-text">İlan türü</legend>
     <div className="grid gap-3 sm:grid-cols-2">
       {MODES.map((mode) => {
         const selected = mode.fixed === isFixedPrice;
-        const id = `${idPrefix}-price-mode-${mode.fixed ? 'fixed' : 'open'}`;
+        const id = `${idPrefix}-type-${mode.fixed ? 'fixed' : 'offers'}`;
         return (
           <label
             key={id}
@@ -58,9 +58,9 @@ const PriceModeFields: React.FC<PriceModeFieldsProps> = ({
             <input
               id={id}
               type="radio"
-              name={`${idPrefix}-price-mode`}
+              name={`${idPrefix}-type`}
               checked={selected}
-              onChange={() => onChange({ isFixedPrice: mode.fixed, ...(mode.fixed ? { minBudget: '' } : {}) })}
+              onChange={() => onChange({ isFixedPrice: mode.fixed })}
               className="mt-1 h-4 w-4 shrink-0 accent-primary"
             />
             <span>
@@ -72,53 +72,41 @@ const PriceModeFields: React.FC<PriceModeFieldsProps> = ({
       })}
     </div>
 
-    <div className="mt-4">
-      {isFixedPrice ? (
-        <div className="sm:max-w-xs">
-          <Input
-            id={`${idPrefix}-fixed-price`}
-            name={`${idPrefix}-fixed-price`}
-            label="Fiyatınız (TL)"
-            placeholder="Örn. 15.000"
-            type="text"
-            inputMode="numeric"
-            aria-required="true"
-            value={withDots(maxBudget)}
-            onChange={(event) => onChange({ maxBudget: digitsOnly(event.target.value) })}
-            onBlur={() => onBlur?.('maxBudget')}
-            error={errors.maxBudget}
-            helperText="Yanıt gelmezse fiyatı sonradan artırabilir ya da ilanı pazarlığa açabilirsiniz."
-          />
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            id={`${idPrefix}-min-budget`}
-            name={`${idPrefix}-min-budget`}
-            label="En az (TL)"
-            placeholder="İsteğe bağlı"
-            type="text"
-            inputMode="numeric"
-            value={withDots(minBudget)}
-            onChange={(event) => onChange({ minBudget: digitsOnly(event.target.value) })}
-            onBlur={() => onBlur?.('minBudget')}
-            error={errors.minBudget}
-          />
-          <Input
-            id={`${idPrefix}-max-budget`}
-            name={`${idPrefix}-max-budget`}
-            label="En fazla (TL)"
-            placeholder="İsteğe bağlı"
-            type="text"
-            inputMode="numeric"
-            value={withDots(maxBudget)}
-            onChange={(event) => onChange({ maxBudget: digitsOnly(event.target.value) })}
-            onBlur={() => onBlur?.('maxBudget')}
-            error={errors.maxBudget}
-          />
-        </div>
-      )}
-    </div>
+    {isFixedPrice ? (
+      <div className="mt-4 sm:max-w-xs">
+        <Input
+          id={`${idPrefix}-price`}
+          name={`${idPrefix}-price`}
+          label="Fiyatınız (TL)"
+          placeholder="Örn. 15.000"
+          type="text"
+          inputMode="numeric"
+          aria-required="true"
+          value={withDots(price)}
+          onChange={(event) => onChange({ price: digitsOnly(event.target.value) })}
+          error={error}
+          helperText="Teklif gelmezse fiyatı sonradan artırabilir ya da ilanı tekliflere açabilirsiniz."
+        />
+      </div>
+    ) : (
+      legacyBudget && (
+        <p className="mt-3 text-sm text-text-secondary">
+          Bu ilan daha önce {legacyBudget} bütçeyle açılmış; bütçe ilanda görünmeye devam eder.
+        </p>
+      )
+    )}
+
+    {product && (
+      <p className="mt-3 rounded-lg bg-primary-light px-3 py-2 text-sm text-text">
+        {product.realPrice
+          ? `${product.name} için alıcıların şu an verdiği en yüksek fiyat ${Math.round(product.realPrice).toLocaleString('tr-TR')} TL.`
+          : `${product.name} için henüz fiyat veren yok; ilk fiyatı siz verebilirsiniz.`}{' '}
+        {isFixedPrice ? 'Fiyatınız bu ürünün fiyat sayfasında da sıralanır. ' : ''}
+        <Link to={`/fiyat/${product.slug}`} className="font-semibold text-primary hover:underline">
+          Fiyat sayfası
+        </Link>
+      </p>
+    )}
   </fieldset>
 );
 

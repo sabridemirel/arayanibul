@@ -17,13 +17,21 @@ const toFormValues = (need: Need): NeedFormValues => ({
   title: need.title ?? '',
   description: need.description ?? '',
   categoryId: need.categoryId ?? null,
-  minBudget: need.minBudget != null ? String(Math.round(need.minBudget)) : '',
-  maxBudget: need.maxBudget != null ? String(Math.round(need.maxBudget)) : '',
   isFixedPrice: Boolean(need.isFixedPrice),
+  price: need.isFixedPrice && need.maxBudget != null ? String(Math.round(need.maxBudget)) : '',
   address: need.address ?? '',
-  urgency: need.urgency ?? 'Normal',
+  urgency: need.urgency === 'Urgent' ? 'Urgent' : 'Normal',
   expiryDate: need.expiresAt ? need.expiresAt.split('T')[0] : '',
+  answers: {},
 });
+
+/** The budget an open listing was created with before open listings stopped taking one. */
+const legacyBudgetOf = (need: Need): string | null => {
+  if (need.isFixedPrice || (!need.minBudget && !need.maxBudget)) return null;
+  const f = (n: number) => n.toLocaleString('tr-TR');
+  if (need.minBudget && need.maxBudget) return `${f(need.minBudget)} – ${f(need.maxBudget)} TL`;
+  return need.maxBudget ? `en fazla ${f(need.maxBudget)} TL` : `en az ${f(need.minBudget!)} TL`;
+};
 
 /** Only the fields the user actually changed, so detail-only edits do not look like content edits */
 const buildUpdateRequest = (initial: NeedFormValues, values: NeedFormValues): UpdateNeedRequest => {
@@ -36,10 +44,7 @@ const buildUpdateRequest = (initial: NeedFormValues, values: NeedFormValues): Up
   if (description !== initial.description.trim()) request.description = description;
   if (values.categoryId && values.categoryId !== initial.categoryId) request.categoryId = values.categoryId;
   if (values.isFixedPrice !== initial.isFixedPrice) request.isFixedPrice = values.isFixedPrice;
-  if (!values.isFixedPrice && values.minBudget !== initial.minBudget && values.minBudget) {
-    request.minBudget = Number(values.minBudget);
-  }
-  if (values.maxBudget !== initial.maxBudget && values.maxBudget) request.maxBudget = Number(values.maxBudget);
+  if (values.isFixedPrice && values.price !== initial.price) request.maxBudget = Number(values.price);
   if (address !== initial.address.trim()) request.address = address;
   if (values.urgency !== initial.urgency) request.urgency = URGENCY_TO_API[values.urgency];
   if (values.expiryDate && values.expiryDate !== initial.expiryDate) {
@@ -222,6 +227,8 @@ const EditNeedPage: React.FC = () => {
           key={`${need.id}-${need.updatedAt}`}
           initialValues={toFormValues(need)}
           existingImages={need.images ?? []}
+          detailsOpen
+          legacyBudget={legacyBudgetOf(need)}
           submitLabel={isRejected ? 'Düzenle ve Tekrar Gönder' : 'Değişiklikleri Kaydet'}
           isSubmitting={isSaving}
           onSubmit={handleSubmit}

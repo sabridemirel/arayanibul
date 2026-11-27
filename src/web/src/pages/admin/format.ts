@@ -39,7 +39,7 @@ export const formatBudget = (min?: number, max?: number, currency = 'TRY') => {
 };
 
 export const URGENCY_LABELS: Record<string, string> = {
-  Flexible: 'Esnek',
+  Flexible: 'Normal',
   Normal: 'Normal',
   Urgent: 'Acil',
 };

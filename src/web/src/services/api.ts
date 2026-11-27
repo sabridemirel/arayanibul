@@ -311,6 +311,7 @@ export interface CreateNeedRequest {
   urgency: number; // 1=Flexible, 2=Normal, 3=Urgent
   /** true = "bu fiyata hemen alırım": maxBudget is the exact price */
   isFixedPrice?: boolean;
+  expiresAt?: string;
   images?: string[];
 }
 
@@ -334,6 +335,8 @@ export interface NeedDraft {
   /** Set when the text names a catalogued product with its own price page */
   productSlug?: string | null;
   productName?: string | null;
+  /** What buyers offer for that product right now ("gerçek fiyat") */
+  productRealPrice?: number | null;
   questions: NeedDraftQuestion[];
 }
 

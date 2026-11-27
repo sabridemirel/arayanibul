@@ -1,28 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  PhotoIcon,
-  XMarkIcon,
-  MapPinIcon,
-  CalendarIcon,
-  TagIcon,
-  ChevronDownIcon,
-  CheckIcon,
-} from '@heroicons/react/24/outline';
-import { categoryAPI, resolveMediaUrl } from '../../services/api';
-import type { Category, NeedImage } from '../../services/api';
-import { Button, Card, Input, Loading, ErrorMessage } from '../ui';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { ChevronDownIcon, MapPinIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { resolveMediaUrl } from '../../services/api';
+import type { NeedDraftQuestion, NeedImage } from '../../services/api';
+import { Button, Card, Input } from '../ui';
 import { prepareImageForUpload, ImageDecodeError } from '../../utils/prepareImage';
-
+import { useCategories } from '../../utils/categoryVisual';
 import PriceModeFields from './PriceModeFields';
-import type { NeedFormSubmitData, NeedFormValues, NeedUrgency } from './needFormTypes';
+import type { NeedFormSubmitData, NeedFormValues, NeedUrgency, ProductHint } from './needFormTypes';
 
 interface FormErrors {
   title?: string;
   description?: string;
   categoryId?: string;
-  minBudget?: string;
-  maxBudget?: string;
-  address?: string;
+  price?: string;
   expiryDate?: string;
   images?: string;
 }
@@ -31,6 +21,16 @@ interface NeedFormProps {
   initialValues: NeedFormValues;
   /** Images already attached to the need (edit mode) */
   existingImages?: NeedImage[];
+  /** One-tap questions for the category (from the quick-listing sentence) */
+  questions?: NeedDraftQuestion[];
+  /** Catalogued product recognised in the text */
+  product?: ProductHint | null;
+  /** Start with "Ayrıntılar" open (detailed listing, editing) */
+  detailsOpen?: boolean;
+  /** Guests cannot upload yet: photos are added after signing in */
+  canAddPhotos?: boolean;
+  /** Budget of a listing created before open listings stopped taking one */
+  legacyBudget?: string | null;
   submitLabel: string;
   /** Shown right above the submit button */
   notice?: React.ReactNode;
@@ -40,205 +40,100 @@ interface NeedFormProps {
 
 const MAX_IMAGES = 5;
 
-const getUrgencyColor = (urgency: NeedUrgency) => {
-  switch (urgency) {
-    case 'Urgent':
-      return 'bg-red-500';
-    case 'Normal':
-      return 'bg-yellow-500';
-    default:
-      return 'bg-gray-500';
+const URGENCY_OPTIONS: { value: NeedUrgency; title: string; text: string }[] = [
+  { value: 'Normal', title: 'Normal', text: 'İlanınız yayın sırasına göre listelenir.' },
+  { value: 'Urgent', title: 'Acil', text: '7 gün boyunca listenin en üstünde görünür. Aynı anda bir acil ilanınız olabilir.' },
+];
+
+const validate = (values: NeedFormValues): FormErrors => {
+  const errors: FormErrors = {};
+  const title = values.title.trim();
+  if (title.length < 5) errors.title = 'Başlık en az 5 karakter olmalı';
+  else if (title.length > 200) errors.title = 'Başlık en fazla 200 karakter olabilir';
+  if (!values.categoryId) errors.categoryId = 'İlanınız için bir kategori seçin';
+  if (values.isFixedPrice && !(Number(values.price) > 0)) errors.price = 'Hemen almak istediğiniz fiyatı yazın';
+  if (values.description.length > 1500) errors.description = 'Açıklama en fazla 1500 karakter olabilir';
+  if (values.expiryDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (new Date(values.expiryDate) < today) errors.expiryDate = 'Bitiş tarihi geçmiş bir tarih olamaz';
   }
-};
-
-const getUrgencyText = (urgency: NeedUrgency) => {
-  switch (urgency) {
-    case 'Urgent':
-      return 'Acil';
-    case 'Normal':
-      return 'Normal';
-    default:
-      return 'Esnek';
-  }
-};
-
-// Format number with thousand separator (Turkish format: 1.000.000)
-
-const validateTitle = (title: string): string | undefined => {
-  if (!title.trim()) return 'Başlık gereklidir';
-  if (title.length < 10) return 'Başlık en az 10 karakter olmalıdır';
-  if (title.length > 100) return 'Başlık en fazla 100 karakter olabilir';
-  return undefined;
-};
-
-const validateDescription = (description: string): string | undefined => {
-  if (!description.trim()) return 'Açıklama gereklidir';
-  if (description.length < 20) return 'Açıklama en az 20 karakter olmalıdır';
-  if (description.length > 1000) return 'Açıklama en fazla 1000 karakter olabilir';
-  return undefined;
-};
-
-const validateExpiryDate = (value: string): string | undefined => {
-  if (!value) return undefined;
-  const expiryDate = new Date(value);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return expiryDate < today ? 'Bitiş tarihi geçmiş bir tarih olamaz' : undefined;
+  return errors;
 };
 
 /**
- * Shared need (ilan) form used by the create and edit pages.
- * Owns field state, validation, the category list and image selection; the page decides what to do on submit.
+ * The one listing form: quick listing (filled from a sentence, "Ayrıntılar" closed), detailed
+ * listing ("Ayrıntılar" open) and editing all use it. The page decides what to do on submit.
  */
 const NeedForm: React.FC<NeedFormProps> = ({
   initialValues,
   existingImages = [],
+  questions = [],
+  product = null,
+  detailsOpen = false,
+  canAddPhotos = true,
+  legacyBudget = null,
   submitLabel,
   notice,
   isSubmitting,
   onSubmit,
 }) => {
+  const idPrefix = useId().replace(/:/g, '');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const categories = useCategories();
+  const roots = categories.filter((c) => !c.parentCategoryId).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const [formData, setFormData] = useState<NeedFormValues>(initialValues);
+  const [values, setValues] = useState<NeedFormValues>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(detailsOpen);
   const [keptImages, setKeptImages] = useState<NeedImage[]>(existingImages);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isPreparingImages, setIsPreparingImages] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-
-  const selectedCategory = categories.find(c => c.id === formData.categoryId) ?? null;
   const totalImageCount = keptImages.length + images.length;
-
-  // Load categories
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setIsCategoriesLoading(true);
-        const categoriesData = await categoryAPI.getCategories();
-        setCategories(categoriesData.filter(cat => cat.isActive));
-      } catch (err) {
-        console.error('Kategoriler yüklenirken hata:', err);
-        setCategoriesError('Kategoriler yüklenirken hata oluştu. Lütfen sayfayı yenileyin.');
-      } finally {
-        setIsCategoriesLoading(false);
-      }
-    };
-
-    loadCategories();
-  }, []);
 
   // Release object URLs of picked files when leaving the form
   const previewsRef = useRef<string[]>([]);
-  previewsRef.current = imagePreviews;
-  useEffect(() => () => previewsRef.current.forEach(url => URL.revokeObjectURL(url)), []);
+  useEffect(() => {
+    previewsRef.current = imagePreviews;
+  }, [imagePreviews]);
+  useEffect(() => () => previewsRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
-  const validateBudget = (data: NeedFormValues, field: 'minBudget' | 'maxBudget'): string | undefined => {
-    const value = data[field];
-    if (value && isNaN(Number(value))) return 'Geçerli bir sayı giriniz';
-    if (field === 'maxBudget' && data.isFixedPrice && !(Number(data.maxBudget) > 0)) {
-      return 'Hemen almak istediğiniz fiyatı yazın';
-    }
-    if (field === 'maxBudget' && data.minBudget && data.maxBudget && Number(data.minBudget) >= Number(data.maxBudget)) {
-      return 'Maksimum bütçe minimum bütçeden büyük olmalıdır';
-    }
-    return undefined;
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {
-      title: validateTitle(formData.title),
-      description: validateDescription(formData.description),
-      categoryId: formData.categoryId ? undefined : 'Kategori seçimi gereklidir',
-      minBudget: validateBudget(formData, 'minBudget'),
-      maxBudget: validateBudget(formData, 'maxBudget'),
-      expiryDate: validateExpiryDate(formData.expiryDate),
-    };
-    (Object.keys(newErrors) as (keyof FormErrors)[]).forEach(key => {
-      if (!newErrors[key]) delete newErrors[key];
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Validate individual field on blur
-  const validateField = (field: keyof NeedFormValues) => {
-    let message: string | undefined;
-    switch (field) {
-      case 'title':
-        message = validateTitle(formData.title);
-        break;
-      case 'description':
-        message = validateDescription(formData.description);
-        break;
-      case 'minBudget':
-      case 'maxBudget':
-        message = validateBudget(formData, field);
-        break;
-      case 'expiryDate':
-        message = validateExpiryDate(formData.expiryDate);
-        break;
-      case 'categoryId':
-        message = formData.categoryId ? undefined : 'Kategori seçimi gereklidir';
-        break;
-      default:
-        return;
-    }
-    setErrors(prev => {
+  const update = (patch: Partial<NeedFormValues>) => {
+    setValues((prev) => ({ ...prev, ...patch }));
+    setErrors((prev) => {
       const next = { ...prev };
-      if (message) next[field as keyof FormErrors] = message;
-      else delete next[field as keyof FormErrors];
+      (Object.keys(patch) as (keyof NeedFormValues)[]).forEach((key) => {
+        delete next[key as keyof FormErrors];
+        if (key === 'isFixedPrice') delete next.price;
+      });
       return next;
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      // Scroll to top to show validation errors
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const found = validate(values);
+    setErrors(found);
+    if (Object.keys(found).length > 0) {
+      if (found.description || found.expiryDate) setShowDetails(true);
+      document.getElementById(`${idPrefix}-errors`)?.focus();
       return;
     }
-
-    onSubmit({ values: formData, newImages: images, keptImages, removedImageIds });
+    onSubmit({ values, newImages: images, keptImages, removedImageIds });
   };
 
-  const handleCategorySelect = (category: Category) => {
-    setFormData(prev => ({ ...prev, categoryId: category.id }));
-    setIsCategoryDropdownOpen(false);
-    setErrors(prev => ({ ...prev, categoryId: undefined }));
-  };
-
-  const handleInputChange = (field: keyof NeedFormValues, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
-
-  const handlePriceChange = (patch: Partial<Pick<NeedFormValues, 'isFixedPrice' | 'minBudget' | 'maxBudget'>>) => {
-    setFormData(prev => ({ ...prev, ...patch }));
-    setErrors(prev => ({ ...prev, minBudget: undefined, maxBudget: undefined }));
-  };
-
-  // Image handling: photos are downscaled in the browser before upload (see prepareImageForUpload)
+  // Photos are downscaled in the browser before upload (see prepareImageForUpload)
   const handleImageSelect = async (files: FileList | null) => {
     if (!files) return;
-
     const remaining = MAX_IMAGES - totalImageCount;
-    const picked = Array.from(files).filter(file => file.type.startsWith('image/') || file.name.match(/\.(heic|heif)$/i));
+    const picked = Array.from(files).filter((file) => file.type.startsWith('image/') || /\.(heic|heif)$/i.test(file.name));
     if (picked.length === 0 || remaining <= 0) return;
 
     setIsPreparingImages(true);
-    setErrors(prev => ({ ...prev, images: undefined }));
+    setErrors((prev) => ({ ...prev, images: undefined }));
     const prepared: File[] = [];
     let failed = 0;
     for (const file of picked.slice(0, remaining)) {
@@ -250,9 +145,8 @@ const NeedForm: React.FC<NeedFormProps> = ({
       }
     }
     setIsPreparingImages(false);
-
     if (failed > 0) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
         images:
           failed === 1
@@ -260,357 +154,318 @@ const NeedForm: React.FC<NeedFormProps> = ({
             : `${failed} fotoğraf açılamadı. JPG, PNG veya WebP formatında fotoğraflar seçin.`,
       }));
     }
-
-    setImages(prev => [...prev, ...prepared]);
-    setImagePreviews(prev => [...prev, ...prepared.map(file => URL.createObjectURL(file))]);
+    setImages((prev) => [...prev, ...prepared]);
+    setImagePreviews((prev) => [...prev, ...prepared.map((file) => URL.createObjectURL(file))]);
   };
 
-  const handleRemoveImage = (index: number) => {
+  const removeNewImage = (index: number) => {
     URL.revokeObjectURL(imagePreviews[index]);
-    setImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleRemoveExistingImage = (image: NeedImage) => {
-    setKeptImages(prev => prev.filter(i => i.id !== image.id));
-    setRemovedImageIds(prev => [...prev, image.id]);
+  const removeExistingImage = (image: NeedImage) => {
+    setKeptImages((prev) => prev.filter((i) => i.id !== image.id));
+    setRemovedImageIds((prev) => [...prev, image.id]);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
+  const errorList = Object.values(errors).filter(Boolean);
+  const answeredCount = Object.keys(values.answers).length;
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    void handleImageSelect(e.dataTransfer.files);
-  };
-
-  if (isCategoriesLoading) {
-    return (
-      <div className="py-16 flex items-center justify-center">
-        <Loading size="lg" text="Kategoriler yükleniyor..." />
-      </div>
-    );
-  }
-
-  const renderRemoveButton = (label: string, onClick: () => void) => (
+  const removeButton = (label: string, onClick: () => void) => (
     <button
       type="button"
       aria-label={label}
       title={label}
-      onClick={(e) => {
-        e.stopPropagation();
+      onClick={(event) => {
+        event.stopPropagation();
         onClick();
       }}
-      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-opacity"
+      className="absolute right-1 top-1 rounded-full bg-red-600 p-1.5 text-white"
     >
       <XMarkIcon className="h-4 w-4" />
     </button>
   );
 
   return (
-    <form onSubmit={handleSubmit}>
-      {categoriesError && (
-        <ErrorMessage
-          message={categoriesError}
-          onDismiss={() => setCategoriesError(null)}
-          className="mb-6"
-        />
+    <form onSubmit={handleSubmit} noValidate>
+      {errorList.length > 0 && (
+        <div
+          id={`${idPrefix}-errors`}
+          tabIndex={-1}
+          role="alert"
+          className="mb-4 rounded-lg border border-error/40 bg-red-50 px-4 py-3 text-sm text-error"
+        >
+          Lütfen işaretli alanları düzeltin.
+        </div>
       )}
 
-      {/* Basic Information */}
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-4">Temel Bilgiler</h2>
-
-        {/* Title */}
-        <div className="mb-4">
+        <div className="space-y-5">
           <Input
-            label="Başlık *"
-            placeholder="İhtiyacınızı kısaca özetleyin"
-            value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            onBlur={() => validateField('title')}
+            id={`${idPrefix}-title`}
+            label="Başlık"
+            placeholder="Örn. Bebek arabası arıyorum"
+            value={values.title}
+            onChange={(event) => update({ title: event.target.value })}
             error={errors.title}
-            maxLength={100}
+            maxLength={200}
+            aria-required="true"
           />
-          <p className="mt-1 text-xs text-text-secondary">
-            {formData.title.length}/100 karakter
-          </p>
-        </div>
 
-        {/* Description */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-text mb-1">
-            Açıklama *
-          </label>
-          <textarea
-            placeholder="İhtiyacınızı detaylı bir şekilde açıklayın"
-            value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            onBlur={() => validateField('description')}
-            maxLength={1000}
-            rows={4}
-            className={`
-              block w-full px-4 py-2.5 rounded-lg border bg-surface text-text
-              placeholder:text-text-secondary
-              focus:outline-none focus:ring-2 focus:ring-offset-0
-              transition-colors duration-200
-              resize-none
-              ${errors.description
-                ? 'border-error focus:border-error focus:ring-error/20'
-                : 'border-border focus:border-primary focus:ring-primary/20'
-              }
-            `}
+          <div>
+            <label htmlFor={`${idPrefix}-category`} className="mb-1 block text-sm font-medium text-text">
+              Kategori
+            </label>
+            <select
+              // Remount when the list arrives: a select ignores a value whose option did not exist yet
+              key={categories.length}
+              id={`${idPrefix}-category`}
+              value={values.categoryId ?? ''}
+              onChange={(event) => update({ categoryId: event.target.value ? Number(event.target.value) : null })}
+              aria-invalid={Boolean(errors.categoryId)}
+              className={`min-h-11 w-full rounded-lg border bg-surface px-3 py-2.5 text-text focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                errors.categoryId ? 'border-error' : 'border-border focus:border-primary'
+              }`}
+            >
+              <option value="">Kategori seçin</option>
+              {roots.map((root) => {
+                const subs = categories
+                  .filter((c) => c.parentCategoryId === root.id)
+                  .sort((a, b) => a.sortOrder - b.sortOrder);
+                return subs.length > 0 ? (
+                  <optgroup key={root.id} label={root.nameTr || root.name}>
+                    {subs.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nameTr || c.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : (
+                  <option key={root.id} value={root.id}>
+                    {root.nameTr || root.name}
+                  </option>
+                );
+              })}
+            </select>
+            {errors.categoryId && <p className="mt-1 text-sm text-error">{errors.categoryId}</p>}
+          </div>
+
+          <PriceModeFields
+            idPrefix={idPrefix}
+            isFixedPrice={values.isFixedPrice}
+            price={values.price}
+            onChange={update}
+            error={errors.price}
+            product={product}
+            legacyBudget={legacyBudget}
           />
-          {errors.description && (
-            <p className="mt-1 text-sm text-error">{errors.description}</p>
-          )}
-          <p className="mt-1 text-xs text-text-secondary">
-            {formData.description.length}/1000 karakter
-          </p>
-        </div>
 
-        {/* Category Dropdown */}
-        <div className="mb-4 relative">
-          <label className="block text-sm font-medium text-text mb-1">
-            Kategori *
-          </label>
-          <button
-            type="button"
-            onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-            className={`
-              w-full flex items-center justify-between px-4 py-2.5 rounded-lg border bg-surface text-left
-              focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors duration-200
-              ${errors.categoryId
-                ? 'border-error focus:border-error focus:ring-error/20'
-                : 'border-border focus:border-primary focus:ring-primary/20'
-              }
-            `}
-          >
-            <div className="flex items-center gap-2">
-              <TagIcon className="h-5 w-5 text-text-secondary" />
-              <span className={selectedCategory ? 'text-text' : 'text-text-secondary'}>
-                {selectedCategory ? selectedCategory.nameTr : 'Kategori seçin'}
-              </span>
+          <fieldset>
+            <legend className="mb-2 block text-sm font-medium text-text">Aciliyet</legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {URGENCY_OPTIONS.map((option) => {
+                const id = `${idPrefix}-urgency-${option.value}`;
+                const selected = values.urgency === option.value;
+                return (
+                  <label
+                    key={id}
+                    htmlFor={id}
+                    className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border-2 px-4 py-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary ${
+                      selected ? 'border-primary bg-primary-light' : 'border-border bg-surface hover:border-primary/50'
+                    }`}
+                  >
+                    <input
+                      id={id}
+                      type="radio"
+                      name={`${idPrefix}-urgency`}
+                      checked={selected}
+                      onChange={() => update({ urgency: option.value })}
+                      className="mt-1 h-4 w-4 shrink-0 accent-primary"
+                    />
+                    <span>
+                      <span className="block font-semibold text-text">{option.title}</span>
+                      <span className="block text-sm text-text-secondary">{option.text}</span>
+                    </span>
+                  </label>
+                );
+              })}
             </div>
-            <ChevronDownIcon className={`h-5 w-5 text-text-secondary transition-transform ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
-          {errors.categoryId && (
-            <p className="mt-1 text-sm text-error">{errors.categoryId}</p>
-          )}
+          </fieldset>
 
-          {/* Dropdown Menu */}
-          {isCategoryDropdownOpen && (
-            <div className="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => handleCategorySelect(category)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                >
-                  <div>
-                    <p className="text-text font-medium">{category.nameTr}</p>
-                    {category.description && (
-                      <p className="text-sm text-text-secondary">{category.description}</p>
-                    )}
-                  </div>
-                  {selectedCategory?.id === category.id && (
-                    <CheckIcon className="h-5 w-5 text-primary" />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+          <Input
+            id={`${idPrefix}-address`}
+            label="Konum (isteğe bağlı)"
+            placeholder="Şehir, ilçe veya mahalle"
+            value={values.address}
+            onChange={(event) => update({ address: event.target.value })}
+            leftIcon={<MapPinIcon className="h-5 w-5" aria-hidden="true" />}
+            maxLength={500}
+          />
         </div>
       </Card>
 
-      {/* Image Upload */}
       <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-2">Görseller</h2>
-        <p className="text-sm text-text-secondary mb-4">
-          İhtiyacınızı daha iyi anlatmak için görsel ekleyebilirsiniz. (Maksimum {MAX_IMAGES} görsel)
-        </p>
+        <h2 className="text-base font-semibold text-text">Fotoğraflar (isteğe bağlı)</h2>
+        {canAddPhotos ? (
+          <>
+            <p className="mb-3 mt-1 text-sm text-text-secondary">
+              Aradığınız şeyin fotoğrafı satıcıların doğru teklif vermesine yardımcı olur. En fazla {MAX_IMAGES} fotoğraf.
+            </p>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(event) => {
+                event.preventDefault();
+                setIsDragging(false);
+                void handleImageSelect(event.dataTransfer.files);
+              }}
+              disabled={totalImageCount >= MAX_IMAGES}
+              className={`flex w-full flex-col items-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 ${
+                isDragging ? 'border-primary bg-primary-light' : 'border-border hover:border-primary hover:bg-primary-light'
+              }`}
+            >
+              <PhotoIcon className="mb-2 h-9 w-9 text-text-secondary" aria-hidden="true" />
+              <span className="font-medium text-text">Fotoğraf Ekle</span>
+              <span className="mt-1 text-xs text-text-secondary">
+                {isPreparingImages ? 'Fotoğraflar hazırlanıyor…' : 'Sürükleyip bırakın ya da seçin. JPG, PNG veya WebP.'}
+              </span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              aria-label="Fotoğraf seç"
+              onChange={(event) => {
+                void handleImageSelect(event.target.files);
+                event.target.value = '';
+              }}
+              className="hidden"
+            />
+            {totalImageCount > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5">
+                {keptImages.map((image, index) => (
+                  <div key={`existing-${image.id}`} className="relative aspect-square overflow-hidden rounded-lg">
+                    <img src={resolveMediaUrl(image.imageUrl)} alt={image.altText || `Fotoğraf ${index + 1}`} className="h-full w-full object-cover" />
+                    {removeButton('Fotoğrafı kaldır', () => removeExistingImage(image))}
+                  </div>
+                ))}
+                {imagePreviews.map((preview, index) => (
+                  <div key={preview} className="relative aspect-square overflow-hidden rounded-lg">
+                    <img src={preview} alt={`Fotoğraf ${keptImages.length + index + 1}`} className="h-full w-full object-cover" />
+                    {removeButton('Fotoğrafı kaldır', () => removeNewImage(index))}
+                  </div>
+                ))}
+              </div>
+            )}
+            {errors.images && <p className="mt-2 text-sm text-error">{errors.images}</p>}
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-text-secondary">
+            Fotoğrafları giriş yaptıktan sonra ekleyebilirsiniz; yazdıklarınız kaybolmaz.
+          </p>
+        )}
+      </Card>
 
-        {/* Drag & Drop Area */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`
-            border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-            ${isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-border hover:border-primary hover:bg-primary/5'
-            }
-            ${totalImageCount >= MAX_IMAGES ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
+      <Card className="mb-6" padding="none">
+        <button
+          type="button"
+          onClick={() => setShowDetails((open) => !open)}
+          aria-expanded={showDetails}
+          aria-controls={`${idPrefix}-details`}
+          className="flex min-h-12 w-full items-center justify-between gap-3 px-6 py-4 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
-          <PhotoIcon className="h-12 w-12 text-text-secondary mx-auto mb-3" />
-          <p className="text-text font-medium">
-            Görselleri sürükleyip bırakın
-          </p>
-          <p className="text-sm text-text-secondary mt-1">
-            veya <span className="text-primary">tıklayarak seçin</span>
-          </p>
-          <p className="text-xs text-text-secondary mt-2">
-            {isPreparingImages
-              ? 'Fotoğraflar hazırlanıyor…'
-              : 'JPG, PNG veya WebP. Büyük fotoğraflar otomatik küçültülür.'}
-          </p>
-        </div>
+          <span>
+            <span className="block font-semibold text-text">Ayrıntılar (isteğe bağlı)</span>
+            <span className="block text-sm text-text-secondary">
+              Açıklama{questions.length > 0 ? ', ürün bilgileri' : ''} ve bitiş tarihi
+              {answeredCount > 0 ? ` · ${answeredCount} bilgi seçili` : ''}
+            </span>
+          </span>
+          <ChevronDownIcon className={`h-5 w-5 shrink-0 text-text-secondary transition-transform ${showDetails ? 'rotate-180' : ''}`} aria-hidden="true" />
+        </button>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={(e) => {
-            void handleImageSelect(e.target.files);
-            e.target.value = '';
-          }}
-          className="hidden"
-          disabled={totalImageCount >= MAX_IMAGES}
-        />
+        {showDetails && (
+          <div id={`${idPrefix}-details`} className="space-y-5 border-t border-border px-6 pb-6 pt-5">
+            {questions.map((question) => (
+              <fieldset key={question.label}>
+                <legend className="mb-2 text-sm font-medium text-text">{question.label}</legend>
+                <div className="flex flex-wrap gap-2">
+                  {question.options.map((option) => {
+                    const selected = values.answers[question.label] === option;
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          const answers = { ...values.answers };
+                          if (selected) delete answers[question.label];
+                          else answers[question.label] = option;
+                          update({ answers });
+                        }}
+                        className={`min-h-11 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          selected ? 'border-primary bg-primary text-white' : 'border-border bg-surface text-text hover:border-primary'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
 
-        {/* Image Previews */}
-        {totalImageCount > 0 && (
-          <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-3">
-            {keptImages.map((image, index) => (
-              <div key={`existing-${image.id}`} className="relative aspect-square rounded-lg overflow-hidden group">
-                <img
-                  src={resolveMediaUrl(image.imageUrl)}
-                  alt={image.altText || `Görsel ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                {renderRemoveButton('Görseli Kaldır', () => handleRemoveExistingImage(image))}
-              </div>
-            ))}
-            {imagePreviews.map((preview, index) => (
-              <div key={preview} className="relative aspect-square rounded-lg overflow-hidden group">
-                <img
-                  src={preview}
-                  alt={`Görsel ${keptImages.length + index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                {renderRemoveButton('Görseli Kaldır', () => handleRemoveImage(index))}
-              </div>
-            ))}
+            <div>
+              <label htmlFor={`${idPrefix}-description`} className="mb-1 block text-sm font-medium text-text">
+                Açıklama
+              </label>
+              <textarea
+                id={`${idPrefix}-description`}
+                placeholder="Aradığınızı biraz daha anlatın: model, ölçü, teslimat tercihi…"
+                value={values.description}
+                onChange={(event) => update({ description: event.target.value })}
+                maxLength={1500}
+                rows={4}
+                aria-invalid={Boolean(errors.description)}
+                className={`block w-full resize-none rounded-lg border bg-surface px-4 py-2.5 text-text placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                  errors.description ? 'border-error' : 'border-border focus:border-primary'
+                }`}
+              />
+              {errors.description && <p className="mt-1 text-sm text-error">{errors.description}</p>}
+            </div>
+
+            <Input
+              id={`${idPrefix}-expiry`}
+              label="Bitiş tarihi"
+              type="date"
+              value={values.expiryDate}
+              onChange={(event) => update({ expiryDate: event.target.value })}
+              error={errors.expiryDate}
+              min={new Date().toISOString().split('T')[0]}
+              helperText="Boş bırakırsanız ilanınız siz kapatana kadar yayında kalır."
+            />
           </div>
         )}
-
-        {errors.images && (
-          <p className="mt-2 text-sm text-error">{errors.images}</p>
-        )}
       </Card>
 
-      {/* Price */}
-      <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-2">Fiyat</h2>
-        <p className="text-sm text-text-secondary mb-4">
-          Pazarlığa açık ilanda bütçe yazmak isteğe bağlıdır.
-        </p>
-
-        <PriceModeFields
-          idPrefix="need-form"
-          isFixedPrice={formData.isFixedPrice}
-          minBudget={formData.minBudget}
-          maxBudget={formData.maxBudget}
-          onChange={handlePriceChange}
-          onBlur={(field) => validateField(field)}
-          errors={{ minBudget: errors.minBudget, maxBudget: errors.maxBudget }}
-        />
-      </Card>
-
-      {/* Location */}
-      <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-2">Konum</h2>
-        <p className="text-sm text-text-secondary mb-4">
-          Konum belirtmek isteğe bağlıdır. Yakınınızdaki satıcıları bulmanıza yardımcı olur.
-        </p>
-
-        <Input
-          label="Adres"
-          placeholder="Şehir, ilçe veya mahalle"
-          value={formData.address}
-          onChange={(e) => handleInputChange('address', e.target.value)}
-          error={errors.address}
-          leftIcon={<MapPinIcon className="h-5 w-5" />}
-        />
-      </Card>
-
-      {/* Expiry Date */}
-      <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-2">Bitiş Tarihi</h2>
-        <p className="text-sm text-text-secondary mb-4">
-          İlanınızın ne zamana kadar aktif kalacağını belirleyin.
-        </p>
-
-        <Input
-          label="Bitiş Tarihi"
-          type="date"
-          value={formData.expiryDate}
-          onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-          onBlur={() => validateField('expiryDate')}
-          error={errors.expiryDate}
-          leftIcon={<CalendarIcon className="h-5 w-5" />}
-          min={new Date().toISOString().split('T')[0]}
-        />
-      </Card>
-
-      {/* Urgency */}
-      <Card className="mb-6">
-        <h2 className="text-lg font-semibold text-text mb-2">Aciliyet Durumu</h2>
-        <p className="text-sm text-text-secondary mb-4">
-          Acil ilanlar 7 gün boyunca listenin en üstünde gösterilir. Aynı anda bir acil ilanınız olabilir.
-        </p>
-
-        <div className="space-y-2">
-          {(['Normal', 'Urgent'] as const).map((urgency) => {
-            const isSelected = formData.urgency === urgency;
-            return (
-              <button
-                key={urgency}
-                type="button"
-                onClick={() => setFormData(prev => ({ ...prev, urgency }))}
-                className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors
-                  ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-                `}
-              >
-                <div className={`w-3 h-3 rounded-full ${getUrgencyColor(urgency)}`} />
-                <span className={`font-medium ${isSelected ? 'text-primary' : 'text-text'}`}>
-                  {getUrgencyText(urgency)}
-                </span>
-                {isSelected && <CheckIcon className="h-5 w-5 text-primary ml-auto" />}
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* Submit Button */}
-      <div className="mt-8">
-        {notice}
-        <Button
-          type="submit"
-          variant="primary"
-          size="lg"
-          fullWidth
-          isLoading={isSubmitting}
-          disabled={isSubmitting || isPreparingImages}
-        >
-          {submitLabel}
-        </Button>
-      </div>
+      {notice}
+      <Button
+        type="submit"
+        variant="primary"
+        size="lg"
+        fullWidth
+        isLoading={isSubmitting}
+        disabled={isSubmitting || isPreparingImages}
+      >
+        {submitLabel}
+      </Button>
     </form>
   );
 };

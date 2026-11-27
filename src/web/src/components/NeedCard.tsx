@@ -101,7 +101,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
 
         <div className="mt-auto pt-2">
           <p className={budget ? 'font-bold text-primary' : 'text-sm text-text-secondary'}>
-            {budget ?? 'Bütçe belirtilmemiş'}
+            {budget ?? 'Teklife açık'}
             {isFixedPrice && (
               <span className="ml-2 rounded-full bg-primary-light px-2 py-0.5 align-middle text-xs font-semibold text-primary-dark">
                 Hemen alır

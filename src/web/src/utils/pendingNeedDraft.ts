@@ -1,23 +1,11 @@
-import type { NeedDraftQuestion } from '../services/api';
+import type { NeedFormExtras, NeedFormValues } from '../components/need/needFormTypes';
 
 /**
  * A listing someone wrote before signing in. It is kept for the browser tab only, so the visitor
- * can register or log in and come back to publish it without retyping.
+ * can register or log in and come back to publish it without retyping. Photos are not kept.
  */
-export interface PendingNeedDraft {
-  text: string;
-  title: string;
-  description: string;
-  categoryId: number | null;
-  minBudget: string;
-  maxBudget: string;
-  /** "Bu fiyata hemen alırım": maxBudget is the exact price */
-  isFixedPrice?: boolean;
-  address: string;
-  /** Answers to the category's one-tap questions, keyed by question label */
-  answers: Record<string, string>;
-  /** The one-tap questions that were offered, so they can be shown again after signing in */
-  questions?: NeedDraftQuestion[];
+export interface PendingNeedDraft extends NeedFormExtras {
+  values: NeedFormValues;
 }
 
 const STORAGE_KEY = 'arayanibul.pendingNeedDraft';
@@ -33,7 +21,9 @@ export const savePendingNeedDraft = (draft: PendingNeedDraft): void => {
 export const loadPendingNeedDraft = (): PendingNeedDraft | null => {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as PendingNeedDraft) : null;
+    const draft = raw ? (JSON.parse(raw) as PendingNeedDraft) : null;
+    // A draft saved by an older version of the page has no "values": start over rather than crash
+    return draft && typeof draft === 'object' && draft.values ? draft : null;
   } catch {
     return null;
   }
