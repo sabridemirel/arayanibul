@@ -42,8 +42,11 @@ güncel gerçek fiyatı gösterilir ve "hemen alırım" ilanı fiyat sayfasında
 - Daha önce bütçeyle açılmış ilanların bütçesi kalır ve görünür; düzenlemede yeni bütçe alınmaz.
 - "Esnek" aciliyet Normal'e çevrilir; listelerde "Normal" görünür.
 
-## Bilinen eksikler
+## Platform farkları
 
-- Mobilde bitiş tarihi alanı yok (tarih seçici kütüphanesi yok); web'de var.
-- Mobil düzenlemede mevcut fotoğraflar silinemez, yalnızca yeni eklenir (toplam 5); web'de ikisi de var.
-- Web'de misafir fotoğraf ekleyemez; giriş yaptıktan sonra ekler (yazdıkları korunur).
+- Bitiş tarihi: web'de tarih alanı, mobilde "Süresiz / 1 hafta / 2 hafta / 1 ay / 3 ay" seçenekleri
+  (tarih seçici kütüphanesi eklemeden). Düzenlemede mevcut bitiş tarihi gösterilir; "Değiştirme" ya da
+  yeni süre seçilir. Süresiz yapma (bitiş tarihini kaldırma) API'de yok.
+- Fotoğraflar: iki platformda da düzenlerken mevcut fotoğraf kaldırılıp yenisi eklenebilir (en fazla 5).
+- Web'de misafir fotoğraf seçebilir; fotoğraflar üye olunca formda bekler ve ilanla yüklenir. Sayfa
+  tamamen yeniden yüklenirse (ör. sosyal girişte yönlendirme) fotoğraflar yeniden eklenir; yazılanlar kalır.

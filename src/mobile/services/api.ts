@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 // authService here: it imports this module.
 import secureStorageService from './secureStorageService';
 import biometricAuthService from './biometricAuthService';
-import { toImageUrls } from './imageUrls';
+import { toImageItems, toImageUrls } from './imageUrls';
 
 // API URL: set EXPO_PUBLIC_API_URL (e.g. https://api.example.com/api) for any deployed build.
 // Without it, fall back to the local Docker API (Android emulator reaches the host via 10.0.2.2).
@@ -278,6 +278,8 @@ export interface Need {
   isWatchingPrice?: boolean;
   /** Slug of the catalogued product this listing counts towards */
   productSlug?: string;
+  /** Images with their ids (to remove one while editing) */
+  imageItems?: { id: number; url: string }[];
 }
 
 export interface CreateNeedRequest {
@@ -293,6 +295,7 @@ export interface CreateNeedRequest {
   /** true = "bu fiyata hemen alırım": maxBudget is the exact price */
   isFixedPrice?: boolean;
   images?: string[];
+  expiresAt?: string;
 }
 
 export interface CategoryCheck {
@@ -515,6 +518,7 @@ export const normalizeNeed = (n: Raw): Need => {
   return {
     ...n,
     images: toImageUrls(n.images),
+    imageItems: toImageItems(n.images),
     category: n.category ?? (n.categoryName
       ? { id: n.categoryId, name: n.categoryName, nameTr: n.categoryName }
       : undefined),
@@ -626,6 +630,10 @@ export const needAPI = {
 
   unwatchPrice: (id: number): Promise<PriceWatchState> =>
     api.delete(`/need/${id}/price-watch`).then(res => res.data),
+
+  /** Removes one photo from a listing */
+  deleteNeedImage: (id: number, imageId: number): Promise<void> =>
+    api.delete(`/need/${id}/images/${imageId}`).then(() => undefined),
 
   /** Uploads already-downscaled photos to a need (multipart, field "images") */
   uploadNeedImages: (id: number, uris: string[]): Promise<string[]> => {

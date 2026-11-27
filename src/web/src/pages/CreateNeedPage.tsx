@@ -9,7 +9,13 @@ import { ErrorMessage } from '../components/ui';
 import { Header, Footer } from '../components/layout';
 import NeedForm from '../components/need/NeedForm';
 import QuickNeedComposer from '../components/need/QuickNeedComposer';
-import { clearPendingNeedDraft, loadPendingNeedDraft, savePendingNeedDraft } from '../utils/pendingNeedDraft';
+import {
+  clearPendingNeedDraft,
+  loadPendingNeedDraft,
+  savePendingNeedDraft,
+  savePendingNeedPhotos,
+  takePendingNeedPhotos,
+} from '../utils/pendingNeedDraft';
 import { composeDescription, emptyNeedFormValues, URGENCY_TO_API } from '../components/need/needFormTypes';
 import type { NeedFormExtras, NeedFormSubmitData, NeedFormValues } from '../components/need/needFormTypes';
 
@@ -17,6 +23,8 @@ import type { NeedFormExtras, NeedFormSubmitData, NeedFormValues } from '../comp
 interface FormSeed extends NeedFormExtras {
   values: NeedFormValues;
   detailsOpen: boolean;
+  /** Photos picked before signing up */
+  photos: File[];
   /** Changes on every new seed so the form starts over */
   key: number;
 }
@@ -34,7 +42,7 @@ const CreateNeedPage: React.FC = () => {
   // A listing written before signing in comes back here after login / registration.
   const [seed, setSeed] = useState<FormSeed | null>(() => {
     const restored = loadPendingNeedDraft();
-    return restored ? { ...restored, detailsOpen: false, key: 1 } : null;
+    return restored ? { ...restored, detailsOpen: false, photos: takePendingNeedPhotos(), key: 1 } : null;
   });
   useEffect(() => {
     clearPendingNeedDraft();
@@ -42,7 +50,7 @@ const CreateNeedPage: React.FC = () => {
 
   const openForm = (values: NeedFormValues, extras: NeedFormExtras, detailsOpen: boolean) => {
     setSubmitError(null);
-    setSeed((current) => ({ values, ...extras, detailsOpen, key: (current?.key ?? 0) + 1 }));
+    setSeed((current) => ({ values, ...extras, detailsOpen, photos: [], key: (current?.key ?? 0) + 1 }));
     window.scrollTo({ top: 0 });
   };
 
@@ -71,8 +79,9 @@ const CreateNeedPage: React.FC = () => {
     setSubmitError(null);
 
     if (!canPublish) {
-      // Keep what was written for after signing up; photos are added then.
+      // Keep what was written, and the photos, for after signing up.
       savePendingNeedDraft({ values, questions: seed?.questions ?? [], product: seed?.product ?? null });
+      savePendingNeedPhotos(newImages);
       navigate('/register', { state: { guestNotice: true, pendingNeed: true } });
       return;
     }
@@ -159,7 +168,8 @@ const CreateNeedPage: React.FC = () => {
                 questions={seed.questions}
                 product={seed.product}
                 detailsOpen={seed.detailsOpen}
-                canAddPhotos={canPublish}
+                initialNewImages={seed.photos}
+                isGuest={!canPublish}
                 submitLabel="İlanı Yayınla"
                 isSubmitting={isLoading}
                 onSubmit={handleSubmit}

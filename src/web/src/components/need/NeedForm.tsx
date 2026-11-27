@@ -27,8 +27,10 @@ interface NeedFormProps {
   product?: ProductHint | null;
   /** Start with "Ayrıntılar" open (detailed listing, editing) */
   detailsOpen?: boolean;
-  /** Guests cannot upload yet: photos are added after signing in */
-  canAddPhotos?: boolean;
+  /** Photos picked before signing up, waiting to be uploaded with the listing */
+  initialNewImages?: File[];
+  /** Guests: photos are uploaded after signing up (shown as a note) */
+  isGuest?: boolean;
   /** Budget of a listing created before open listings stopped taking one */
   legacyBudget?: string | null;
   submitLabel: string;
@@ -72,7 +74,8 @@ const NeedForm: React.FC<NeedFormProps> = ({
   questions = [],
   product = null,
   detailsOpen = false,
-  canAddPhotos = true,
+  initialNewImages = [],
+  isGuest = false,
   legacyBudget = null,
   submitLabel,
   notice,
@@ -89,8 +92,8 @@ const NeedForm: React.FC<NeedFormProps> = ({
   const [showDetails, setShowDetails] = useState(detailsOpen);
   const [keptImages, setKeptImages] = useState<NeedImage[]>(existingImages);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [images, setImages] = useState<File[]>(initialNewImages);
+  const [imagePreviews, setImagePreviews] = useState<string[]>(() => initialNewImages.map((file) => URL.createObjectURL(file)));
   const [isPreparingImages, setIsPreparingImages] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const totalImageCount = keptImages.length + images.length;
@@ -308,70 +311,63 @@ const NeedForm: React.FC<NeedFormProps> = ({
 
       <Card className="mb-6">
         <h2 className="text-base font-semibold text-text">Fotoğraflar (isteğe bağlı)</h2>
-        {canAddPhotos ? (
-          <>
-            <p className="mb-3 mt-1 text-sm text-text-secondary">
-              Aradığınız şeyin fotoğrafı satıcıların doğru teklif vermesine yardımcı olur. En fazla {MAX_IMAGES} fotoğraf.
-            </p>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setIsDragging(false);
-                void handleImageSelect(event.dataTransfer.files);
-              }}
-              disabled={totalImageCount >= MAX_IMAGES}
-              className={`flex w-full flex-col items-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 ${
-                isDragging ? 'border-primary bg-primary-light' : 'border-border hover:border-primary hover:bg-primary-light'
-              }`}
-            >
-              <PhotoIcon className="mb-2 h-9 w-9 text-text-secondary" aria-hidden="true" />
-              <span className="font-medium text-text">Fotoğraf Ekle</span>
-              <span className="mt-1 text-xs text-text-secondary">
-                {isPreparingImages ? 'Fotoğraflar hazırlanıyor…' : 'Sürükleyip bırakın ya da seçin. JPG, PNG veya WebP.'}
-              </span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              aria-label="Fotoğraf seç"
-              onChange={(event) => {
-                void handleImageSelect(event.target.files);
-                event.target.value = '';
-              }}
-              className="hidden"
-            />
-            {totalImageCount > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5">
-                {keptImages.map((image, index) => (
-                  <div key={`existing-${image.id}`} className="relative aspect-square overflow-hidden rounded-lg">
-                    <img src={resolveMediaUrl(image.imageUrl)} alt={image.altText || `Fotoğraf ${index + 1}`} className="h-full w-full object-cover" />
-                    {removeButton('Fotoğrafı kaldır', () => removeExistingImage(image))}
-                  </div>
-                ))}
-                {imagePreviews.map((preview, index) => (
-                  <div key={preview} className="relative aspect-square overflow-hidden rounded-lg">
-                    <img src={preview} alt={`Fotoğraf ${keptImages.length + index + 1}`} className="h-full w-full object-cover" />
-                    {removeButton('Fotoğrafı kaldır', () => removeNewImage(index))}
-                  </div>
-                ))}
+        <p className="mb-3 mt-1 text-sm text-text-secondary">
+          Aradığınız şeyin fotoğrafı satıcıların doğru teklif vermesine yardımcı olur. En fazla {MAX_IMAGES} fotoğraf.
+          {isGuest ? ' Fotoğraflar üye olduktan sonra ilanınızla birlikte yüklenir.' : ''}
+        </p>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDragging(false);
+            void handleImageSelect(event.dataTransfer.files);
+          }}
+          disabled={totalImageCount >= MAX_IMAGES}
+          className={`flex w-full flex-col items-center rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 ${
+            isDragging ? 'border-primary bg-primary-light' : 'border-border hover:border-primary hover:bg-primary-light'
+          }`}
+        >
+          <PhotoIcon className="mb-2 h-9 w-9 text-text-secondary" aria-hidden="true" />
+          <span className="font-medium text-text">Fotoğraf Ekle</span>
+          <span className="mt-1 text-xs text-text-secondary">
+            {isPreparingImages ? 'Fotoğraflar hazırlanıyor…' : 'Sürükleyip bırakın ya da seçin. JPG, PNG veya WebP.'}
+          </span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          aria-label="Fotoğraf seç"
+          onChange={(event) => {
+            void handleImageSelect(event.target.files);
+            event.target.value = '';
+          }}
+          className="hidden"
+        />
+        {totalImageCount > 0 && (
+          <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {keptImages.map((image, index) => (
+              <div key={`existing-${image.id}`} className="relative aspect-square overflow-hidden rounded-lg">
+                <img src={resolveMediaUrl(image.imageUrl)} alt={image.altText || `Fotoğraf ${index + 1}`} className="h-full w-full object-cover" />
+                {removeButton('Fotoğrafı kaldır', () => removeExistingImage(image))}
               </div>
-            )}
-            {errors.images && <p className="mt-2 text-sm text-error">{errors.images}</p>}
-          </>
-        ) : (
-          <p className="mt-1 text-sm text-text-secondary">
-            Fotoğrafları giriş yaptıktan sonra ekleyebilirsiniz; yazdıklarınız kaybolmaz.
-          </p>
+            ))}
+            {imagePreviews.map((preview, index) => (
+              <div key={preview} className="relative aspect-square overflow-hidden rounded-lg">
+                <img src={preview} alt={`Fotoğraf ${keptImages.length + index + 1}`} className="h-full w-full object-cover" />
+                {removeButton('Fotoğrafı kaldır', () => removeNewImage(index))}
+              </div>
+            ))}
+          </div>
         )}
+        {errors.images && <p className="mt-2 text-sm text-error">{errors.images}</p>}
       </Card>
 
       <Card className="mb-6" padding="none">

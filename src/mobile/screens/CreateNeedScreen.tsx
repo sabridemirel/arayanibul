@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -54,6 +55,20 @@ const URGENCY_OPTIONS: { value: ListingUrgency; title: string; text: string }[] 
   { value: 'Urgent', title: 'Acil', text: '7 gün boyunca listenin en üstünde görünür. Aynı anda bir acil ilanınız olabilir.' },
 ];
 
+/** End-date choices: listings stay live until closed, or for a set time */
+const EXPIRY_OPTIONS: { days: number | null; label: string }[] = [
+  { days: null, label: 'Süresiz' },
+  { days: 7, label: '1 hafta' },
+  { days: 14, label: '2 hafta' },
+  { days: 30, label: '1 ay' },
+  { days: 90, label: '3 ay' },
+];
+/** Editing: keep the current end date unless another choice is made */
+const KEEP_EXPIRY = 'keep';
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+
 const toValues = (need: Need): ListingFormValues => ({
   title: need.title ?? '',
   description: need.description ?? '',
@@ -97,6 +112,10 @@ const CreateNeedScreen: React.FC = () => {
   const [photos, setPhotos] = useState<PickedImage[]>([]);
   const [saving, setSaving] = useState(false);
   const [existingNeed, setExistingNeed] = useState<Need | null>(null);
+  // Editing: photos already on the listing, and the ones the owner removed
+  const [keptImages, setKeptImages] = useState<{ id: number; url: string }[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
+  const [expiryChoice, setExpiryChoice] = useState<number | null | typeof KEEP_EXPIRY>(isEdit ? KEEP_EXPIRY : null);
   const [needLoading, setNeedLoading] = useState(isEdit);
   const questions = prefill?.questions ?? [];
   const product = prefill?.product ?? null;
@@ -140,6 +159,7 @@ const CreateNeedScreen: React.FC = () => {
         }
         const loaded = toValues(need);
         setExistingNeed(need);
+        setKeptImages(need.imageItems ?? []);
         setValues(loaded);
         setInitialValues(loaded);
       } catch (err: any) {
@@ -159,7 +179,11 @@ const CreateNeedScreen: React.FC = () => {
   // ---- leaving with unsaved content asks first (back arrow, Android back, iOS swipe)
   const savedRef = useRef(false);
   const hasUnsavedChanges = isEdit
-    ? initialValues !== null && (JSON.stringify(values) !== JSON.stringify(initialValues) || photos.length > 0)
+    ? initialValues !== null &&
+      (JSON.stringify(values) !== JSON.stringify(initialValues) ||
+        photos.length > 0 ||
+        removedImageIds.length > 0 ||
+        expiryChoice !== KEEP_EXPIRY)
     : Boolean(values.title.trim() || values.description.trim() || values.categoryId || photos.length > 0);
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -224,6 +248,8 @@ const CreateNeedScreen: React.FC = () => {
       request.maxBudget = Number(values.price);
     }
     if (values.address.trim()) request.address = values.address.trim();
+    const expiresAt = expiryDate(expiryChoice);
+    if (expiresAt) request.expiresAt = expiresAt;
 
     const created = await needAPI.createNeed(request);
     let photoNote = '';
@@ -257,8 +283,10 @@ const CreateNeedScreen: React.FC = () => {
     if (values.isFixedPrice && values.price !== initialValues.price) changes.maxBudget = Number(values.price);
     if (values.address.trim() !== initialValues.address.trim()) changes.address = values.address.trim();
     if (values.urgency !== initialValues.urgency) changes.urgency = URGENCY_TO_API[values.urgency];
+    const expiresAt = expiryDate(expiryChoice);
+    if (expiresAt) changes.expiresAt = expiresAt;
 
-    if (Object.keys(changes).length === 0 && photos.length === 0) {
+    if (Object.keys(changes).length === 0 && photos.length === 0 && removedImageIds.length === 0) {
       Alert.alert('Değişiklik Yok', 'Kaydedilecek bir değişiklik yapmadınız.');
       return;
     }
@@ -276,12 +304,16 @@ const CreateNeedScreen: React.FC = () => {
       updated = await needAPI.updateNeed(editNeedId, changes as Partial<CreateNeedRequest>);
     }
     let photoNote = '';
-    if (photos.length > 0) {
-      try {
-        await needAPI.uploadNeedImages(editNeedId, photos.map((photo) => photo.uri));
-      } catch {
-        photoNote = ' Fotoğraflar yüklenemedi; tekrar deneyin.';
+    try {
+      // Remove first, so the new photos fit within the limit of five
+      for (const imageId of removedImageIds) {
+        await needAPI.deleteNeedImage(editNeedId, imageId);
       }
+      if (photos.length > 0) {
+        await needAPI.uploadNeedImages(editNeedId, photos.map((photo) => photo.uri));
+      }
+    } catch {
+      photoNote = ' Fotoğraf değişiklikleri kaydedilemedi; tekrar deneyin.';
     }
     finish(
       'İlan Güncellendi',
@@ -290,6 +322,14 @@ const CreateNeedScreen: React.FC = () => {
         : `İlanınız güncellendi.${photoNote}`,
       () => navigation.goBack()
     );
+  };
+
+  const expiryDate = (choice: number | null | typeof KEEP_EXPIRY): string | null => {
+    if (choice === KEEP_EXPIRY || choice === null) return null;
+    const date = new Date();
+    date.setDate(date.getDate() + choice);
+    date.setHours(23, 59, 59, 0);
+    return date.toISOString();
   };
 
   const handleSubmit = async () => {
@@ -457,15 +497,30 @@ const CreateNeedScreen: React.FC = () => {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Fotoğraflar (isteğe bağlı)</Text>
           <Text style={styles.cardText}>
-            {isEdit
-              ? 'Yeni fotoğraf ekleyebilirsiniz; mevcut fotoğraflarınız korunur. En fazla 5 fotoğraf.'
-              : 'Aradığınız şeyin fotoğrafı satıcıların doğru teklif vermesine yardımcı olur. En fazla 5 fotoğraf.'}
+            Aradığınız şeyin fotoğrafı satıcıların doğru teklif vermesine yardımcı olur. En fazla 5 fotoğraf.
           </Text>
-          <ImagePickerField
-            images={photos}
-            onChange={setPhotos}
-            max={Math.max(0, 5 - (existingNeed?.images?.length ?? 0))}
-          />
+          {keptImages.length > 0 ? (
+            <View style={styles.keptRow}>
+              {keptImages.map((image, index) => (
+                <View key={image.id} style={styles.keptTile}>
+                  <Image source={{ uri: image.url }} style={styles.keptThumb} accessibilityLabel={`İlandaki ${index + 1}. fotoğraf`} />
+                  <TouchableOpacity
+                    style={styles.keptRemove}
+                    onPress={() => {
+                      setKeptImages((current) => current.filter((item) => item.id !== image.id));
+                      setRemovedImageIds((current) => [...current, image.id]);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`İlandaki ${index + 1}. fotoğrafı kaldır`}
+                    hitSlop={8}
+                  >
+                    <MaterialIcons name="close" size={16} color={colors.surface} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          <ImagePickerField images={photos} onChange={setPhotos} max={Math.max(0, 5 - keptImages.length)} />
         </View>
 
         <View style={styles.card}>
@@ -478,7 +533,7 @@ const CreateNeedScreen: React.FC = () => {
             <View style={styles.flex}>
               <Text style={styles.cardTitle}>Ayrıntılar (isteğe bağlı)</Text>
               <Text style={styles.cardTextTight}>
-                Açıklama{questions.length > 0 ? ' ve ürün bilgileri' : ''}
+                Açıklama{questions.length > 0 ? ', ürün bilgileri' : ''} ve bitiş tarihi
                 {answeredCount > 0 ? ` · ${answeredCount} bilgi seçili` : ''}
               </Text>
             </View>
@@ -524,6 +579,35 @@ const CreateNeedScreen: React.FC = () => {
                 numberOfLines={4}
                 maxLength={1500}
               />
+
+              <Text style={styles.fieldLabel}>Bitiş tarihi</Text>
+              {isEdit ? (
+                <Text style={styles.note}>
+                  {existingNeed?.expiresAt
+                    ? `Şu an ${formatDate(existingNeed.expiresAt)} tarihinde bitiyor.`
+                    : 'Şu an süresiz; siz kapatana kadar yayında kalır.'}
+                </Text>
+              ) : null}
+              <View style={styles.optionRow} accessibilityRole="radiogroup" accessibilityLabel="Bitiş tarihi">
+                {(isEdit
+                  ? [{ days: KEEP_EXPIRY as typeof KEEP_EXPIRY, label: 'Değiştirme' }, ...EXPIRY_OPTIONS.filter((o) => o.days !== null)]
+                  : EXPIRY_OPTIONS
+                ).map((option) => {
+                  const selected = expiryChoice === option.days;
+                  return (
+                    <TouchableOpacity
+                      key={option.label}
+                      onPress={() => setExpiryChoice(option.days)}
+                      style={[styles.option, selected && styles.optionSelected]}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                      accessibilityLabel={`Bitiş: ${option.label}`}
+                    >
+                      <Text style={[styles.optionText, selected && styles.optionTextSelected]}>{option.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           ) : null}
         </View>
@@ -673,6 +757,20 @@ const styles = StyleSheet.create({
   choiceIcon: { marginTop: 1, marginRight: spacing.sm },
   choiceTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   choiceText: { fontSize: 13, color: colors.textSecondary, marginTop: 2, lineHeight: 18 },
+  keptRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
+  keptTile: { width: 96, height: 96, borderRadius: 12, overflow: 'hidden' },
+  keptThumb: { width: '100%', height: '100%', backgroundColor: colors.background },
+  keptRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   detailsToggle: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
   detailsBody: { marginTop: spacing.md },
   questionBlock: { marginBottom: spacing.md },

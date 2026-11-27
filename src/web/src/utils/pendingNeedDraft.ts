@@ -10,6 +10,17 @@ export interface PendingNeedDraft extends NeedFormExtras {
 
 const STORAGE_KEY = 'arayanibul.pendingNeedDraft';
 
+// Photos cannot go into sessionStorage; they wait in memory while the visitor signs up inside the
+// app (a full page reload, e.g. a social sign-in redirect, drops them and they are added again).
+let pendingPhotos: File[] = [];
+
+export const savePendingNeedPhotos = (photos: File[]): void => {
+  pendingPhotos = [...photos];
+};
+
+/** The waiting photos; clearPendingNeedDraft forgets them. */
+export const takePendingNeedPhotos = (): File[] => [...pendingPhotos];
+
 export const savePendingNeedDraft = (draft: PendingNeedDraft): void => {
   try {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
@@ -30,6 +41,7 @@ export const loadPendingNeedDraft = (): PendingNeedDraft | null => {
 };
 
 export const clearPendingNeedDraft = (): void => {
+  pendingPhotos = [];
   try {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch {

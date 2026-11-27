@@ -125,6 +125,9 @@ Mağazalardaki eski uygulama sürümleri aynı API'yi kullanır. API'de değişi
   (`PUT /api/admin/needs/{id}/category`, onaylarken `categoryId`), yeni ret nedeni "Yanlış kategori".
 - Onay bekleyen ilan sahibine "Onay Bekliyor" olarak görünür; başkalarına hiçbir listede görünmez.
 - Teklif mesajı zorunlu ama en az 50 karakter kuralı kalktı.
+- İlan fiyat sınırı 1.000.000 TL'den (okunmayan hata mesajıyla) 100.000.000 TL'ye çıktı.
+- Mobilde bitiş tarihi seçenekleri ve düzenlemede fotoğraf silme; web'de misafirin seçtiği fotoğraflar
+  üye olduktan sonra ilanla yüklenir.
 - Mobil: Değerlendirmelerim çökmesi, profil kaydının görünmemesi, iOS'ta klavye açıkken ilk dokunuşun
   kaybolması düzeltildi; bütün alt sayfalarda sol üstte geri düğmesi.
 - `api.arayanibul.com` arama motorlarına `X-Robots-Tag: noindex` döner.
