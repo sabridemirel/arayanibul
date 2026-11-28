@@ -552,7 +552,9 @@ public class PaymentService : IPaymentService
                                                           t.Status == TransactionStatus.Processing ||
                                                           t.Status == TransactionStatus.Completed),
             RefundedTransactions = transactions.Count(t => t.Status == TransactionStatus.Refunded),
-            TotalSpent = asBuyer.Where(t => t.Status != TransactionStatus.Refunded).Sum(t => t.Amount),
+            // Money actually paid: held in escrow (Completed) or passed on to the seller (Released)
+            TotalSpent = asBuyer.Where(t => t.Status == TransactionStatus.Completed ||
+                                            t.Status == TransactionStatus.Released).Sum(t => t.Amount),
             TotalEarned = asProvider.Where(t => t.Status == TransactionStatus.Released).Sum(t => t.Amount),
             Currency = "TRY"
         };

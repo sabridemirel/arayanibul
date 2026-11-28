@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { productAPI } from '../services/api';
 import type { ProductSummary } from '../services/api';
-import { colors, spacing, borderRadius } from '../theme';
+import { colors, spacing } from '../theme';
+import ProductCard from '../src/components/ProductCard';
 
 interface ProductPriceStripProps {
   onSelect: (slug: string) => void;
@@ -11,6 +12,8 @@ interface ProductPriceStripProps {
 /** Home screen strip of "Gerçek Fiyat" products; the ones somebody is already looking for come first. */
 const ProductPriceStrip: React.FC<ProductPriceStripProps> = ({ onSelect }) => {
   const [products, setProducts] = useState<ProductSummary[]>([]);
+  // Wide cards like the listing cards below, with the next one peeking in
+  const cardWidth = Math.min(useWindowDimensions().width * 0.85, 420);
 
   useEffect(() => {
     productAPI
@@ -28,25 +31,10 @@ const ProductPriceStrip: React.FC<ProductPriceStripProps> = ({ onSelect }) => {
       <Text style={styles.title} accessibilityRole="header">
         Alıcısı hazır ürünler
       </Text>
-      <Text style={styles.subtitle}>Bu fiyatlara şu an alıcı var.</Text>
+      <Text style={styles.subtitle}>Bu fiyatlara şu an alıcı var. Elinizde varsa teklif verin.</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {products.map((product) => (
-          <TouchableOpacity
-            key={product.id}
-            onPress={() => onSelect(product.slug)}
-            style={styles.card}
-            accessibilityRole="button"
-            accessibilityLabel={`${product.name}, ${
-              product.realPrice ? `${Math.round(product.realPrice).toLocaleString('tr-TR')} TL` : 'henüz fiyat yok'
-            }. Fiyat sayfasını aç`}
-          >
-            <Text style={styles.name}>{product.name}</Text>
-            <Text style={product.realPrice ? styles.price : styles.noPrice}>
-              {product.realPrice
-                ? `${Math.round(product.realPrice).toLocaleString('tr-TR')} TL`
-                : 'İlk fiyatı siz verin'}
-            </Text>
-          </TouchableOpacity>
+          <ProductCard key={product.id} product={product} onPress={onSelect} width={cardWidth} />
         ))}
       </ScrollView>
     </View>
@@ -58,21 +46,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '800', color: colors.text, paddingHorizontal: spacing.md },
   subtitle: { fontSize: 13, color: colors.textSecondary, paddingHorizontal: spacing.md, marginTop: 2 },
   row: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-  card: {
-    minWidth: 140,
-    minHeight: 64,
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    marginRight: spacing.sm,
-  },
-  name: { fontSize: 14, fontWeight: '600', color: colors.text },
-  price: { fontSize: 16, fontWeight: '700', color: colors.primary, marginTop: 2 },
-  noPrice: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
 });
 
 export default ProductPriceStrip;

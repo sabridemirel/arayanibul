@@ -777,7 +777,7 @@ public class PaymentServiceTests : IDisposable
         result.CompletedTransactions.Should().Be(2); // Released status
         result.PendingTransactions.Should().Be(1);
         result.RefundedTransactions.Should().Be(1);
-        result.TotalSpent.Should().Be(1000); // Only released transactions as buyer
+        result.TotalSpent.Should().Be(1000); // Paid as buyer: pending and refunded do not count
         result.TotalEarned.Should().Be(3000); // Released transactions as provider
         result.Currency.Should().Be("TRY");
     }

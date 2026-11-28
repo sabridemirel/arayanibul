@@ -323,11 +323,12 @@ public class UserServiceTests : IDisposable
     public async Task UploadProfileImageAsync_WithExistingImage_ShouldDeleteOldImage()
     {
         // Arrange
-        _testUser.ProfileImageUrl = "https://storage.example.com/old-profile.jpg";
+        const string oldImageUrl = "https://storage.example.com/old-profile.jpg";
+        _testUser.ProfileImageUrl = oldImageUrl;
         var mockFile = CreateMockFormFile("new-profile.jpg");
         var newImageUrl = "https://storage.example.com/new-profile.jpg";
 
-        _fileStorageServiceMock.Setup(x => x.DeleteFileAsync(_testUser.ProfileImageUrl))
+        _fileStorageServiceMock.Setup(x => x.DeleteFileAsync(oldImageUrl))
             .ReturnsAsync(true);
         _fileStorageServiceMock.Setup(x => x.UploadImageAsync(mockFile, "profiles"))
             .ReturnsAsync(newImageUrl);
@@ -339,7 +340,8 @@ public class UserServiceTests : IDisposable
 
         // Assert
         result.Should().Be(newImageUrl);
-        _fileStorageServiceMock.Verify(x => x.DeleteFileAsync(_testUser.ProfileImageUrl), Times.Once);
+        // The service replaces the user's url, so check against the old one kept above
+        _fileStorageServiceMock.Verify(x => x.DeleteFileAsync(oldImageUrl), Times.Once);
         _fileStorageServiceMock.Verify(x => x.UploadImageAsync(mockFile, "profiles"), Times.Once);
     }
 
@@ -347,9 +349,10 @@ public class UserServiceTests : IDisposable
     public async Task DeleteProfileImageAsync_WithExistingImage_ShouldDeleteImage()
     {
         // Arrange
-        _testUser.ProfileImageUrl = "https://storage.example.com/profile.jpg";
+        const string imageUrl = "https://storage.example.com/profile.jpg";
+        _testUser.ProfileImageUrl = imageUrl;
 
-        _fileStorageServiceMock.Setup(x => x.DeleteFileAsync(_testUser.ProfileImageUrl))
+        _fileStorageServiceMock.Setup(x => x.DeleteFileAsync(imageUrl))
             .ReturnsAsync(true);
         _userManagerMock.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
@@ -359,7 +362,7 @@ public class UserServiceTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        _fileStorageServiceMock.Verify(x => x.DeleteFileAsync(_testUser.ProfileImageUrl), Times.Once);
+        _fileStorageServiceMock.Verify(x => x.DeleteFileAsync(imageUrl), Times.Once);
         _userManagerMock.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Once);
     }
 

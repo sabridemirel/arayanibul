@@ -435,6 +435,7 @@ export interface ProductSummary {
   id: number;
   name: string;
   slug: string;
+  categoryId?: number;
   categoryName?: string | null;
   /** Highest price a buyer is offering right now */
   realPrice?: number | null;

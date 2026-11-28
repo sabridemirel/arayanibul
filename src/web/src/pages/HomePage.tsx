@@ -13,6 +13,7 @@ import type { Need, ProductSummary } from '../services/api';
 import { Header, Footer } from '../components/layout';
 import AppDownloadBadges from '../components/AppDownloadBadges';
 import NeedCard, { NeedCardSkeleton } from '../components/NeedCard';
+import ProductCard from '../components/ProductCard';
 import { useCategories } from '../utils/categoryVisual';
 
 const RECENT_COUNT = 12;
@@ -262,19 +263,10 @@ const HomePage: React.FC = () => {
               <p className="mt-0.5 text-sm text-text-secondary">
                 Bu fiyatlara şu an alıcı var. Elinizde varsa tek dokunuşla teklif verin.
               </p>
-              <ul className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <ul className="-mx-4 mt-3 flex snap-x gap-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
                 {products.map((product) => (
-                  <li key={product.id} className="shrink-0">
-                    <Link
-                      to={`/fiyat/${product.slug}`}
-                      className="block min-w-[10rem] rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                    >
-                      <span className="block text-sm font-semibold text-text">{product.name}</span>
-                      <span className="block text-lg font-extrabold text-primary">
-                        {product.realPrice?.toLocaleString('tr-TR')} TL
-                      </span>
-                      <span className="block text-xs text-text-secondary">{product.seekerCount} kişi arıyor</span>
-                    </Link>
+                  <li key={product.id} className="w-[85%] shrink-0 snap-start sm:w-[380px]">
+                    <ProductCard product={product} />
                   </li>
                 ))}
               </ul>

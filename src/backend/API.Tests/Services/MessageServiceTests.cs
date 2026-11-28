@@ -27,6 +27,10 @@ public class MessageServiceTests : IDisposable
         // Setup mocks
         _notificationServiceMock = new Mock<INotificationService>();
         _hubContextMock = new Mock<Microsoft.AspNetCore.SignalR.IHubContext<API.Hubs.ChatHub>>();
+        // Real-time sends go to SignalR groups; give the mock clients that accept them
+        var clientsMock = new Mock<Microsoft.AspNetCore.SignalR.IHubClients>();
+        clientsMock.Setup(c => c.Group(It.IsAny<string>())).Returns(new Mock<Microsoft.AspNetCore.SignalR.IClientProxy>().Object);
+        _hubContextMock.Setup(h => h.Clients).Returns(clientsMock.Object);
 
         _messageService = new MessageService(_context, _notificationServiceMock.Object, _hubContextMock.Object);
 

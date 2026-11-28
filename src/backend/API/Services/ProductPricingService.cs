@@ -151,6 +151,7 @@ public class ProductPricingService : IProductPricingService
         Id = product.Id,
         Name = product.Name,
         Slug = product.Slug,
+        CategoryId = product.CategoryId,
         CategoryName = string.IsNullOrWhiteSpace(product.Category?.NameTr) ? product.Category?.Name : product.Category.NameTr,
         RealPrice = listings.Where(n => n.MaxBudget > 0).Max(n => n.MaxBudget),
         SeekerCount = listings.Count
@@ -180,6 +181,7 @@ public class ProductPricingService : IProductPricingService
             Id = summary.Id,
             Name = summary.Name,
             Slug = summary.Slug,
+            CategoryId = summary.CategoryId,
             CategoryName = summary.CategoryName,
             RealPrice = summary.RealPrice,
             SeekerCount = summary.SeekerCount,

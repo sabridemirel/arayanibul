@@ -45,6 +45,7 @@ public class ProductSummary
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
+    public int CategoryId { get; set; }
     public string? CategoryName { get; set; }
     /// <summary>Highest price a buyer is offering right now; null when nobody has named a price.</summary>
     public decimal? RealPrice { get; set; }
