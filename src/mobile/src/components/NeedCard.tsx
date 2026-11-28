@@ -81,7 +81,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
         {photo ? (
           <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" onError={() => setPhotoFailed(true)} />
         ) : (
-          <MaterialIcons name={visual.icon} size={36} color={visual.foreground} />
+          <Image source={visual.image} style={styles.photo} resizeMode="cover" accessible={false} />
         )}
         {isUrgent && (
           <View style={styles.urgentTag}>

@@ -27,33 +27,36 @@ export interface CategoryVisual {
   background: string;
   /** Icon / label colour, dark enough for text on the tint */
   foreground: string;
+  /** Illustration shown on cards of listings without a photo (includes the tint) */
+  image: string;
 }
 
 /** Keyed by root category id (seeded, stable: see backend SeedData). */
 const ROOT_VISUALS: Record<number, CategoryVisual> = {
-  1: { Icon: ComputerDesktopIcon, background: '#E6EEFB', foreground: '#1D4E9E' }, // Elektronik
-  2: { Icon: HomeIcon, background: '#FBEFD9', foreground: '#8A5A00' }, // Ev & Yaşam
-  3: { Icon: WrenchScrewdriverIcon, background: '#EFE6F9', foreground: '#5A189A' }, // Hizmetler
-  4: { Icon: ShoppingBagIcon, background: '#FBE6EF', foreground: '#A11852' }, // Moda & Güzellik
-  5: { Icon: TruckIcon, background: '#E8ECEF', foreground: '#37474F' }, // Otomotiv
-  6: { Icon: HeartIcon, background: '#FBE8E6', foreground: '#A8261A' }, // Sağlık & Spor
-  7: { Icon: BookOpenIcon, background: '#E3F1F3', foreground: '#0F5E6B' }, // Eğitim & Kitap
-  8: { Icon: CakeIcon, background: '#FCEBDD', foreground: '#9A4A0B' }, // Yiyecek & İçecek
-  9: { Icon: BuildingOffice2Icon, background: '#E5F2E8', foreground: '#1E6B34' }, // Emlak
-  10: { Icon: GlobeEuropeAfricaIcon, background: '#E1F0FA', foreground: '#0B5A8A' }, // Seyahat & Turizm
-  11: { Icon: PuzzlePieceIcon, background: '#FBF3D0', foreground: '#7A5C00' }, // Bebek & Çocuk
-  12: { Icon: PawIcon, background: '#F1EAE2', foreground: '#6B4423' }, // Evcil Hayvan
+  1: { Icon: ComputerDesktopIcon, background: '#E6EEFB', foreground: '#1D4E9E', image: '/assets/categories/electronics.svg' }, // Elektronik
+  2: { Icon: HomeIcon, background: '#FBEFD9', foreground: '#8A5A00', image: '/assets/categories/home.svg' }, // Ev & Yaşam
+  3: { Icon: WrenchScrewdriverIcon, background: '#EFE6F9', foreground: '#5A189A', image: '/assets/categories/services.svg' }, // Hizmetler
+  4: { Icon: ShoppingBagIcon, background: '#FBE6EF', foreground: '#A11852', image: '/assets/categories/fashion.svg' }, // Moda & Güzellik
+  5: { Icon: TruckIcon, background: '#E8ECEF', foreground: '#37474F', image: '/assets/categories/automotive.svg' }, // Otomotiv
+  6: { Icon: HeartIcon, background: '#FBE8E6', foreground: '#A8261A', image: '/assets/categories/health.svg' }, // Sağlık & Spor
+  7: { Icon: BookOpenIcon, background: '#E3F1F3', foreground: '#0F5E6B', image: '/assets/categories/education.svg' }, // Eğitim & Kitap
+  8: { Icon: CakeIcon, background: '#FCEBDD', foreground: '#9A4A0B', image: '/assets/categories/food.svg' }, // Yiyecek & İçecek
+  9: { Icon: BuildingOffice2Icon, background: '#E5F2E8', foreground: '#1E6B34', image: '/assets/categories/realestate.svg' }, // Emlak
+  10: { Icon: GlobeEuropeAfricaIcon, background: '#E1F0FA', foreground: '#0B5A8A', image: '/assets/categories/travel.svg' }, // Seyahat & Turizm
+  11: { Icon: PuzzlePieceIcon, background: '#FBF3D0', foreground: '#7A5C00', image: '/assets/categories/baby.svg' }, // Bebek & Çocuk
+  12: { Icon: PawIcon, background: '#F1EAE2', foreground: '#6B4423', image: '/assets/categories/pets.svg' }, // Evcil Hayvan
 };
 
 /** Root categories added after the first seed have no fixed id, so they are matched by name. */
 const NAMED_VISUALS: Record<string, CategoryVisual> = {
-  'Camping & Caravan': { Icon: FireIcon, background: '#E4F2E4', foreground: '#2E6B2E' }, // Kamp & Karavan
+  'Camping & Caravan': { Icon: FireIcon, background: '#E4F2E4', foreground: '#2E6B2E', image: '/assets/categories/camping.svg' }, // Kamp & Karavan
 };
 
 const FALLBACK_VISUAL: CategoryVisual = {
   Icon: TagIcon,
   background: '#EFE6F9',
   foreground: '#5A189A',
+  image: '/assets/categories/other.svg',
 };
 
 /** Visual for a (sub)category: walks up to its root category. */

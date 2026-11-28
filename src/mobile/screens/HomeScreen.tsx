@@ -461,7 +461,7 @@ const HomeScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <BrandHeader actions={renderHeaderRightComponent()} />
-        <Loading text="İhtiyaçlar yükleniyor..." />
+        <Loading text="İlanlar yükleniyor..." />
       </View>
     );
   }

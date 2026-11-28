@@ -76,9 +76,7 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <visual.Icon className="h-10 w-10" style={{ color: visual.foreground }} aria-hidden="true" />
-          </div>
+          <img src={visual.image} alt="" className="h-full w-full object-cover" />
         )}
         {isUrgent && (
           <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-md bg-[#B45309] px-1.5 py-0.5 text-xs font-bold text-white">
