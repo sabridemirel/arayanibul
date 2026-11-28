@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPinIcon } from '@heroicons/react/24/outline';
-import { FireIcon } from '@heroicons/react/24/solid';
 import { resolveMediaUrl } from '../services/api';
 import type { Need } from '../services/api';
 import { getCategoryVisual, useCategories } from '../utils/categoryVisual';
@@ -79,9 +78,9 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, className = '' }) => {
           <img src={visual.image} alt="" className="h-full w-full object-cover" />
         )}
         {isUrgent && (
-          <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-0.5 rounded-md bg-[#B45309] px-1.5 py-0.5 text-xs font-bold text-white">
-            <FireIcon className="h-3 w-3" aria-hidden="true" />
-            Acil
+          // Corner sash across the top-left corner: its centre line meets both edges 44px from the corner
+          <span className="absolute left-[-28px] top-[13px] flex h-[18px] w-[100px] -rotate-45 items-center justify-center bg-white text-[11px] font-extrabold tracking-[0.12em] text-[#C81E1E] shadow-[0_1px_3px_rgba(43,23,72,0.35)]">
+            ACİL
           </span>
         )}
       </div>

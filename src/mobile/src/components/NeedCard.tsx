@@ -16,7 +16,7 @@ interface NeedCardProps {
   onPress: (needId: number) => void;
 }
 
-const URGENT_TAG = '#B45309';
+const URGENT_RED = '#C81E1E';
 const URGENT_BORDER = 'rgba(245, 158, 11, 0.6)';
 
 const formatPrice = (value: number) => `${Math.round(value).toLocaleString('tr-TR')} TL`;
@@ -84,9 +84,8 @@ const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
           <Image source={visual.image} style={styles.photo} resizeMode="cover" accessible={false} />
         )}
         {isUrgent && (
-          <View style={styles.urgentTag}>
-            <MaterialIcons name="local-fire-department" size={12} color="#ffffff" />
-            <Text style={styles.urgentText}>Acil</Text>
+          <View style={styles.urgentSash}>
+            <Text style={styles.urgentText}>ACİL</Text>
           </View>
         )}
       </View>
@@ -159,19 +158,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   photo: { width: '100%', height: '100%' },
-  urgentTag: {
+  // Corner sash across the top-left corner: its centre line meets both edges 44pt from the corner
+  urgentSash: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    flexDirection: 'row',
+    top: 13,
+    left: -28,
+    width: 100,
+    height: 18,
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: URGENT_TAG,
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    transform: [{ rotate: '-45deg' }],
+    shadowColor: '#2B1748',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.35,
+    shadowRadius: 2,
+    elevation: 3,
   },
-  urgentText: { fontSize: 12, fontWeight: '700', color: '#ffffff' },
+  urgentText: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, color: URGENT_RED },
   body: { flex: 1, minWidth: 0 },
   category: { fontSize: 12, fontWeight: '600' },
   title: { fontSize: 16, fontWeight: '600', color: colors.text, lineHeight: 21, marginTop: 2 },
