@@ -76,7 +76,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: 'ArayanıBUL',
   slug: 'arayanibul',
   owner: 'sabridemirel',
-  version: '1.0.6',
+  version: '1.0.7',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'arayanibul',
