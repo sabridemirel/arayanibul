@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,7 +24,7 @@ import ErrorMessage from '../components/ui/ErrorMessage';
 import BrandHeader from '../components/brand/BrandHeader';
 import MascotEmptyState from '../components/brand/MascotEmptyState';
 import AuthPromptModal from '../components/ui/AuthPromptModal';
-import ProductPriceStrip from '../components/ProductPriceStrip';
+import ListingKindFilter from '../components/ui/ListingKindFilter';
 import ConversionBanner from '../components/ui/ConversionBanner';
 import GuestWelcomeCard from '../components/ui/GuestWelcomeCard';
 import FilterModal from '../components/ui/FilterModal';
@@ -84,7 +84,12 @@ const HomeScreen: React.FC = () => {
     sortDescending: true,
   });
 
+  // Only the latest request may fill the list (quick chip taps can answer out of order)
+  const latestLoad = useRef(0);
+
   const loadNeeds = useCallback(async (refresh = false, overrideFilters?: NeedFilters) => {
+    const requestId = ++latestLoad.current;
+    const isLatest = () => requestId === latestLoad.current;
     await measureOperation('loadNeeds', async () => {
       try {
         if (refresh) {
@@ -107,6 +112,7 @@ const HomeScreen: React.FC = () => {
         // otherwise use optimized API service with caching for non-refresh requests
         if (overrideFilters !== undefined || refresh) {
           const result = await needAPI.getNeeds(searchFilters);
+          if (!isLatest()) return;
           setNeeds(result.items);
           setTotalCount(result.totalCount);
         } else {
@@ -118,6 +124,7 @@ const HomeScreen: React.FC = () => {
             longitude: searchFilters.longitude,
             radiusKm: searchFilters.radius,
             urgency: searchFilters.urgency,
+            isFixedPrice: searchFilters.isFixedPrice,
             searchText: searchFilters.search,
             page: searchFilters.page,
             pageSize: searchFilters.pageSize,
@@ -127,6 +134,7 @@ const HomeScreen: React.FC = () => {
             cache: true,
             cacheTime: 2 * 60 * 1000, // 2 minutes cache
           });
+          if (!isLatest()) return;
           const items = (Array.isArray(needsData) ? needsData : ((needsData as any)?.items || [])).map(normalizeNeed);
           const count = Array.isArray(needsData)
             ? needsData.length
@@ -135,10 +143,12 @@ const HomeScreen: React.FC = () => {
           setTotalCount(count);
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || 'İhtiyaçlar yüklenirken hata oluştu');
+        if (isLatest()) setError(err.response?.data?.message || 'İlanlar yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (isLatest()) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     });
   }, [filters, searchQuery, activeSort, measureOperation]);
@@ -483,6 +493,20 @@ const HomeScreen: React.FC = () => {
         onSortPress={() => setShowSortSheet(true)}
       />
 
+      <ListingKindFilter
+        urgentOnly={filters.urgency === 'Urgent'}
+        fixedOnly={filters.isFixedPrice === true}
+        onChange={({ urgentOnly, fixedOnly }) => {
+          const newFilters: NeedFilters = {
+            ...filters,
+            urgency: urgentOnly ? 'Urgent' : undefined,
+            isFixedPrice: fixedOnly ? true : undefined,
+          };
+          setFilters(newFilters);
+          loadNeeds(true, newFilters);
+        }}
+      />
+
       <VirtualizedList
         data={needs}
         renderItem={renderNeedItem}
@@ -498,7 +522,6 @@ const HomeScreen: React.FC = () => {
         ListEmptyComponent={renderEmptyState}
         ListHeaderComponent={
           <View>
-            <ProductPriceStrip onSelect={(slug) => navigation.navigate('ProductPrice', { slug })} />
             {renderGuestContent()}
           </View>
         }
@@ -542,7 +565,9 @@ const HomeScreen: React.FC = () => {
         filters={filters}
         categories={categories}
         userLocation={userLocation}
-        onApply={(newFilters) => {
+        onApply={(applied) => {
+          // The filter sheet does not know the "Hemen alır" chip; keep it
+          const newFilters: NeedFilters = { ...applied, isFixedPrice: filters.isFixedPrice };
           setFilters(newFilters);
           // Sync activeSort from filter modal sort selection
           if (newFilters.sortBy) {
@@ -694,7 +719,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   listContainer: {
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
     paddingBottom: 80, // Space for FAB
   },
   emptyState: {

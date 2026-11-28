@@ -97,6 +97,8 @@ public class NeedFilterRequest
     public double? Longitude { get; set; }
     public double? RadiusKm { get; set; } = 10;
     public UrgencyLevel? Urgency { get; set; }
+    /// <summary>true: only "bu fiyata hemen alırım" listings; false: only listings open to offers.</summary>
+    public bool? IsFixedPrice { get; set; }
     public NeedStatus? Status { get; set; }
     public DateTime? CreatedAfter { get; set; }
     public DateTime? CreatedBefore { get; set; }

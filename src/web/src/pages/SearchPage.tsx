@@ -43,6 +43,10 @@ const SearchPage: React.FC = () => {
   const [minBudget, setMinBudget] = useState<string>(searchParams.get('minBudget') || '');
   const [maxBudget, setMaxBudget] = useState<string>(searchParams.get('maxBudget') || '');
   const [urgency, setUrgency] = useState<string>(searchParams.get('urgency') || '');
+  // '' (all) | 'fixed' (hemen alır) | 'open' (teklife açık)
+  const [listingType, setListingType] = useState<string>(
+    searchParams.get('isFixedPrice') === 'true' ? 'fixed' : searchParams.get('isFixedPrice') === 'false' ? 'open' : ''
+  );
   const [sortBy, setSortBy] = useState<string>('');
 
   const selectedCategory = categories
@@ -113,6 +117,7 @@ const SearchPage: React.FC = () => {
     if (minBudget) filters.minBudget = parseInt(minBudget);
     if (maxBudget) filters.maxBudget = parseInt(maxBudget);
     if (urgency) filters.urgency = urgency;
+    if (listingType) filters.isFixedPrice = listingType === 'fixed';
     if (searchQuery.trim()) filters.search = searchQuery.trim();
 
     if (locationEnabled && userLatitude && userLongitude) {
@@ -128,7 +133,7 @@ const SearchPage: React.FC = () => {
     }
 
     return filters;
-  }, [selectedCategoryId, minBudget, maxBudget, urgency, searchQuery, currentPage, locationEnabled, userLatitude, userLongitude, radiusKm, sortBy]);
+  }, [selectedCategoryId, minBudget, maxBudget, urgency, listingType, searchQuery, currentPage, locationEnabled, userLatitude, userLongitude, radiusKm, sortBy]);
 
   // Perform search
   const performSearch = useCallback(async (page: number = 1, append: boolean = false) => {
@@ -166,7 +171,7 @@ const SearchPage: React.FC = () => {
   // Initial load and filter changes
   useEffect(() => {
     performSearch(1, false);
-  }, [selectedCategoryId, minBudget, maxBudget, urgency, locationEnabled, radiusKm, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCategoryId, minBudget, maxBudget, urgency, listingType, locationEnabled, radiusKm, sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle search form submit
   const handleSearch = (e: React.FormEvent) => {
@@ -183,8 +188,9 @@ const SearchPage: React.FC = () => {
     if (minBudget) params.set('minBudget', minBudget);
     if (maxBudget) params.set('maxBudget', maxBudget);
     if (urgency) params.set('urgency', urgency);
+    if (listingType) params.set('isFixedPrice', String(listingType === 'fixed'));
     setSearchParams(params);
-  }, [searchQuery, selectedCategoryId, minBudget, maxBudget, urgency, setSearchParams]);
+  }, [searchQuery, selectedCategoryId, minBudget, maxBudget, urgency, listingType, setSearchParams]);
 
   // Load more results
   const handleLoadMore = () => {
@@ -197,6 +203,7 @@ const SearchPage: React.FC = () => {
     setMinBudget('');
     setMaxBudget('');
     setUrgency('');
+    setListingType('');
     setSearchQuery('');
     setSortBy('');
     setLocationEnabled(false);
@@ -212,6 +219,7 @@ const SearchPage: React.FC = () => {
     if (selectedCategoryId) count++;
     if (minBudget || maxBudget) count++;
     if (urgency) count++;
+    if (listingType) count++;
     if (locationEnabled) count++;
     if (sortBy) count++;
     return count;
@@ -222,6 +230,12 @@ const SearchPage: React.FC = () => {
     { value: '', label: 'Tümü' },
     { value: 'Urgent', label: 'Acil' },
     { value: 'Normal', label: 'Normal' },
+  ];
+
+  const listingTypeOptions = [
+    { value: '', label: 'Tümü' },
+    { value: 'fixed', label: 'Hemen alır' },
+    { value: 'open', label: 'Teklife açık' },
   ];
 
   // Urgency label helper
@@ -373,6 +387,28 @@ const SearchPage: React.FC = () => {
                       className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-text appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
                     >
                       {urgencyOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDownIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Listing type: one price ("hemen alır") or open to offers */}
+                <div>
+                  <label htmlFor="listing-type" className="block text-sm font-medium text-text mb-1">
+                    İlan türü
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="listing-type"
+                      value={listingType}
+                      onChange={(e) => setListingType(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-text appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+                    >
+                      {listingTypeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -585,10 +621,24 @@ const SearchPage: React.FC = () => {
                       </span>
                     )}
 
+                    {listingType && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                        {listingType === 'fixed' ? 'Hemen alır' : 'Teklife açık'}
+                        <button
+                          type="button"
+                          onClick={() => setListingType('')}
+                          aria-label="İlan türü filtresini kaldır"
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XMarkIcon className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    )}
+
                     {locationEnabled && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600">
                         <MapPinIcon className="h-3.5 w-3.5" />
-                        {radiusKm} km yakinimda
+                        {radiusKm} km yakınımda
                         <button
                           type="button"
                           onClick={() => { setLocationEnabled(false); setUserLatitude(undefined); setUserLongitude(undefined); }}

@@ -290,6 +290,11 @@ public class NeedService : INeedService
             query = query.Where(n => n.Urgency == filter.Urgency.Value);
         }
 
+        if (filter.IsFixedPrice.HasValue)
+        {
+            query = query.Where(n => n.IsFixedPrice == filter.IsFixedPrice.Value);
+        }
+
         if (publicOnly)
         {
             // Unmoderated, rejected or closed needs are never public.

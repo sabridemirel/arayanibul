@@ -70,7 +70,7 @@ const GuestWelcomeCard: React.FC<GuestWelcomeCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: spacing.lg,
+    // Shown inside the home list, which already has the side padding
     marginVertical: spacing.md,
     padding: spacing.lg,
   },

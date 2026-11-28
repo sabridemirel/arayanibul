@@ -8,25 +8,26 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
-import { needAPI, productAPI } from '../services/api';
-import type { Need, ProductSummary } from '../services/api';
+import { needAPI } from '../services/api';
+import type { Need } from '../services/api';
 import { Header, Footer } from '../components/layout';
 import AppDownloadBadges from '../components/AppDownloadBadges';
 import NeedCard, { NeedCardSkeleton } from '../components/NeedCard';
-import ProductCard from '../components/ProductCard';
-import { useCategories } from '../utils/categoryVisual';
 
-const RECENT_COUNT = 12;
-const URGENT_COUNT = 6;
+const LISTING_COUNT = 12;
+
+const chipClass = (selected: boolean) =>
+  `inline-flex min-h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+    selected
+      ? 'border-primary bg-primary text-white'
+      : 'border-border bg-surface text-text hover:border-primary hover:text-primary'
+  }`;
 
 const HOW_IT_WORKS = [
-  { title: 'İlan verin', text: 'Ne aradığınızı ve bütçenizi yazın. İlan vermek ücretsiz.' },
+  { title: 'İlan verin', text: 'Ne aradığınızı yazın; isterseniz hemen alacağınız fiyatı da belirtin. İlan vermek ücretsiz.' },
   { title: 'Teklifleri karşılaştırın', text: 'Satıcılar ilanınızı görür ve size teklif verir.' },
   { title: 'Anlaşın', text: 'Size uygun teklifi seçin, satıcıyla mesajlaşıp anlaşın.' },
 ];
-
-const isShowcased = (need: Need) =>
-  need.urgency === 'Urgent' && (!need.urgentUntil || new Date(need.urgentUntil) > new Date());
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -36,26 +37,14 @@ const HomePage: React.FC = () => {
     () => (location.state as { flash?: string } | null)?.flash ?? null
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [urgentNeeds, setUrgentNeeds] = useState<Need[]>([]);
-  const [recentNeeds, setRecentNeeds] = useState<Need[]>([]);
-  const [isLoadingNeeds, setIsLoadingNeeds] = useState(true);
-  const categories = useCategories();
-  const [products, setProducts] = useState<ProductSummary[]>([]);
-
-  useEffect(() => {
-    productAPI
-      .search('')
-      .then((result) =>
-        // The API sends only products with a live price, most sought first
-        setProducts(result.filter((product) => product.realPrice != null).slice(0, 8))
-      )
-      .catch(() => {
-        // The strip is simply not shown
-      });
-  }, []);
-  const rootCategories = categories
-    .filter((category) => !category.parentCategoryId)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  // Kind filter: both on = urgent "hemen alır" listings
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [fixedOnly, setFixedOnly] = useState(false);
+  const filterKey = `${urgentOnly}-${fixedOnly}`;
+  // The list and the filter it was loaded for; a different key means it is still loading
+  const [loaded, setLoaded] = useState<{ key: string; needs: Need[] } | null>(null);
+  const isLoadingNeeds = loaded?.key !== filterKey;
+  const needs = loaded?.needs ?? [];
 
   // Drop the flash state so it does not reappear on refresh / back navigation
   useEffect(() => {
@@ -65,30 +54,27 @@ const HomePage: React.FC = () => {
   }, [location.state, location.pathname, navigate]);
 
   useEffect(() => {
-    const fetchNeeds = async () => {
-      // The showcase is optional: the page still works if this request fails.
-      const [urgentResult, recentResult] = await Promise.allSettled([
-        needAPI.getNeeds({ urgency: 'Urgent', page: 1, pageSize: URGENT_COUNT }),
-        needAPI.getNeeds({ page: 1, pageSize: RECENT_COUNT + URGENT_COUNT }),
-      ]);
-
-      const urgent = urgentResult.status === 'fulfilled' ? urgentResult.value.filter(isShowcased) : [];
-      const urgentIds = new Set(urgent.map((need) => need.id));
-      setUrgentNeeds(urgent);
-
-      if (recentResult.status === 'fulfilled') {
-        // Needs already shown in the showcase are not repeated below it
-        setRecentNeeds(
-          recentResult.value.filter((need) => !urgentIds.has(need.id)).slice(0, RECENT_COUNT)
-        );
-      } else {
-        console.error('Error fetching needs:', recentResult.reason);
-      }
-      setIsLoadingNeeds(false);
+    let cancelled = false;
+    const key = `${urgentOnly}-${fixedOnly}`;
+    // Showcased urgent listings come first in the API's default order
+    needAPI
+      .getNeeds({
+        page: 1,
+        pageSize: LISTING_COUNT,
+        urgency: urgentOnly ? 'Urgent' : undefined,
+        isFixedPrice: fixedOnly ? true : undefined,
+      })
+      .then((result) => {
+        if (!cancelled) setLoaded({ key, needs: result });
+      })
+      .catch((error) => {
+        console.error('Error fetching needs:', error);
+        if (!cancelled) setLoaded({ key, needs: [] });
+      });
+    return () => {
+      cancelled = true;
     };
-
-    fetchNeeds();
-  }, []);
+  }, [urgentOnly, fixedOnly]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +99,10 @@ const HomePage: React.FC = () => {
 
   // Anyone can start writing a listing; signing in is asked for when publishing
   const createNeedPath = '/create-need';
-  const hasNoNeeds = !isLoadingNeeds && urgentNeeds.length === 0 && recentNeeds.length === 0;
+  const allListingsParams = new URLSearchParams();
+  if (urgentOnly) allListingsParams.set('urgency', 'Urgent');
+  if (fixedOnly) allListingsParams.set('isFixedPrice', 'true');
+  const allListingsPath = allListingsParams.size ? `/needs?${allListingsParams}` : '/needs';
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -182,112 +171,51 @@ const HomePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Category chips */}
-        {rootCategories.length > 0 && (
-          <nav aria-label="Kategoriler" className="border-b border-border bg-surface">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <ul className="flex gap-2 overflow-x-auto py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <li className="shrink-0">
-                  <Link
-                    to="/needs"
-                    className="block rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-white"
-                  >
-                    Tüm İlanlar
-                  </Link>
-                </li>
-                {rootCategories.map((category) => (
-                  <li key={category.id} className="shrink-0">
-                    <Link
-                      to={`/needs?categoryId=${category.id}`}
-                      className="block rounded-full border border-border px-4 py-1.5 text-sm font-medium text-text transition-colors hover:border-primary hover:text-primary"
-                    >
-                      {category.nameTr || category.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </nav>
-        )}
-
-        {/* Urgent showcase */}
-        {urgentNeeds.length > 0 && (
-          <section aria-labelledby="urgent-heading" className="border-b border-[#F5DFB3] bg-[#FFF6E3]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <div className="mb-4 flex items-end justify-between gap-4">
-                <div>
-                  <h2 id="urgent-heading" className="flex items-center gap-2 text-xl font-extrabold text-[#7C2D12]">
-                    <FireIcon className="h-6 w-6 text-[#D97706]" aria-hidden="true" />
-                    Acil İlanlar
-                  </h2>
-                  <p className="text-sm text-[#7C2D12]/80">Hemen teklif bekleyen ilanlar.</p>
-                </div>
-                <Link
-                  to="/needs?urgency=Urgent"
-                  className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[#9A3412] hover:underline"
-                >
-                  Tümünü Gör
-                  <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </div>
-
-              <ul className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-                {urgentNeeds.map((need) => (
-                  <li key={need.id} className="w-[85%] shrink-0 snap-start sm:w-[380px]">
-                    <NeedCard need={need} />
-                  </li>
-                ))}
-                <li className="w-[85%] shrink-0 snap-start sm:w-[380px]">
-                  <Link
-                    to={createNeedPath}
-                    className="flex h-full min-h-[7.5rem] flex-col justify-center rounded-xl border-2 border-dashed border-[#E9B866] px-5 py-4 transition-colors hover:bg-[#FFEDC7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9A3412]"
-                  >
-                    <span className="font-bold text-[#7C2D12]">İlanınız burada yer alsın</span>
-                    <span className="mt-1 text-sm text-[#7C2D12]/80">
-                      İlan verirken “Acil”i seçin; ilanınız 7 gün boyunca en üstte görünsün.
-                    </span>
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </section>
-        )}
-
-        {/* "Gerçek Fiyat": only products a buyer has named a price for; hidden until there is one */}
-        {products.length > 0 && (
-          <section aria-labelledby="prices-heading" className="border-b border-border bg-surface">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-              <h2 id="prices-heading" className="text-lg font-extrabold text-text">
-                Alıcısı hazır ürünler
-              </h2>
-              <p className="mt-0.5 text-sm text-text-secondary">
-                Bu fiyatlara şu an alıcı var. Elinizde varsa tek dokunuşla teklif verin.
-              </p>
-              <ul className="-mx-4 mt-3 flex snap-x gap-4 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-                {products.map((product) => (
-                  <li key={product.id} className="w-[85%] shrink-0 snap-start sm:w-[380px]">
-                    <ProductCard product={product} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </section>
-        )}
-
-        {/* Recent needs */}
-        <section aria-labelledby="recent-heading" className="py-8">
+        {/* Listings: one list for all four kinds, narrowed with the kind filter */}
+        <section aria-labelledby="listings-heading" className="py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 id="recent-heading" className="text-xl font-extrabold text-text">
-                Son İlanlar
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <h2 id="listings-heading" className="text-xl font-extrabold text-text">
+                İlanlar
               </h2>
               <Link
-                to="/needs"
+                to={allListingsPath}
                 className="flex shrink-0 items-center gap-1 text-sm font-semibold text-primary hover:underline"
               >
                 Tümünü Gör
                 <ArrowRightIcon className="h-4 w-4" aria-hidden="true" />
               </Link>
+            </div>
+
+            <div role="group" aria-label="İlan türü" className="mb-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                aria-pressed={!urgentOnly && !fixedOnly}
+                onClick={() => {
+                  setUrgentOnly(false);
+                  setFixedOnly(false);
+                }}
+                className={chipClass(!urgentOnly && !fixedOnly)}
+              >
+                Tümü
+              </button>
+              <button
+                type="button"
+                aria-pressed={urgentOnly}
+                onClick={() => setUrgentOnly((value) => !value)}
+                className={chipClass(urgentOnly)}
+              >
+                <FireIcon className="h-4 w-4" aria-hidden="true" />
+                Acil
+              </button>
+              <button
+                type="button"
+                aria-pressed={fixedOnly}
+                onClick={() => setFixedOnly((value) => !value)}
+                className={chipClass(fixedOnly)}
+              >
+                Hemen alır
+              </button>
             </div>
 
             {isLoadingNeeds ? (
@@ -296,10 +224,12 @@ const HomePage: React.FC = () => {
                   <NeedCardSkeleton key={index} />
                 ))}
               </div>
-            ) : hasNoNeeds ? (
+            ) : needs.length === 0 ? (
               <div className="rounded-xl border border-border bg-surface px-6 py-12 text-center">
                 <p className="mb-4 text-text-secondary">
-                  Henüz yayında ilan yok. İlk ilanı siz verin, satıcılar size teklif getirsin.
+                  {urgentOnly || fixedOnly
+                    ? 'Bu türde yayında ilan yok. Filtreyi kaldırıp tüm ilanlara bakabilir ya da kendi ilanınızı verebilirsiniz.'
+                    : 'Henüz yayında ilan yok. İlk ilanı siz verin, satıcılar size teklif getirsin.'}
                 </p>
                 <Link
                   to={createNeedPath}
@@ -309,11 +239,9 @@ const HomePage: React.FC = () => {
                   İlan Ver
                 </Link>
               </div>
-            ) : recentNeeds.length === 0 ? (
-              <p className="text-text-secondary">Şu anda yayındaki tüm ilanlar acil ilanlar arasında.</p>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {recentNeeds.map((need) => (
+                {needs.map((need) => (
                   <NeedCard key={need.id} need={need} />
                 ))}
               </div>

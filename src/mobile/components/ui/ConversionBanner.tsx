@@ -142,7 +142,7 @@ const ConversionBanner: React.FC<ConversionBannerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: spacing.lg,
+    // Shown inside the home list, which already has the side padding
     marginVertical: spacing.md,
     borderRadius: 12,
     padding: spacing.md,

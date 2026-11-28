@@ -166,6 +166,42 @@ public class NeedServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetNeedsAsync_FilteringByKind_ReturnsOnlyThatKind()
+    {
+        // The four kinds: open/fixed price x normal/urgent
+        Need Add(string title, bool fixedPrice, UrgencyLevel urgency) => _context.Needs.Add(new Need
+        {
+            Title = title,
+            Description = "Kind filter test",
+            CategoryId = 1,
+            UserId = "test-user-id",
+            Status = NeedStatus.Active,
+            IsFixedPrice = fixedPrice,
+            MaxBudget = fixedPrice ? 1000 : null,
+            Urgency = urgency,
+            CreatedAt = DateTime.UtcNow
+        }).Entity;
+        var open = Add("open normal", false, UrgencyLevel.Normal);
+        var openUrgent = Add("open urgent", false, UrgencyLevel.Urgent);
+        var fixedNormal = Add("fixed normal", true, UrgencyLevel.Normal);
+        var fixedUrgent = Add("fixed urgent", true, UrgencyLevel.Urgent);
+        await _context.SaveChangesAsync();
+
+        async Task<IEnumerable<int>> Ids(NeedFilterRequest filter) =>
+            (await _needService.GetNeedsAsync(filter)).Items.Select(n => n.Id)
+                .Where(id => new[] { open.Id, openUrgent.Id, fixedNormal.Id, fixedUrgent.Id }.Contains(id));
+
+        (await Ids(new NeedFilterRequest { IsFixedPrice = true }))
+            .Should().BeEquivalentTo(new[] { fixedNormal.Id, fixedUrgent.Id });
+        (await Ids(new NeedFilterRequest { Urgency = UrgencyLevel.Urgent }))
+            .Should().BeEquivalentTo(new[] { openUrgent.Id, fixedUrgent.Id });
+        (await Ids(new NeedFilterRequest { Urgency = UrgencyLevel.Urgent, IsFixedPrice = true }))
+            .Should().BeEquivalentTo(new[] { fixedUrgent.Id });
+        (await Ids(new NeedFilterRequest()))
+            .Should().HaveCount(4);
+    }
+
+    [Fact]
     public async Task UpdateNeedAsync_ReopeningCancelledUrgentNeed_ShouldNotCreateSecondSlot()
     {
         var first = await _needService.CreateNeedAsync(UrgentRequest("Urgent one"), "test-user-id");

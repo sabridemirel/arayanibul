@@ -1,494 +1,191 @@
-// NeedCard.tsx - Modern, eye-catching Need card component
-import React, { useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Image,
-  Platform,
-} from 'react-native';
+// Listing card, laid out like the web card (src/web/src/components/NeedCard.tsx) so a listing looks
+// the same everywhere. Two fixed marks tell the four kinds apart:
+//   - urgency: an "Acil" tag in the corner of the square (or nothing)
+//   - type: the price line, "15.000 TL [Hemen alır]" or "Teklife açık"
+// The square on the left is the first photo, or a category-coloured tile when there is none,
+// so cards line up whether or not a photo was added.
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Need } from '../../types';
 import { colors, spacing } from '../../theme';
-import { getCategoryColor, getCategoryTextColor, getCategoryColorWithOpacity } from '../../utils/categoryUtils';
+import { getCategoryVisual, useCategories } from '../../utils/categoryVisual';
 
 interface NeedCardProps {
   need: Need;
   onPress: (needId: number) => void;
 }
 
+const URGENT_TAG = '#B45309';
+const URGENT_BORDER = 'rgba(245, 158, 11, 0.6)';
+
+const formatPrice = (value: number) => `${Math.round(value).toLocaleString('tr-TR')} TL`;
+
+/** Older listings may still carry a budget range; fixed-price listings carry one price. */
+const formatBudget = (need: Need): string | null => {
+  if (need.isFixedPrice && need.maxBudget) return formatPrice(need.maxBudget);
+  const { minBudget, maxBudget } = need;
+  if (minBudget && maxBudget) {
+    return minBudget === maxBudget ? formatPrice(maxBudget) : `${formatPrice(minBudget)} – ${formatPrice(maxBudget)}`;
+  }
+  if (maxBudget) return `En fazla ${formatPrice(maxBudget)}`;
+  if (minBudget) return `En az ${formatPrice(minBudget)}`;
+  return null;
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const diffInHours = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60));
+  if (diffInHours < 1) return 'Az önce';
+  if (diffInHours < 24) return `${diffInHours} saat önce`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 7) return `${diffInDays} gün önce`;
+  return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+};
+
 const NeedCard: React.FC<NeedCardProps> = ({ need, onPress }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.98,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 10,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 10,
-    }).start();
-  };
-
-  const getUrgencyConfig = (urgency: string) => {
-    switch (urgency) {
-      case 'Urgent':
-        return {
-          color: colors.secondaryOrangeDark, // Dark orange (4.52:1 - WCAG AA with white text)
-          text: 'ACİL',
-          icon: 'priority-high' as const,
-        };
-      case 'Normal':
-        return {
-          color: colors.primary, // Purple (4.88:1 - WCAG AA)
-          text: 'NORMAL',
-          icon: 'schedule' as const,
-        };
-      case 'Flexible':
-        return {
-          color: colors.flexible, // Green (4.56:1 - WCAG AA)
-          text: 'ESNEK',
-          icon: 'event-available' as const,
-        };
-      default:
-        return {
-          color: colors.textSecondary,
-          text: urgency.toUpperCase(),
-          icon: 'schedule' as const,
-        };
-    }
-  };
-
-  const formatBudget = (minBudget?: number, maxBudget?: number, currency = 'TRY') => {
-    if (!minBudget && !maxBudget) return null;
-
-    const symbol = currency === 'TRY' ? '₺' : currency;
-
-    if (minBudget && maxBudget) {
-      return `${symbol}${minBudget.toLocaleString('tr-TR')} - ${symbol}${maxBudget.toLocaleString('tr-TR')}`;
-    }
-    if (minBudget) {
-      return `${symbol}${minBudget.toLocaleString('tr-TR')}+`;
-    }
-    if (maxBudget) {
-      return `Max ${symbol}${maxBudget.toLocaleString('tr-TR')}`;
-    }
-    return null;
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-      return diffInMinutes < 1 ? 'Az önce' : `${diffInMinutes} dk önce`;
-    }
-    if (diffInHours < 24) return `${diffInHours} sa önce`;
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} gün önce`;
-
-    return date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-  };
-
-  const urgencyConfig = getUrgencyConfig(need.urgency);
+  const categories = useCategories();
+  const visual = getCategoryVisual(need.categoryId, categories);
+  // A photo that fails to load falls back to the category tile
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const photo = photoFailed ? undefined : need.images?.[0];
   const isUrgent = need.urgency === 'Urgent';
-  const budgetText = need.isFixedPrice && need.maxBudget
-    ? `Hemen alır: ${need.maxBudget.toLocaleString('tr-TR')} TL`
-    : formatBudget(need.minBudget, need.maxBudget, need.currency);
-  // A photo that fails to load is treated as missing instead of leaving an empty box
-  const [imageFailed, setImageFailed] = useState(false);
-  const hasImage = !imageFailed && need.images && need.images.length > 0;
+  const isFixedPrice = Boolean(need.isFixedPrice && need.maxBudget);
+  const budget = formatBudget(need);
+  const categoryName = need.category?.nameTr || need.category?.name;
+  const offerCount = need.offerCount ?? 0;
+  const age = formatDate(need.createdAt);
 
-  // Category colors
-  const categoryColor = getCategoryColor(need.categoryId);
-  const categoryTextColor = getCategoryTextColor(need.categoryId);
-  const categoryBgColor = getCategoryColorWithOpacity(need.categoryId, 0.15);
-
-  // Accessibility label for screen readers
-  const accessibilityLabel = `${need.title}. ${need.description}. ${isUrgent ? 'Acil ilan. ' : ''}${
-    need.category?.nameTr || 'Kategori belirtilmemiş'
-  }. ${budgetText || 'Teklife açık'}. ${
-    need.user?.firstName || 'Kullanıcı'
-  } tarafından ${formatDate(need.createdAt)} paylaşıldı${
-    need.offerCount ? `. ${need.offerCount} teklif var` : ''
-  }.`;
+  const accessibilityLabel = [
+    isUrgent ? 'Acil ilan' : null,
+    need.title,
+    categoryName,
+    budget ? (isFixedPrice ? `Hemen alır, ${budget}` : budget) : 'Teklife açık',
+    need.address,
+    offerCount > 0 ? `${offerCount} teklif` : null,
+    age,
+  ]
+    .filter(Boolean)
+    .join('. ');
 
   return (
-    <Animated.View style={[styles.container, { transform: [{ scale: scaleAnim }] }]}>
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={() => onPress(need.id)}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint="Bu ihtiyacın detaylarını görüntülemek için dokunun"
-      >
-        <View style={[styles.card, isUrgent && styles.cardUrgent]}>
-          {/* Only urgent needs carry a badge; a label on every card would make it meaningless */}
-          {isUrgent && (
-            <View
-              style={[styles.urgencyBadge, { backgroundColor: urgencyConfig.color }]}
-              accessible={false} // Parent TouchableOpacity handles accessibility
-            >
-              <MaterialIcons name={urgencyConfig.icon} size={14} color="#ffffff" />
-              <Text style={styles.urgencyText} allowFontScaling={true} accessible={false}>
-                {urgencyConfig.text}
-              </Text>
-            </View>
-          )}
+    <TouchableOpacity
+      activeOpacity={0.85}
+      onPress={() => onPress(need.id)}
+      style={[styles.card, isUrgent && styles.cardUrgent]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint="İlanın ayrıntılarını açar"
+    >
+      <View style={[styles.tile, !photo && { backgroundColor: visual.background }]}>
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.photo} resizeMode="cover" onError={() => setPhotoFailed(true)} />
+        ) : (
+          <MaterialIcons name={visual.icon} size={36} color={visual.foreground} />
+        )}
+        {isUrgent && (
+          <View style={styles.urgentTag}>
+            <MaterialIcons name="local-fire-department" size={12} color="#ffffff" />
+            <Text style={styles.urgentText}>Acil</Text>
+          </View>
+        )}
+      </View>
 
-          {/* Content Container */}
-          <View style={styles.contentContainer}>
-            {/* Image Thumbnail - Left Side */}
-            {hasImage && (
-              <View style={styles.imageContainer}>
-                <Image
-                  source={{ uri: need.images![0] }}
-                  style={styles.thumbnail}
-                  resizeMode="cover"
-                  onError={() => setImageFailed(true)}
-                />
+      <View style={styles.body}>
+        {categoryName ? (
+          <Text style={[styles.category, { color: visual.foreground }]} numberOfLines={1}>
+            {categoryName}
+          </Text>
+        ) : null}
+        <Text style={styles.title} numberOfLines={2}>
+          {need.title}
+        </Text>
+        <Text style={styles.description} numberOfLines={1}>
+          {need.description}
+        </Text>
+
+        <View style={styles.bottom}>
+          <View style={styles.priceRow}>
+            <Text style={budget ? styles.price : styles.open}>{budget ?? 'Teklife açık'}</Text>
+            {isFixedPrice && (
+              <View style={styles.fixedTag}>
+                <Text style={styles.fixedText}>Hemen alır</Text>
               </View>
             )}
-
-            {/* Text Content */}
-            <View style={[styles.textContent, !hasImage && styles.textContentFull]}>
-              {/* Title - 18px Bold */}
-              <Text
-                style={[styles.title, !isUrgent && styles.titleNoBadge]}
-                numberOfLines={2}
-                allowFontScaling={true}
-                accessible={false}
-              >
-                {need.title}
-              </Text>
-
-              {/* Description - 14px, 2 lines */}
-              <Text
-                style={styles.description}
-                numberOfLines={2}
-                allowFontScaling={true}
-                accessible={false}
-              >
-                {need.description}
-              </Text>
-
-              {/* Meta Info Row */}
-              <View style={styles.metaRow}>
-                {/* Category - Color Coded */}
-                <View style={[styles.categoryBadge, { backgroundColor: categoryBgColor }]}>
-                  <MaterialIcons name="category" size={14} color={categoryColor} />
-                  <Text
-                    style={[styles.categoryText, { color: categoryColor }]}
-                    numberOfLines={1}
-                    allowFontScaling={true}
-                    accessible={false}
-                  >
-                    {need.category?.nameTr || 'Kategori'}
-                  </Text>
-                </View>
-
-                {/* Budget */}
-                {budgetText && (
-                  <View style={styles.budgetBadge}>
-                    <MaterialIcons name="payments" size={16} color={colors.secondaryOrangeDark} />
-                    <Text
-                      style={styles.budgetText}
-                      numberOfLines={1}
-                      allowFontScaling={true}
-                      accessible={false}
-                    >
-                      {budgetText}
-                    </Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Footer Row */}
-              <View style={styles.footerRow}>
-                {/* User Info */}
-                <View style={styles.userInfo}>
-                  <MaterialIcons name="account-circle" size={14} color={colors.textSecondary} />
-                  <Text
-                    style={styles.userText}
-                    numberOfLines={1}
-                    allowFontScaling={true}
-                    accessible={false}
-                  >
-                    {need.user?.firstName || 'Kullanıcı'}
-                  </Text>
-                </View>
-
-                {/* Time and Offers */}
-                <View style={styles.rightInfo}>
-                  <Text style={styles.timeText} allowFontScaling={true} accessible={false}>
-                    {formatDate(need.createdAt)}
-                  </Text>
-                  {need.offerCount !== undefined && need.offerCount > 0 && (
-                    <View style={styles.offerBadge}>
-                      <MaterialIcons name="local-offer" size={12} color="#ffffff" />
-                      <Text style={styles.offerText} allowFontScaling={true} accessible={false}>
-                        {need.offerCount}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </View>
           </View>
-
-          {/* Location - Full Width Bottom */}
-          {need.address && (
-            <View style={styles.locationBar}>
-              <MaterialIcons name="location-on" size={14} color={colors.error} />
-              <Text
-                style={styles.locationText}
-                numberOfLines={1}
-                allowFontScaling={true}
-                accessible={false}
-              >
-                {need.address}
-              </Text>
+          <View style={styles.metaRow}>
+            <View style={styles.location}>
+              {need.address ? (
+                <>
+                  <MaterialIcons name="place" size={14} color={colors.textSecondary} />
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {need.address}
+                  </Text>
+                </>
+              ) : null}
             </View>
-          )}
+            <Text style={styles.meta}>
+              {offerCount > 0 ? <Text style={styles.offers}>{offerCount} teklif  </Text> : null}
+              {age}
+            </Text>
+          </View>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+      </View>
+    </TouchableOpacity>
   );
 };
 
+const TILE = 88;
+
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: spacing.lg,
-  },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-
-    // Enhanced shadow with purple tint
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-
-  cardUrgent: {
-    borderWidth: 1.5,
-    borderColor: colors.secondaryOrange,
-  },
-  titleNoBadge: {
-    paddingRight: 0,
-  },
-
-  // Prominent Urgency Badge
-  urgencyBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 24,
-    gap: 4,
-    zIndex: 10,
-
-    // Enhanced badge shadow
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  urgencyText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#ffffff',
-    letterSpacing: 0.8,
-  },
-
-  // Content Layout
-  contentContainer: {
-    flexDirection: 'row',
-    padding: spacing.md,
-  },
-  imageContainer: {
-    width: 100,
-    height: 100,
+    gap: 14,
+    padding: 12,
+    marginBottom: spacing.md,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  cardUrgent: { borderColor: URGENT_BORDER },
+  tile: {
+    width: TILE,
+    height: TILE,
+    borderRadius: 10,
     overflow: 'hidden',
-    marginRight: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.background,
   },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  textContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  textContentFull: {
-    // When no image
-  },
-
-  // Typography - Enhanced Hierarchy
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    lineHeight: 24,
-    marginBottom: 6,
-    // Leave room for the urgency badge pinned to the card's top-right corner
-    paddingRight: 96,
-  },
-  description: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 10,
-  },
-
-  // Meta Info
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
-  },
-  categoryBadge: {
+  photo: { width: '100%', height: '100%' },
+  urgentTag: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    // backgroundColor applied inline with category color
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    maxWidth: '48%',
+    gap: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: URGENT_TAG,
   },
-  categoryText: {
-    fontSize: 13,
-    fontWeight: '600',
-    // color applied inline with category color
-  },
-  budgetBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: colors.secondaryOrangeLight,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
-    maxWidth: '48%',
-  },
-  budgetText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.secondaryOrangeDark,
-  },
-
-  // Footer
-  footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    flex: 1,
-  },
-  userText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  rightInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  timeText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    fontWeight: '400',
-  },
-  offerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.secondaryOrangeDark,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
-    gap: 4,
-
-    // Badge shadow
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.secondaryOrangeDark,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  offerText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-  },
-
-  // Location Bar
-  locationBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    // Same white as the card so the strip reads as part of it, not the page behind
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  locationText: {
-    flex: 1,
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
+  urgentText: { fontSize: 12, fontWeight: '700', color: '#ffffff' },
+  body: { flex: 1, minWidth: 0 },
+  category: { fontSize: 12, fontWeight: '600' },
+  title: { fontSize: 16, fontWeight: '600', color: colors.text, lineHeight: 21, marginTop: 2 },
+  description: { fontSize: 14, color: colors.textSecondary, marginTop: 4 },
+  bottom: { marginTop: 'auto', paddingTop: 8 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  price: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  open: { fontSize: 14, color: colors.textSecondary },
+  fixedTag: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: '#F1E9FA' },
+  fixedText: { fontSize: 12, fontWeight: '600', color: colors.primaryDark },
+  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 },
+  location: { flexDirection: 'row', alignItems: 'center', gap: 2, flex: 1, minWidth: 0 },
+  meta: { fontSize: 12, color: colors.textSecondary },
+  offers: { fontWeight: '600', color: colors.primary },
 });
 
 export default NeedCard;

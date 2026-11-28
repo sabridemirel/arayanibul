@@ -362,6 +362,8 @@ export interface NeedFilters {
   longitude?: number;
   radius?: number;
   urgency?: string;
+  /** true: only "hemen alır" listings; false: only listings open to offers */
+  isFixedPrice?: boolean;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -635,6 +637,7 @@ export const needAPI = {
       longitude: filters.longitude,
       radiusKm: filters.radius,
       urgency: filters.urgency,
+      isFixedPrice: filters.isFixedPrice,
       searchText: filters.search,
       page: filters.page,
       pageSize: filters.pageSize,
@@ -796,6 +799,7 @@ export const searchAPI = {
       minBudget: filters.minBudget,
       maxBudget: filters.maxBudget,
       urgency: filters.urgency,
+      isFixedPrice: filters.isFixedPrice,
       latitude: filters.latitude,
       longitude: filters.longitude,
       radiusKm: filters.radius,
